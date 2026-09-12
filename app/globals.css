@@ -5,8 +5,8 @@
   --surface: #10151c;
   --surface-raised: #171f29;
   --line: #212a36;
-  --text: #edeff2;
-  --text-muted: #7c8695;
+  --text: #f2f4f7;
+  --text-muted: #939dac;
   --bull: #35c48a;
   --bear: #ef5350;
   --gold: #e3a23d;
@@ -22,7 +22,7 @@
   --color-bull: var(--bull);
   --color-bear: var(--bear);
   --color-gold: var(--gold);
-  --font-display: var(--font-space-grotesk);
+  --font-display: var(--font-sans);
   --font-data: var(--font-jetbrains-mono);
 }
 
@@ -30,6 +30,12 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-display), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+p {
+  line-height: 1.6;
 }
 
 .font-data {

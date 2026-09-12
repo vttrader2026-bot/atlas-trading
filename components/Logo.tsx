@@ -21,13 +21,13 @@ export default function Logo({ size = "nav" }: { size?: "nav" | "large" }) {
         <circle cx="16" cy="6" r="2.25" fill="var(--gold)" />
       </svg>
       <span
-        className={`flex items-baseline gap-1.5 tracking-tight ${
+        className={`flex items-baseline gap-1.5 tracking-tight font-semibold ${
           size === "large" ? "text-3xl" : "text-lg"
         }`}
       >
         <span>Atlas</span>
         <span
-          className={`text-gold ${
+          className={`text-gold font-medium ${
             size === "large" ? "text-lg tracking-[0.08em]" : "text-[0.7em] tracking-[0.08em]"
           }`}
         >
