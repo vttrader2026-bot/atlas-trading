@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0d12;
+  --surface: #10151c;
+  --surface-raised: #171f29;
+  --line: #212a36;
+  --text: #edeff2;
+  --text-muted: #7c8695;
+  --bull: #35c48a;
+  --bear: #ef5350;
+  --gold: #e3a23d;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-bull: var(--bull);
+  --color-bear: var(--bear);
+  --color-gold: var(--gold);
+  --font-display: var(--font-space-grotesk);
+  --font-data: var(--font-jetbrains-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+
+.font-data {
+  font-family: var(--font-data), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--gold);
+  color: #0a0d12;
+}
+
+* {
+  scrollbar-color: var(--line) var(--bg);
+}
+
+:focus-visible {
+  outline: 1.5px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.input {
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  width: 100%;
+}
+
+.input:focus-visible {
+  border-color: var(--text-muted);
+}
+
+/* Ticker marquee */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 42s linear infinite;
+}
+
+.marquee-wrap:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
