@@ -4,27 +4,88 @@ import { NextRequest, NextResponse } from "next/server";
 // hardcoding a specific dated model name that Google later retires.
 const MODEL = "gemini-flash-latest";
 
-function buildPrompt(lang: string): string {
+type TraderContext = {
+  pair?: string;
+  timeframe?: string;
+  style?: string;
+};
+
+function buildPrompt(lang: string, context: TraderContext): string {
   const languageLine =
     lang === "ar"
       ? "Respond with all text values written in Arabic."
       : "Respond with all text values written in English.";
 
-  return `You are reading a screenshot of a crypto trading chart (TradingView, an exchange app, or similar).
+  const contextLines = [
+    context.pair && context.pair !== "auto" ? `Trader says the pair is: ${context.pair}` : null,
+    context.timeframe && context.timeframe !== "auto"
+      ? `Trader says the timeframe is: ${context.timeframe}`
+      : null,
+    context.style ? `Trader's style: ${context.style}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-Look at price structure, trend, any visible support/resistance or supply/demand zones, and momentum. Then respond with ONLY a JSON object, no other text, with exactly these fields:
+  return `You are Atlas, a precision-over-prediction crypto chart analyst. You are reading a screenshot of a crypto trading chart (TradingView, an exchange app, or similar).
+
+${contextLines ? `Trader-provided context (use it, but trust what you actually see in the image over this if they conflict):\n${contextLines}\n` : ""}
+CORE RULES — these matter more than anything else:
+1. Never invent probabilities, confidence percentages, or guaranteed outcomes ("90% chance", "will pump", "guaranteed target"). Use conditional language only: "if price confirms above X, the bullish case strengthens" — never "price will reach X".
+2. Never invent an indicator value you cannot actually see (RSI, MACD, volume, moving averages). If it's not visibly on the chart, say so plainly instead of guessing a number.
+3. Only name levels, patterns, or structure concepts (support/resistance, supply/demand, liquidity, fair value gap, break of structure) that are genuinely visible or inferable from price action in the image. Don't force concepts onto a chart that doesn't show them.
+4. It is not only acceptable but expected to conclude there is no clean setup and the trader should wait. Do not force a bullish or bearish case where none exists.
+5. Be honest if the image is blurry, not a trading chart, or otherwise hard to read.
+
+Respond with ONLY a JSON object, no other text, matching exactly this shape:
 
 {
-  "pair": "the traded pair if visible on the chart, otherwise your best guess or 'Unclear'",
-  "bias": "Bullish, Bearish, or Neutral",
-  "keyLevel": "the single most important price level on this chart and why it matters, one short sentence",
-  "invalidation": "the price or condition that would prove this read wrong, one short sentence",
-  "plan": "one or two sentences on how a trader might approach this — not financial advice, just a structural read"
+  "pair": "the traded pair if visible/given, otherwise your best guess or 'Unclear'",
+  "timeframe": "the chart timeframe if visible/given, otherwise 'Unclear'",
+  "marketStructure": {
+    "state": "Bullish" | "Bearish" | "Ranging" | "Unclear",
+    "explanation": "1-2 sentences citing actual visible structure (higher highs/lows, lower highs/lows, break of structure, range) — do not claim structure that isn't visible"
+  },
+  "trend": {
+    "direction": "Bullish" | "Bearish" | "Neutral",
+    "strength": "Weak" | "Moderate" | "Strong",
+    "explanation": "1 sentence on why"
+  },
+  "momentum": "notes on visible candle momentum, expansion/contraction, and any visible indicators (RSI/MACD/MAs/volume) — if none are visible, say so explicitly rather than inventing values",
+  "keyLevels": [
+    { "label": "Resistance 1 | Resistance 2 | Current Price | Support 1 | Support 2 | etc — only levels genuinely visible", "price": "approximate price as shown on the chart" }
+  ],
+  "currentCondition": {
+    "label": "short label, e.g. 'Bullish Pullback', 'Potential Breakout', 'Bearish Breakdown', 'Range', 'Trend Continuation', 'Reversal Attempt', 'No Clear Setup'",
+    "explanation": "2-4 sentences"
+  },
+  "bullishScenario": {
+    "confirmation": "the specific condition that would confirm this, e.g. 'price reclaims and closes above $X'",
+    "targets": ["potential target 1", "potential target 2"],
+    "why": "1-2 sentences"
+  },
+  "bearishScenario": {
+    "confirmation": "the specific condition that would confirm this",
+    "targets": ["potential target 1", "potential target 2"],
+    "why": "1-2 sentences"
+  },
+  "whatToWatch": ["practical, specific things to wait for before acting — 2-4 short items"],
+  "noClearSetup": "if there genuinely is no clean setup right now, explain why in 1-2 sentences here; otherwise null",
+  "invalidation": {
+    "level": "the specific price/condition",
+    "explanation": "1 sentence on what a sustained break of this level would mean"
+  },
+  "tradePlan": {
+    "direction": "Long" | "Short" | "Wait — no clear setup",
+    "entryZone": "approximate zone, or 'N/A' if direction is Wait",
+    "invalidation": "same as invalidation.level, or 'N/A'",
+    "targets": ["target 1", "target 2"],
+    "riskNote": "1 short sentence reminding the trader this is structural analysis, not financial advice, and to size position by their own risk tolerance"
+  }
 }
 
-${languageLine}
+If bullishScenario or bearishScenario genuinely doesn't apply (e.g. deep in a range with no directional bias), you may set that field to null. If there's no clean setup, set tradePlan.direction to "Wait — no clear setup" and fill noClearSetup with the reason.
 
-Be direct and specific to what's actually visible in the image. If the chart is unclear or not a trading chart, say so honestly in each field rather than inventing detail.`;
+${languageLine}`;
 }
 
 // Google's free-tier models occasionally return 503 "high demand" errors.
@@ -60,6 +121,11 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("image");
   const lang = (formData.get("lang") as string) || "en";
+  const context: TraderContext = {
+    pair: (formData.get("pair") as string) || undefined,
+    timeframe: (formData.get("timeframe") as string) || undefined,
+    style: (formData.get("style") as string) || undefined,
+  };
 
   if (!file || typeof file === "string") {
     return NextResponse.json({ error: "No image was uploaded." }, { status: 400 });
@@ -78,7 +144,7 @@ export async function POST(req: NextRequest) {
         contents: [
           {
             parts: [
-              { text: buildPrompt(lang) },
+              { text: buildPrompt(lang, context) },
               { inline_data: { mime_type: mimeType, data: base64 } },
             ],
           },
