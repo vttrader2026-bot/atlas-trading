@@ -134,7 +134,7 @@ export default function Home() {
               <IconAnalyzer className="w-5 h-5" />
             </span>
             <div>
-              <div className="text-xl font-semibold tracking-tight">{t("home.showcase.analyzerTitle")}</div>
+              <div className="font-heading text-xl font-semibold tracking-tight">{t("home.showcase.analyzerTitle")}</div>
               <p className="mt-2 text-sm text-text-muted leading-relaxed max-w-xl">
                 {t("home.showcase.analyzerBody")}
               </p>

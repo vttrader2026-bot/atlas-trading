@@ -23,6 +23,7 @@
   --color-bear: var(--bear);
   --color-gold: var(--gold);
   --font-display: var(--font-sans);
+  --font-heading: var(--font-heading-family);
   --font-data: var(--font-jetbrains-mono);
 }
 
@@ -42,11 +43,16 @@ h1,
 h2,
 h3 {
   line-height: 1.15;
+  font-family: var(--font-heading), var(--font-display), system-ui, sans-serif;
 }
 
 .font-data {
   font-family: var(--font-data), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
+}
+
+.font-heading {
+  font-family: var(--font-heading), var(--font-display), system-ui, sans-serif;
 }
 
 ::selection {

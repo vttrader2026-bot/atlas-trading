@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, Sora, JetBrains_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
 import TickerStrip from "@/components/TickerStrip";
 import Footer from "@/components/Footer";
@@ -8,6 +8,11 @@ import "./globals.css";
 
 const inter = Inter({
   variable: "--font-sans",
+  subsets: ["latin"],
+});
+
+const sora = Sora({
+  variable: "--font-heading-family",
   subsets: ["latin"],
 });
 
@@ -29,7 +34,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
+      <body
+        className={`${inter.variable} ${sora.variable} ${jetbrainsMono.variable} antialiased`}
+      >
         <LanguageProvider>
           <Nav />
           <TickerStrip />
