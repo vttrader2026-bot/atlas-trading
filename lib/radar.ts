@@ -9,6 +9,16 @@ export type RadarTag =
   | "outperformBtc"
   | "underperformBtc";
 
+export type MarketCondition = "bullish" | "bearish" | "range";
+export type Setup =
+  | "breakout"
+  | "pullback"
+  | "breakoutWatch"
+  | "atSupport"
+  | "relativeStrength"
+  | "relativeWeakness"
+  | "watching";
+
 export type RadarRow = {
   ticker: Ticker24h;
   change: number;
@@ -17,6 +27,8 @@ export type RadarRow = {
   distFromLowPct: number; // how far above the 24h low, in %
   vsBtcPct: number; // this pair's 24h change minus BTC's 24h change, in pp
   tags: RadarTag[];
+  condition: MarketCondition;
+  setup: Setup;
 };
 
 // Thresholds are deliberately simple and disclosed in the UI — this is a
@@ -27,6 +39,7 @@ const PULLBACK_MIN_DIP_FROM_HIGH_PCT = 3; // ...but at least 3% off that high
 const NEAR_LOW_PCT = 1; // within 1% of the 24h low
 const VS_BTC_THRESHOLD_PP = 2; // at least 2 percentage points apart from BTC
 const HIGH_VOLUME_TOP_N = 40; // top 40 pairs by quote volume get the tag
+const RANGE_MAX_CHANGE_PCT = 1; // within ±1% counts as "Range" rather than trending
 
 export function buildRadarRows(tickers: Ticker24h[], btcChangePct: number): RadarRow[] {
   const withVolume = tickers
@@ -58,6 +71,29 @@ export function buildRadarRows(tickers: Ticker24h[], btcChangePct: number): Rada
     if (vsBtcPct >= VS_BTC_THRESHOLD_PP) tags.push("outperformBtc");
     if (vsBtcPct <= -VS_BTC_THRESHOLD_PP) tags.push("underperformBtc");
 
-    return { ticker, change, volume, distFromHighPct, distFromLowPct, vsBtcPct, tags };
+    // Single-word market condition, matching the brief's table format.
+    const condition: MarketCondition =
+      Math.abs(change) <= RANGE_MAX_CHANGE_PCT ? "range" : change > 0 ? "bullish" : "bearish";
+
+    // Single setup label, priority-ordered by how actionable it is.
+    let setup: Setup = "watching";
+    if (tags.includes("breakout")) setup = "breakout";
+    else if (tags.includes("pullback")) setup = "pullback";
+    else if (tags.includes("nearHigh")) setup = "breakoutWatch";
+    else if (tags.includes("nearLow")) setup = "atSupport";
+    else if (tags.includes("outperformBtc")) setup = "relativeStrength";
+    else if (tags.includes("underperformBtc")) setup = "relativeWeakness";
+
+    return {
+      ticker,
+      change,
+      volume,
+      distFromHighPct,
+      distFromLowPct,
+      vsBtcPct,
+      tags,
+      condition,
+      setup,
+    };
   });
 }

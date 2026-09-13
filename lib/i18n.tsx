@@ -234,6 +234,8 @@ const en: Dict = {
     vsBtc: "vs BTC",
     volume: "24h volume",
     tags: "Tags",
+    conditionHeader: "Market condition",
+    setupHeader: "Setup",
     filterAll: "All",
     filterVolume: "High volume",
     filterBreakout: "Breakout",
@@ -250,8 +252,22 @@ const en: Dict = {
       outperformBtc: "Beating BTC",
       underperformBtc: "Lagging BTC",
     },
+    condition: {
+      bullish: "Bullish",
+      bearish: "Bearish",
+      range: "Range",
+    },
+    setup: {
+      breakout: "Breakout",
+      pullback: "Pullback",
+      breakoutWatch: "Breakout Watch",
+      atSupport: "At Support",
+      relativeStrength: "Relative Strength",
+      relativeWeakness: "Relative Weakness",
+      watching: "Watching",
+    },
     disclaimer:
-      "Rules, not magic: Breakout = within 1% of the 24h high and green. Pullback = up 3%+ over 24h but at least 3% off that high. High volume = top 40 pairs by 24h quote volume. Near high/low = within 1% of the 24h high/low. vs BTC = this pair's 24h change minus BTC's 24h change, in percentage points. This is a screen to narrow your own research, not a signal to trade.",
+      "Rules, not magic: Breakout = within 1% of the 24h high and green. Pullback = up 3%+ over 24h but at least 3% off that high. High volume = top 40 pairs by 24h quote volume. Near high/low = within 1% of the 24h high/low. Range = 24h change within ±1%. This is a screen to narrow your own research, not a signal to trade.",
   },
 };
 
@@ -482,6 +498,8 @@ const ar: Dict = {
     vsBtc: "مقابل BTC",
     volume: "حجم 24 ساعة",
     tags: "الوسوم",
+    conditionHeader: "حالة السوق",
+    setupHeader: "الإعداد",
     filterAll: "الكل",
     filterVolume: "حجم مرتفع",
     filterBreakout: "اختراق",
@@ -498,8 +516,22 @@ const ar: Dict = {
       outperformBtc: "يتفوق على BTC",
       underperformBtc: "أضعف من BTC",
     },
+    condition: {
+      bullish: "صاعد",
+      bearish: "هابط",
+      range: "نطاق",
+    },
+    setup: {
+      breakout: "اختراق",
+      pullback: "ارتداد",
+      breakoutWatch: "مراقبة اختراق",
+      atSupport: "عند الدعم",
+      relativeStrength: "قوة نسبية",
+      relativeWeakness: "ضعف نسبي",
+      watching: "مراقبة",
+    },
     disclaimer:
-      "قواعد واضحة لا سحر: اختراق = ضمن 1% من أعلى 24 ساعة وبتغير إيجابي. ارتداد = صعود 3%+ خلال 24 ساعة لكن بانخفاض 3% على الأقل عن ذلك الأعلى. حجم مرتفع = أعلى 40 زوجًا من حيث حجم التداول خلال 24 ساعة. قرب الأعلى/الأدنى = ضمن 1% من أعلى/أدنى 24 ساعة. مقابل BTC = تغير هذا الزوج خلال 24 ساعة ناقص تغير BTC، بنقاط مئوية. هذا فحص لتضييق بحثك الخاص، وليس إشارة للتداول.",
+      "قواعد واضحة لا سحر: اختراق = ضمن 1% من أعلى 24 ساعة وبتغير إيجابي. ارتداد = صعود 3%+ خلال 24 ساعة لكن بانخفاض 3% على الأقل عن ذلك الأعلى. حجم مرتفع = أعلى 40 زوجًا من حيث حجم التداول خلال 24 ساعة. قرب الأعلى/الأدنى = ضمن 1% من أعلى/أدنى 24 ساعة. نطاق = تغير 24 ساعة ضمن ±1%. هذا فحص لتضييق بحثك الخاص، وليس إشارة للتداول.",
   },
 };
 

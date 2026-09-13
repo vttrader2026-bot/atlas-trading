@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getAllTickers24h, getTicker24h, formatPrice, formatCompact } from "@/lib/binance";
-import { buildRadarRows, RadarRow, RadarTag } from "@/lib/radar";
+import { buildRadarRows, RadarRow, RadarTag, MarketCondition } from "@/lib/radar";
 import { useLanguage } from "@/lib/i18n";
 
 const FILTERS: { key: RadarTag | "all"; labelKey: string }[] = [
@@ -83,9 +83,9 @@ export default function RadarPage() {
                 <th className="text-left px-4 py-3 font-normal">{t("radar.pair")}</th>
                 <th className="text-right px-4 py-3 font-normal">{t("radar.price")}</th>
                 <th className="text-right px-4 py-3 font-normal">{t("radar.change24h")}</th>
-                <th className="text-right px-4 py-3 font-normal">{t("radar.vsBtc")}</th>
                 <th className="text-right px-4 py-3 font-normal">{t("radar.volume")}</th>
-                <th className="text-left px-4 py-3 font-normal">{t("radar.tags")}</th>
+                <th className="text-left px-4 py-3 font-normal">{t("radar.conditionHeader")}</th>
+                <th className="text-left px-4 py-3 font-normal">{t("radar.setupHeader")}</th>
               </tr>
             </thead>
             <tbody>
@@ -98,7 +98,6 @@ export default function RadarPage() {
               )}
               {filtered.map((row) => {
                 const positive = row.change >= 0;
-                const vsBtcPositive = row.vsBtcPct >= 0;
                 return (
                   <tr key={row.ticker.symbol} className="border-t border-line hover:bg-surface/60">
                     <td className="px-4 py-3 font-data">
@@ -115,24 +114,13 @@ export default function RadarPage() {
                       {positive ? "+" : ""}
                       {row.change.toFixed(2)}%
                     </td>
-                    <td
-                      className={`px-4 py-3 font-data text-right ${
-                        vsBtcPositive ? "text-bull" : "text-bear"
-                      }`}
-                    >
-                      {vsBtcPositive ? "+" : ""}
-                      {row.vsBtcPct.toFixed(2)}pp
-                    </td>
                     <td className="px-4 py-3 font-data text-right text-text-muted">
                       ${formatCompact(row.volume)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1.5">
-                        {row.tags.map((tag) => (
-                          <TagBadge key={tag} tag={tag} label={t(`radar.tag.${tag}`)} />
-                        ))}
-                      </div>
+                      <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
                     </td>
+                    <td className="px-4 py-3 text-text-muted">{t(`radar.setup.${row.setup}`)}</td>
                   </tr>
                 );
               })}
@@ -148,18 +136,14 @@ export default function RadarPage() {
   );
 }
 
-function TagBadge({ tag, label }: { tag: RadarTag; label: string }) {
-  const styles: Record<RadarTag, string> = {
-    breakout: "border-bull/40 text-bull",
-    pullback: "border-gold/40 text-gold",
-    highVolume: "border-line text-text-muted",
-    nearHigh: "border-bull/40 text-bull",
-    nearLow: "border-bear/40 text-bear",
-    outperformBtc: "border-bull/40 text-bull",
-    underperformBtc: "border-bear/40 text-bear",
+function ConditionBadge({ condition, label }: { condition: MarketCondition; label: string }) {
+  const styles: Record<MarketCondition, string> = {
+    bullish: "border-bull/40 text-bull",
+    bearish: "border-bear/40 text-bear",
+    range: "border-gold/40 text-gold",
   };
   return (
-    <span className={`px-2 py-0.5 rounded border text-[11px] whitespace-nowrap ${styles[tag]}`}>
+    <span className={`px-2 py-0.5 rounded border text-[11px] whitespace-nowrap ${styles[condition]}`}>
       {label}
     </span>
   );
