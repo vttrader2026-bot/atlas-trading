@@ -157,6 +157,11 @@ export async function POST(req: NextRequest) {
   );
 
   if (!geminiRes.ok) {
+    const detail = await geminiRes.text();
+    // Log the real detail server-side (visible in Vercel's function logs),
+    // but never send raw API error text to whoever's using the site.
+    console.error(`Gemini API error (${geminiRes.status}):`, detail.slice(0, 500));
+
     if (geminiRes.status === 503) {
       return NextResponse.json(
         {
@@ -166,9 +171,17 @@ export async function POST(req: NextRequest) {
         { status: 503 }
       );
     }
-    const detail = await geminiRes.text();
+    if (geminiRes.status === 429) {
+      return NextResponse.json(
+        {
+          error:
+            "The analyzer has hit its free daily usage limit. This resets automatically — try again in a little while.",
+        },
+        { status: 429 }
+      );
+    }
     return NextResponse.json(
-      { error: `Gemini API error (${geminiRes.status}): ${detail.slice(0, 300)}` },
+      { error: "The analyzer couldn't complete this read. Try again in a moment." },
       { status: 502 }
     );
   }
@@ -177,8 +190,9 @@ export async function POST(req: NextRequest) {
   const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!text) {
+    console.error("Gemini returned an empty response.");
     return NextResponse.json(
-      { error: "Gemini returned an empty response. Try a different image." },
+      { error: "The analyzer returned an empty response. Try a different image." },
       { status: 502 }
     );
   }
@@ -187,8 +201,9 @@ export async function POST(req: NextRequest) {
     const parsed = JSON.parse(text);
     return NextResponse.json(parsed);
   } catch {
+    console.error("Couldn't parse Gemini response as JSON:", text.slice(0, 500));
     return NextResponse.json(
-      { error: "Couldn't parse the model's response as JSON.", raw: text },
+      { error: "The analyzer's response couldn't be read. Try again in a moment." },
       { status: 502 }
     );
   }
