@@ -51,6 +51,10 @@ const en: Dict = {
       riskBody:
         "Enter your account size and stop distance, get a position size that keeps risk per trade fixed.",
     },
+    telegramFeed: {
+      title: "Latest from the channel",
+      openInTelegram: "Open in Telegram →",
+    },
     community: {
       freeLabel: "Free",
       freeTitle: "Community group",
@@ -204,6 +208,10 @@ const ar: Dict = {
       riskBody:
         "أدخل حجم حسابك ومسافة وقف الخسارة، واحصل على حجم صفقة يحافظ على مخاطرة ثابتة.",
     },
+    telegramFeed: {
+      title: "آخر المنشورات من القناة",
+      openInTelegram: "افتح في تيليجرام ←",
+    },
     community: {
       freeLabel: "مجاني",
       freeTitle: "مجموعة المجتمع",
@@ -335,18 +343,11 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 const STORAGE_KEY = "atlas-trading.lang";
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  // Always start at "en" so the server-rendered HTML and the client's first
-  // render match exactly — reading localStorage here would return a
-  // different value than the server used, causing a hydration mismatch.
-  const [lang, setLang] = useState<Lang>("en");
-
-  useEffect(() => {
+  const [lang, setLang] = useState<Lang>(() => {
+    if (typeof window === "undefined") return "en";
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    // Restoring a persisted preference after mount (client-only) avoids the
-    // SSR/client mismatch described above.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (stored === "ar" || stored === "en") setLang(stored);
-  }, []);
+    return stored === "ar" || stored === "en" ? stored : "en";
+  });
 
   useEffect(() => {
     document.documentElement.lang = lang;

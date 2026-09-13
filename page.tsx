@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getTicker24h, formatPrice, Ticker24h } from "@/lib/binance";
 import { useLanguage } from "@/lib/i18n";
-import { IconAnalyzer, IconJournal, IconRisk } from "@/components/icons";
 
 const HERO_PAIRS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
 
@@ -110,19 +109,19 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <div className="border-t border-line">
           <ToolRow
-            icon={<IconAnalyzer className="w-5 h-5" />}
+            mark="AN"
             title={t("home.tools.analyzerTitle")}
             body={t("home.tools.analyzerBody")}
             href="/analyzer"
           />
           <ToolRow
-            icon={<IconJournal className="w-5 h-5" />}
+            mark="JR"
             title={t("home.tools.journalTitle")}
             body={t("home.tools.journalBody")}
             href="/journal"
           />
           <ToolRow
-            icon={<IconRisk className="w-5 h-5" />}
+            mark="RC"
             title={t("home.tools.riskTitle")}
             body={t("home.tools.riskBody")}
             href="/risk"
@@ -180,12 +179,12 @@ export default function Home() {
 }
 
 function ToolRow({
-  icon,
+  mark,
   title,
   body,
   href,
 }: {
-  icon: React.ReactNode;
+  mark: string;
   title: string;
   body: string;
   href: string;
@@ -195,9 +194,7 @@ function ToolRow({
       href={href}
       className="group flex items-center gap-6 py-6 border-b border-line hover:bg-surface/40 transition-colors px-2 -mx-2 rounded-md"
     >
-      <span className="w-10 shrink-0 flex items-center justify-center text-text-muted group-hover:text-gold transition-colors">
-        {icon}
-      </span>
+      <span className="font-data text-sm text-text-muted w-10 shrink-0">{mark}</span>
       <div className="flex-1">
         <div className="text-base group-hover:text-gold transition-colors">{title}</div>
         <p className="mt-1 text-sm text-text-muted leading-relaxed max-w-xl">{body}</p>
