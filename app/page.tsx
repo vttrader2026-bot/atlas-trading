@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getTicker24h, formatPrice, Ticker24h } from "@/lib/binance";
 import { useLanguage } from "@/lib/i18n";
-import { IconAnalyzer, IconJournal, IconRisk } from "@/components/icons";
+import { IconRadar, IconAnalyzer, IconJournal, IconRisk } from "@/components/icons";
 
 const HERO_PAIRS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
 
@@ -109,6 +109,12 @@ export default function Home() {
 
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <div className="border-t border-line">
+          <ToolRow
+            icon={<IconRadar className="w-5 h-5" />}
+            title={t("home.tools.radarTitle")}
+            body={t("home.tools.radarBody")}
+            href="/radar"
+          />
           <ToolRow
             icon={<IconAnalyzer className="w-5 h-5" />}
             title={t("home.tools.analyzerTitle")}

@@ -1,3 +1,24 @@
+export function IconRadar({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="1.6" opacity="0.5" />
+      <path
+        d="M12 12L17 7.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function IconAnalyzer({ className }: { className?: string }) {
   return (
     <svg

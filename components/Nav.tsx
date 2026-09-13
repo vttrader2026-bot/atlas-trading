@@ -10,6 +10,7 @@ export default function Nav() {
   const { lang, toggleLang, t } = useLanguage();
 
   const LINKS = [
+    { href: "/radar", label: t("nav.radar") },
     { href: "/analyzer", label: t("nav.analyzer") },
     { href: "/ticker", label: t("nav.ticker") },
     { href: "/journal", label: t("nav.journal") },

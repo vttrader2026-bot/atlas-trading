@@ -8,6 +8,7 @@ type Dict = { [key: string]: string | Dict };
 
 const en: Dict = {
   nav: {
+    radar: "Radar",
     analyzer: "Analyzer",
     ticker: "Ticker",
     journal: "Journal",
@@ -41,6 +42,9 @@ const en: Dict = {
         "Free public group for discussion, plus a closer VIP line for higher-conviction calls.",
     },
     tools: {
+      radarTitle: "Market Radar",
+      radarBody:
+        "Screen every USDT pair by volume, breakout, pullback, and performance vs BTC — a shortlist, not 1,000 coins.",
       analyzerTitle: "Analyzer",
       analyzerBody:
         "Drop in a screenshot of your chart and get a plain-language read on structure, levels, and invalidation.",
@@ -157,10 +161,43 @@ const en: Dict = {
     genericError: "Something went wrong.",
     connectionError: "Couldn't reach the analyzer. Check your connection and try again.",
   },
+  radar: {
+    title: "Market Radar",
+    subtitle:
+      "A shortlist, not a scoreboard — screens every USDT pair on Binance by clear, disclosed rules. No hidden scoring.",
+    loading: "Scanning the market…",
+    error: "Couldn't reach Binance right now. Retrying shortly.",
+    empty: "No pairs match this filter right now.",
+    pair: "Pair",
+    price: "Price",
+    change24h: "24h change",
+    vsBtc: "vs BTC",
+    volume: "24h volume",
+    tags: "Tags",
+    filterAll: "All",
+    filterVolume: "High volume",
+    filterBreakout: "Breakout",
+    filterPullback: "Pullback",
+    filterNearHigh: "Near 24h high",
+    filterNearLow: "Near 24h low",
+    filterOutperform: "Beating BTC",
+    tag: {
+      breakout: "Breakout",
+      pullback: "Pullback",
+      highVolume: "High volume",
+      nearHigh: "Near high",
+      nearLow: "Near low",
+      outperformBtc: "Beating BTC",
+      underperformBtc: "Lagging BTC",
+    },
+    disclaimer:
+      "Rules, not magic: Breakout = within 1% of the 24h high and green. Pullback = up 3%+ over 24h but at least 3% off that high. High volume = top 40 pairs by 24h quote volume. Near high/low = within 1% of the 24h high/low. vs BTC = this pair's 24h change minus BTC's 24h change, in percentage points. This is a screen to narrow your own research, not a signal to trade.",
+  },
 };
 
 const ar: Dict = {
   nav: {
+    radar: "الرادار",
     analyzer: "المحلل",
     ticker: "الأسعار",
     journal: "السجل",
@@ -194,6 +231,9 @@ const ar: Dict = {
         "مجموعة عامة مجانية للنقاش، بالإضافة إلى خط VIP أقرب للتوصيات عالية الثقة.",
     },
     tools: {
+      radarTitle: "رادار السوق",
+      radarBody:
+        "افحص كل أزواج USDT حسب الحجم والاختراق والارتداد والأداء مقابل BTC — قائمة مختصرة، لا 1000 عملة.",
       analyzerTitle: "المحلل",
       analyzerBody:
         "ارفع صورة لشارتك واحصل على قراءة واضحة للبنية والمستويات ونقطة الإبطال.",
@@ -308,6 +348,38 @@ const ar: Dict = {
     plan: "الخطة",
     genericError: "حدث خطأ ما.",
     connectionError: "تعذر الوصول إلى المحلل. تحقق من اتصالك وحاول مرة أخرى.",
+  },
+  radar: {
+    title: "رادار السوق",
+    subtitle:
+      "قائمة مختصرة، لا لوحة نقاط — يفحص كل أزواج USDT على Binance بقواعد واضحة ومعلنة. لا تقييم خفي.",
+    loading: "جارٍ مسح السوق…",
+    error: "تعذر الوصول إلى Binance الآن. ستتم إعادة المحاولة قريبًا.",
+    empty: "لا توجد أزواج مطابقة لهذا الفلتر حاليًا.",
+    pair: "الزوج",
+    price: "السعر",
+    change24h: "تغير 24 ساعة",
+    vsBtc: "مقابل BTC",
+    volume: "حجم 24 ساعة",
+    tags: "الوسوم",
+    filterAll: "الكل",
+    filterVolume: "حجم مرتفع",
+    filterBreakout: "اختراق",
+    filterPullback: "ارتداد",
+    filterNearHigh: "قرب أعلى 24 ساعة",
+    filterNearLow: "قرب أدنى 24 ساعة",
+    filterOutperform: "يتفوق على BTC",
+    tag: {
+      breakout: "اختراق",
+      pullback: "ارتداد",
+      highVolume: "حجم مرتفع",
+      nearHigh: "قرب الأعلى",
+      nearLow: "قرب الأدنى",
+      outperformBtc: "يتفوق على BTC",
+      underperformBtc: "أضعف من BTC",
+    },
+    disclaimer:
+      "قواعد واضحة لا سحر: اختراق = ضمن 1% من أعلى 24 ساعة وبتغير إيجابي. ارتداد = صعود 3%+ خلال 24 ساعة لكن بانخفاض 3% على الأقل عن ذلك الأعلى. حجم مرتفع = أعلى 40 زوجًا من حيث حجم التداول خلال 24 ساعة. قرب الأعلى/الأدنى = ضمن 1% من أعلى/أدنى 24 ساعة. مقابل BTC = تغير هذا الزوج خلال 24 ساعة ناقص تغير BTC، بنقاط مئوية. هذا فحص لتضييق بحثك الخاص، وليس إشارة للتداول.",
   },
 };
 
