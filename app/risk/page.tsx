@@ -42,7 +42,7 @@ export default function RiskPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-10">
-      <h1 className="text-2xl tracking-tight">{t("risk.title")}</h1>
+      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("risk.title")}</h1>
       <p className="text-text-muted text-sm mt-1">{t("risk.subtitle")}</p>
 
       <div className="mt-8 grid sm:grid-cols-2 gap-5">

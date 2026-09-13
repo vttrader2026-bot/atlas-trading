@@ -80,7 +80,7 @@ export default function AnalyzerPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
-      <h1 className="text-2xl tracking-tight">{t("analyzer.title")}</h1>
+      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("analyzer.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("analyzer.subtitle")}</p>
 
       <div className="mt-6 grid sm:grid-cols-3 gap-3">

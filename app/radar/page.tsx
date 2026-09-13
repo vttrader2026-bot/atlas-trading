@@ -50,7 +50,7 @@ export default function RadarPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10">
-      <h1 className="text-2xl tracking-tight">{t("radar.title")}</h1>
+      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("radar.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-2xl leading-relaxed">
         {t("radar.subtitle")}
       </p>

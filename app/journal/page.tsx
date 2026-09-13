@@ -50,7 +50,7 @@ export default function JournalPage() {
     <main className="max-w-5xl mx-auto px-6 py-10">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl tracking-tight">{t("journal.title")}</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("journal.title")}</h1>
           <p className="text-text-muted text-sm mt-1">{t("journal.subtitle")}</p>
         </div>
         <button

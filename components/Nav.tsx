@@ -12,7 +12,6 @@ export default function Nav() {
   const LINKS = [
     { href: "/radar", label: t("nav.radar") },
     { href: "/analyzer", label: t("nav.analyzer") },
-    { href: "/ticker", label: t("nav.ticker") },
     { href: "/journal", label: t("nav.journal") },
     { href: "/risk", label: t("nav.risk") },
   ];

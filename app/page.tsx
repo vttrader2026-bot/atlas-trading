@@ -134,7 +134,7 @@ export default function Home() {
               <IconAnalyzer className="w-5 h-5" />
             </span>
             <div>
-              <div className="text-xl">{t("home.showcase.analyzerTitle")}</div>
+              <div className="text-xl font-semibold tracking-tight">{t("home.showcase.analyzerTitle")}</div>
               <p className="mt-2 text-sm text-text-muted leading-relaxed max-w-xl">
                 {t("home.showcase.analyzerBody")}
               </p>
@@ -180,7 +180,7 @@ export default function Home() {
 
       {/* ATLAS WORKFLOW */}
       <section className="max-w-6xl mx-auto px-6 pb-16">
-        <h2 className="text-xl tracking-tight text-center">{t("home.workflow.title")}</h2>
+        <h2 className="text-2xl font-semibold tracking-tight text-center">{t("home.workflow.title")}</h2>
         <div className="mt-8 grid sm:grid-cols-6 gap-4">
           <WorkflowStep n={1} label={t("home.workflow.discover")} />
           <WorkflowStep n={2} label={t("home.workflow.analyze")} />
@@ -248,7 +248,7 @@ export default function Home() {
 
       {/* FAQ */}
       <section className="max-w-6xl mx-auto px-6 pb-24">
-        <h2 className="text-xl tracking-tight">{t("home.faq.heading")}</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">{t("home.faq.heading")}</h2>
         <div className="mt-6 border-t border-line">
           <Faq q={t("home.faq.q1")} a={t("home.faq.a1")} />
           <Faq q={t("home.faq.q2")} a={t("home.faq.a2")} />

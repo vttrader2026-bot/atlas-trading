@@ -38,6 +38,12 @@ p {
   line-height: 1.6;
 }
 
+h1,
+h2,
+h3 {
+  line-height: 1.15;
+}
+
 .font-data {
   font-family: var(--font-data), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
