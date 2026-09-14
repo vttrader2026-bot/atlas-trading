@@ -15,6 +15,13 @@ type TradePlan = {
   targets: string[];
   riskNote: string;
 };
+type TeachMe = {
+  structure: string;
+  trend: string;
+  keyLevels: string;
+  confirmation: string;
+  invalidation: string;
+};
 
 type Analysis = {
   pair: string;
@@ -30,6 +37,7 @@ type Analysis = {
   noClearSetup: string | null;
   invalidation: { level: string; explanation: string };
   tradePlan: TradePlan;
+  teachMe: TeachMe;
 };
 
 const PAIRS = ["auto", "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"];
@@ -201,45 +209,72 @@ function AnalysisResult({
   result: Analysis;
   t: (key: string) => string;
 }) {
+  const [teachMode, setTeachMode] = useState(false);
+  const isWait =
+    !!result.noClearSetup || result.tradePlan?.direction?.toLowerCase().includes("wait");
+
   return (
     <div className="mt-8 space-y-5">
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="font-data text-sm px-2.5 py-1 rounded border border-line text-text-muted">
-          {result.pair}
-        </span>
-        <span className="font-data text-sm px-2.5 py-1 rounded border border-line text-text-muted">
-          {result.timeframe}
-        </span>
-      </div>
-
-      <Section title={t("analyzer.marketStructure")}>
-        <span
-          className={`inline-block px-2.5 py-1 rounded border text-sm ${stateColor(
-            result.marketStructure.state
-          )}`}
-        >
-          {result.marketStructure.state}
-        </span>
-        <p className="mt-2 text-sm text-text-muted leading-relaxed">
-          {result.marketStructure.explanation}
-        </p>
-      </Section>
-
-      <Section title={t("analyzer.trend")}>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`px-2.5 py-1 rounded border text-sm ${stateColor(result.trend.direction)}`}>
-            {result.trend.direction}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="font-data text-sm px-2.5 py-1 rounded border border-line text-text-muted">
+            {result.pair}
           </span>
-          <span className="px-2.5 py-1 rounded border border-line text-text-muted text-sm">
-            {result.trend.strength}
+          <span className="font-data text-sm px-2.5 py-1 rounded border border-line text-text-muted">
+            {result.timeframe}
           </span>
         </div>
-        <p className="mt-2 text-sm text-text-muted leading-relaxed">{result.trend.explanation}</p>
-      </Section>
+        <button
+          onClick={() => setTeachMode((v) => !v)}
+          className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
+            teachMode
+              ? "border-gold text-gold bg-gold/10"
+              : "border-line text-text-muted hover:text-text"
+          }`}
+        >
+          {t("analyzer.teachMeToggle")}
+        </button>
+      </div>
 
-      <Section title={t("analyzer.momentum")}>
+      {/* Summary strip — the most important info, always visible */}
+      <div className="grid sm:grid-cols-3 gap-3">
+        <SummaryStat label={t("analyzer.marketStructure")} value={result.marketStructure.state} tone={stateColor(result.marketStructure.state)} />
+        <SummaryStat
+          label={t("analyzer.trend")}
+          value={`${result.trend.direction} · ${result.trend.strength}`}
+          tone={stateColor(result.trend.direction)}
+        />
+        <SummaryStat
+          label={t("analyzer.currentCondition")}
+          value={result.currentCondition.label}
+          tone="text-text border-line"
+        />
+      </div>
+
+      {isWait && (
+        <div className="border border-gold/40 bg-gold/5 rounded-lg p-5">
+          <div className="text-sm text-gold">⚪ {t("analyzer.waitLabel")}</div>
+          <p className="mt-2 text-sm leading-relaxed">
+            {result.noClearSetup || result.currentCondition.explanation}
+          </p>
+        </div>
+      )}
+
+      <CollapsibleExplain title={t("analyzer.marketStructure")}>
+        <p className="text-sm text-text-muted leading-relaxed">
+          {teachMode ? result.teachMe.structure : result.marketStructure.explanation}
+        </p>
+      </CollapsibleExplain>
+
+      <CollapsibleExplain title={t("analyzer.trend")}>
+        <p className="text-sm text-text-muted leading-relaxed">
+          {teachMode ? result.teachMe.trend : result.trend.explanation}
+        </p>
+      </CollapsibleExplain>
+
+      <CollapsibleExplain title={t("analyzer.momentum")}>
         <p className="text-sm text-text-muted leading-relaxed">{result.momentum}</p>
-      </Section>
+      </CollapsibleExplain>
 
       {result.keyLevels?.length > 0 && (
         <Section title={t("analyzer.keyLevels")}>
@@ -251,41 +286,22 @@ function AnalysisResult({
               </div>
             ))}
           </div>
+          {teachMode && (
+            <p className="mt-3 text-sm text-text-muted leading-relaxed">{result.teachMe.keyLevels}</p>
+          )}
         </Section>
       )}
 
-      <Section title={t("analyzer.currentCondition")} highlight>
-        <div className="text-base">{result.currentCondition.label}</div>
-        <p className="mt-2 text-sm text-text-muted leading-relaxed">
-          {result.currentCondition.explanation}
-        </p>
-      </Section>
-
-      {result.noClearSetup && (
-        <div className="border border-line rounded-lg p-5 bg-surface">
-          <div className="text-sm text-text-muted">{t("analyzer.noClearSetup")}</div>
-          <p className="mt-2 text-sm leading-relaxed">{result.noClearSetup}</p>
+      {!isWait && (
+        <div className="grid sm:grid-cols-2 gap-4">
+          {result.bullishScenario && (
+            <ScenarioCard title={t("analyzer.bullishScenario")} scenario={result.bullishScenario} tone="bull" t={t} />
+          )}
+          {result.bearishScenario && (
+            <ScenarioCard title={t("analyzer.bearishScenario")} scenario={result.bearishScenario} tone="bear" t={t} />
+          )}
         </div>
       )}
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        {result.bullishScenario && (
-          <ScenarioCard
-            title={t("analyzer.bullishScenario")}
-            scenario={result.bullishScenario}
-            tone="bull"
-            t={t}
-          />
-        )}
-        {result.bearishScenario && (
-          <ScenarioCard
-            title={t("analyzer.bearishScenario")}
-            scenario={result.bearishScenario}
-            tone="bear"
-            t={t}
-          />
-        )}
-      </div>
 
       {result.whatToWatch?.length > 0 && (
         <Section title={t("analyzer.whatToWatch")}>
@@ -297,6 +313,11 @@ function AnalysisResult({
               </li>
             ))}
           </ul>
+          {teachMode && (
+            <p className="mt-3 text-sm text-text-muted leading-relaxed border-t border-line pt-3">
+              {result.teachMe.confirmation}
+            </p>
+          )}
         </Section>
       )}
 
@@ -304,7 +325,7 @@ function AnalysisResult({
         <div className="text-sm text-bear">{t("analyzer.invalidation")}</div>
         <div className="mt-1 font-data text-base">{result.invalidation.level}</div>
         <p className="mt-2 text-sm text-text-muted leading-relaxed">
-          {result.invalidation.explanation}
+          {teachMode ? result.teachMe.invalidation : result.invalidation.explanation}
         </p>
       </div>
 
@@ -314,22 +335,35 @@ function AnalysisResult({
           <div className="mt-3 grid sm:grid-cols-2 gap-3 text-sm">
             <PlanField label={t("analyzer.direction")} value={result.tradePlan.direction} />
             <PlanField label={t("analyzer.entryZone")} value={result.tradePlan.entryZone} />
-            <PlanField
-              label={t("analyzer.invalidationShort")}
-              value={result.tradePlan.invalidation}
-            />
-            <PlanField
-              label={t("analyzer.targets")}
-              value={result.tradePlan.targets?.join(" · ") || "—"}
-            />
+            <PlanField label={t("analyzer.invalidationShort")} value={result.tradePlan.invalidation} />
+            <PlanField label={t("analyzer.targets")} value={result.tradePlan.targets?.join(" · ") || "—"} />
           </div>
-          <p className="mt-3 text-xs text-text-muted leading-relaxed">
-            {result.tradePlan.riskNote}
-          </p>
+          <p className="mt-3 text-xs text-text-muted leading-relaxed">{result.tradePlan.riskNote}</p>
           <CreateTradePlanButton result={result} t={t} />
         </div>
       )}
     </div>
+  );
+}
+
+function SummaryStat({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className={`border rounded-lg p-3.5 ${tone.split(" ")[1] || "border-line"}`}>
+      <div className="text-[11px] text-text-muted uppercase tracking-wide">{label}</div>
+      <div className={`mt-1 text-sm font-medium ${tone.split(" ")[0] || "text-text"}`}>{value}</div>
+    </div>
+  );
+}
+
+function CollapsibleExplain({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details className="group border border-line rounded-lg bg-surface overflow-hidden">
+      <summary className="px-5 py-3 text-sm cursor-pointer select-none flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
+        <span className="text-text-muted">{title}</span>
+        <span className="text-text-muted text-xs group-open:rotate-180 transition-transform">▾</span>
+      </summary>
+      <div className="px-5 pb-4">{children}</div>
+    </details>
   );
 }
 

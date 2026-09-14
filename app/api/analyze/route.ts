@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Google-maintained alias for the current Gemini Flash release — avoids
-// hardcoding a specific dated model name that Google later retires.
-const MODEL = "gemini-flash-latest";
+// Google-maintained aliases for the current Gemini releases — avoid
+// hardcoding specific dated model names that Google later retires.
+// Flash and Flash-Lite draw from separate free-tier quota pools, so
+// falling back to Flash-Lite is a real second chance on the same key —
+// unlike rotating between multiple keys, which shares one quota per
+// Google Cloud project and doesn't actually add capacity.
+const MODEL_PRIMARY = "gemini-flash-latest";
+const MODEL_FALLBACK = "gemini-flash-lite-latest";
 
 type TraderContext = {
   pair?: string;
@@ -80,10 +85,17 @@ Respond with ONLY a JSON object, no other text, matching exactly this shape:
     "invalidation": "same as invalidation.level, or 'N/A'",
     "targets": ["target 1", "target 2"],
     "riskNote": "1 short sentence reminding the trader this is structural analysis, not financial advice, and to size position by their own risk tolerance"
+  },
+  "teachMe": {
+    "structure": "explain what market structure means and why this chart's structure is what it is, in plain beginner-friendly language, 2-3 sentences",
+    "trend": "explain what a trend is and why this one is what it is, 1-2 sentences, beginner-friendly",
+    "keyLevels": "explain what support and resistance mean in general, and why the specific levels on this chart matter, 2-3 sentences, beginner-friendly",
+    "confirmation": "explain in plain language why waiting for confirmation (rather than entering immediately) usually leads to better outcomes, 1-2 sentences",
+    "invalidation": "explain what an invalidation level means and why every trade idea needs one, 1-2 sentences, beginner-friendly"
   }
 }
 
-If bullishScenario or bearishScenario genuinely doesn't apply (e.g. deep in a range with no directional bias), you may set that field to null. If there's no clean setup, set tradePlan.direction to "Wait — no clear setup" and fill noClearSetup with the reason.
+If bullishScenario or bearishScenario genuinely doesn't apply (e.g. deep in a range with no directional bias), you may set that field to null. If there's no clean setup, set tradePlan.direction to "Wait — no clear setup" and fill noClearSetup with the reason. The teachMe fields always apply regardless of setup quality — they're general trading education tied to this specific chart.
 
 ${languageLine}`;
 }
@@ -135,26 +147,37 @@ export async function POST(req: NextRequest) {
   const base64 = Buffer.from(bytes).toString("base64");
   const mimeType = file.type || "image/png";
 
-  const geminiRes = await fetchWithRetry(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: buildPrompt(lang, context) },
-              { inline_data: { mime_type: mimeType, data: base64 } },
-            ],
+  function callGemini(model: string) {
+    return fetchWithRetry(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: buildPrompt(lang, context) },
+                { inline_data: { mime_type: mimeType, data: base64 } },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
           },
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-        },
-      }),
-    }
-  );
+        }),
+      }
+    );
+  }
+
+  let geminiRes = await callGemini(MODEL_PRIMARY);
+
+  // Flash and Flash-Lite have separate daily quotas on the same key, so a
+  // 429 on one is worth one real retry on the other before giving up.
+  if (!geminiRes.ok && geminiRes.status === 429) {
+    console.error(`Gemini ${MODEL_PRIMARY} hit 429 — falling back to ${MODEL_FALLBACK}`);
+    geminiRes = await callGemini(MODEL_FALLBACK);
+  }
 
   if (!geminiRes.ok) {
     const detail = await geminiRes.text();
@@ -175,7 +198,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "The analyzer has hit its free daily usage limit. This resets automatically — try again in a little while.",
+            "The analyzer has hit its free daily usage limit on both available models. This resets automatically — try again tomorrow, or in a little while.",
         },
         { status: 429 }
       );

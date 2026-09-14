@@ -218,6 +218,8 @@ const en: Dict = {
     direction: "Direction",
     entryZone: "Entry zone",
     createTradePlan: "Create trade plan",
+    teachMeToggle: "Teach me this chart",
+    waitLabel: "No clear setup — wait",
     precisionNote:
       "Atlas never invents probabilities, guaranteed targets, or indicator values it can't see — only conditional, structure-based reads. It will say \"wait\" when there's no clean setup.",
     genericError: "Something went wrong.",
@@ -506,6 +508,8 @@ const ar: Dict = {
     direction: "الاتجاه",
     entryZone: "منطقة الدخول",
     createTradePlan: "أنشئ خطة صفقة",
+    teachMeToggle: "علّمني هذا الشارت",
+    waitLabel: "لا يوجد إعداد واضح — انتظر",
     precisionNote:
       "أطلس لا يخترع احتمالات أو أهدافًا مضمونة أو قيم مؤشرات لا يمكنه رؤيتها — فقط قراءات مشروطة قائمة على البنية. وسيقول \"انتظر\" عندما لا يوجد إعداد واضح.",
     genericError: "حدث خطأ ما.",
