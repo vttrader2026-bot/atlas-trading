@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useLanguage } from "@/lib/i18n";
+import { saveDraft, firstNumber, TradePlanDraft } from "@/lib/tradePlan";
 
 type Level = { label: string; price: string };
 type Scenario = { confirmation: string; targets: string[]; why: string } | null;
@@ -324,9 +326,54 @@ function AnalysisResult({
           <p className="mt-3 text-xs text-text-muted leading-relaxed">
             {result.tradePlan.riskNote}
           </p>
+          <CreateTradePlanButton result={result} t={t} />
         </div>
       )}
     </div>
+  );
+}
+
+function CreateTradePlanButton({ result, t }: { result: Analysis; t: (key: string) => string }) {
+  const router = useRouter();
+
+  function create() {
+    const direction: TradePlanDraft["direction"] = result.tradePlan.direction
+      .toLowerCase()
+      .includes("short")
+      ? "Short"
+      : result.tradePlan.direction.toLowerCase().includes("long")
+        ? "Long"
+        : "Wait";
+
+    const reasoningParts = [
+      result.currentCondition?.explanation,
+      direction === "Long" ? result.bullishScenario?.why : undefined,
+      direction === "Short" ? result.bearishScenario?.why : undefined,
+    ].filter(Boolean);
+
+    const draft: TradePlanDraft = {
+      pair: result.pair,
+      direction,
+      entryZone: result.tradePlan.entryZone,
+      invalidationText: result.invalidation?.level || result.tradePlan.invalidation,
+      entry: firstNumber(result.tradePlan.entryZone),
+      invalidation: firstNumber(result.invalidation?.level || result.tradePlan.invalidation),
+      tp1: firstNumber(result.tradePlan.targets?.[0] || ""),
+      tp2: firstNumber(result.tradePlan.targets?.[1] || ""),
+      tp3: firstNumber(result.tradePlan.targets?.[2] || ""),
+      reasoning: reasoningParts.join(" "),
+    };
+    saveDraft(draft);
+    router.push("/trade-plan");
+  }
+
+  return (
+    <button
+      onClick={create}
+      className="mt-4 px-4 py-2 rounded-md bg-gold text-bg text-sm font-medium hover:opacity-90 transition-opacity"
+    >
+      {t("analyzer.createTradePlan")}
+    </button>
   );
 }
 
