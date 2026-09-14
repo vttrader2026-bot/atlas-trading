@@ -41,8 +41,33 @@ const VS_BTC_THRESHOLD_PP = 2; // at least 2 percentage points apart from BTC
 const HIGH_VOLUME_TOP_N = 40; // top 40 pairs by quote volume get the tag
 const RANGE_MAX_CHANGE_PCT = 1; // within ±1% counts as "Range" rather than trending
 
+// USD/EUR-pegged stablecoins never make for a meaningful "worth watching"
+// screen — excluded from Radar entirely, not just the shortlist.
+const STABLECOIN_BASES = new Set([
+  "USDC",
+  "BUSD",
+  "TUSD",
+  "DAI",
+  "FDUSD",
+  "USDP",
+  "PYUSD",
+  "GUSD",
+  "USTC",
+  "EURI",
+  "AEUR",
+  "FRAX",
+  "USD1",
+]);
+
+function isStablecoinPair(symbol: string): boolean {
+  const base = symbol.replace(/USDT$/, "");
+  return STABLECOIN_BASES.has(base);
+}
+
 export function buildRadarRows(tickers: Ticker24h[], btcChangePct: number): RadarRow[] {
-  const withVolume = tickers
+  const realTickers = tickers.filter((t) => !isStablecoinPair(t.symbol));
+
+  const withVolume = realTickers
     .map((t) => ({ t, volume: parseFloat(t.quoteVolume) }))
     .sort((a, b) => b.volume - a.volume);
 
@@ -50,7 +75,7 @@ export function buildRadarRows(tickers: Ticker24h[], btcChangePct: number): Rada
     withVolume.slice(0, HIGH_VOLUME_TOP_N).map((x) => x.t.symbol)
   );
 
-  return tickers.map((ticker) => {
+  return realTickers.map((ticker) => {
     const change = parseFloat(ticker.priceChangePercent);
     const last = parseFloat(ticker.lastPrice);
     const high = parseFloat(ticker.highPrice);
