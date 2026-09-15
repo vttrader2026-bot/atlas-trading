@@ -50,13 +50,13 @@ export default function Home() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/analyzer"
-                className="px-5 py-2.5 rounded-md bg-gold text-bg text-sm font-medium hover:opacity-90 transition-opacity"
+                className="btn-primary"
               >
                 {t("home.ctaAnalyze")}
               </Link>
               <Link
                 href="/radar"
-                className="px-5 py-2.5 rounded-md border border-line text-sm hover:border-text-muted transition-colors"
+                className="btn-secondary"
               >
                 {t("home.ctaExplore")}
               </Link>
@@ -148,7 +148,7 @@ export default function Home() {
           </div>
           <Link
             href="/analyzer"
-            className="mt-6 inline-block px-5 py-2.5 rounded-md bg-gold text-bg text-sm font-medium hover:opacity-90 transition-opacity"
+            className="btn-primary mt-6"
           >
             {t("home.ctaAnalyze")}
           </Link>
@@ -222,7 +222,7 @@ export default function Home() {
               href="https://t.me/atlastradingcrypto"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 inline-block px-4 py-2 rounded-md bg-gold text-bg text-sm font-medium hover:opacity-90 transition-opacity"
+              className="btn-primary mt-5"
             >
               {t("home.community.joinFree")}
             </a>
@@ -238,7 +238,7 @@ export default function Home() {
               href="https://t.me/Atlascryptotrader"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 inline-block px-4 py-2 rounded-md border border-line text-sm hover:border-gold hover:text-gold transition-colors"
+              className="btn-secondary mt-5 hover:border-gold! hover:text-gold!"
             >
               {t("home.community.contactVip")}
             </a>

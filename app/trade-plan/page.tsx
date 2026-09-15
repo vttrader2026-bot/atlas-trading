@@ -176,13 +176,13 @@ export default function TradePlanPage() {
         <button
           onClick={saveToJournal}
           disabled={!calc || !draft.pair}
-          className="px-5 py-2.5 rounded-md bg-gold text-bg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40"
+          className="btn-primary"
         >
           {saved ? t("tradePlan.saved") : t("tradePlan.saveToJournal")}
         </button>
         <button
           onClick={clearPlan}
-          className="px-5 py-2.5 rounded-md border border-line text-sm hover:bg-surface transition-colors"
+          className="btn-secondary"
         >
           {t("tradePlan.clear")}
         </button>

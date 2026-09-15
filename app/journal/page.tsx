@@ -56,7 +56,7 @@ export default function JournalPage() {
         <button
           onClick={exportCsv}
           disabled={trades.length === 0}
-          className="px-4 py-2 rounded-md border border-line text-sm disabled:opacity-40 hover:bg-surface transition-colors"
+          className="btn-secondary"
         >
           {t("journal.exportCsv")}
         </button>
@@ -124,7 +124,7 @@ export default function JournalPage() {
         </div>
         <button
           onClick={addTrade}
-          className="mt-4 px-4 py-2 rounded-md bg-gold text-bg text-sm font-medium hover:opacity-90 transition-opacity"
+          className="btn-primary mt-4"
         >
           {t("journal.logTrade")}
         </button>

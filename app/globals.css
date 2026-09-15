@@ -64,6 +64,15 @@ h3 {
   scrollbar-color: var(--line) var(--bg);
 }
 
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 :focus-visible {
   outline: 1.5px solid var(--gold);
   outline-offset: 2px;
@@ -81,6 +90,55 @@ h3 {
 
 .input:focus-visible {
   border-color: var(--text-muted);
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: var(--bg);
+  border-radius: 0.375rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+  display: inline-block;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+  display: inline-block;
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-muted);
+  background: var(--surface);
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Ticker marquee */

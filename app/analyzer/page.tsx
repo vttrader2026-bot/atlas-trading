@@ -131,7 +131,7 @@ export default function AnalyzerPage() {
         ) : (
           <p className="text-text-muted text-sm">{t("analyzer.dragHere")}</p>
         )}
-        <label className="mt-4 inline-block cursor-pointer px-4 py-2 rounded-md border border-line text-sm hover:bg-surface transition-colors">
+        <label className="btn-secondary mt-4 cursor-pointer">
           {t("analyzer.chooseFile")}
           <input
             type="file"
@@ -146,7 +146,7 @@ export default function AnalyzerPage() {
         <button
           onClick={analyze}
           disabled={loading}
-          className="mt-5 px-5 py-2.5 rounded-md bg-gold text-bg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="btn-primary mt-5"
         >
           {loading ? t("analyzer.readingChart") : t("analyzer.analyzeChart")}
         </button>
@@ -404,7 +404,7 @@ function CreateTradePlanButton({ result, t }: { result: Analysis; t: (key: strin
   return (
     <button
       onClick={create}
-      className="mt-4 px-4 py-2 rounded-md bg-gold text-bg text-sm font-medium hover:opacity-90 transition-opacity"
+      className="btn-primary mt-4"
     >
       {t("analyzer.createTradePlan")}
     </button>
