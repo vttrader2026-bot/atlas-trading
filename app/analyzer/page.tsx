@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useLanguage } from "@/lib/i18n";
 import { saveDraft, firstNumber, TradePlanDraft } from "@/lib/tradePlan";
+import { getRemainingUses, recordUse, DAILY_ANALYZE_LIMIT } from "@/lib/usageLimit";
+import { loadHistory, addHistoryEntry, HistoryEntry } from "@/lib/analysisHistory";
 
 type Level = { label: string; price: string };
 type Scenario = { confirmation: string; targets: string[]; why: string } | null;
@@ -44,15 +46,40 @@ const PAIRS = ["auto", "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT
 const TIMEFRAMES = ["auto", "15M", "1H", "4H", "1D", "1W"];
 
 export default function AnalyzerPage() {
+  return (
+    <Suspense fallback={null}>
+      <AnalyzerPageInner />
+    </Suspense>
+  );
+}
+
+function AnalyzerPageInner() {
   const { t, lang } = useLanguage();
+  const searchParams = useSearchParams();
+
+  const queryPair = searchParams.get("pair");
+  const initialPair = queryPair || "auto";
+  const pairOptions =
+    queryPair && !PAIRS.includes(queryPair) ? [...PAIRS, queryPair] : PAIRS;
+
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [pair, setPair] = useState("auto");
+  const [pair, setPair] = useState(initialPair);
   const [timeframe, setTimeframe] = useState("auto");
   const [style, setStyle] = useState("spotSwing");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Analysis | null>(null);
+  const [remaining, setRemaining] = useState(DAILY_ANALYZE_LIMIT);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  useEffect(() => {
+    // Restoring localStorage-backed state after mount avoids an SSR/client
+    // hydration mismatch (localStorage isn't available on the server).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRemaining(getRemainingUses());
+    setHistory(loadHistory());
+  }, []);
 
   function onFile(f: File | null) {
     if (!f) return;
@@ -64,9 +91,14 @@ export default function AnalyzerPage() {
 
   async function analyze() {
     if (!file) return;
+    if (remaining <= 0) {
+      setError(t("analyzer.limitReached"));
+      return;
+    }
     setLoading(true);
     setError(null);
     setResult(null);
+    setRemaining(recordUse());
     try {
       const formData = new FormData();
       formData.append("image", file);
@@ -80,6 +112,14 @@ export default function AnalyzerPage() {
         setError(data.error ?? t("analyzer.genericError"));
       } else {
         setResult(data);
+        addHistoryEntry({
+          pair: data.pair,
+          timeframe: data.timeframe,
+          marketStructure: data.marketStructure?.state ?? "",
+          currentCondition: data.currentCondition?.label ?? "",
+          tradeDirection: data.tradePlan?.direction ?? "",
+        });
+        setHistory(loadHistory());
       }
     } catch {
       setError(t("analyzer.connectionError"));
@@ -95,7 +135,7 @@ export default function AnalyzerPage() {
 
       <div className="mt-6 grid sm:grid-cols-3 gap-3">
         <Select label={t("analyzer.pairLabel")} value={pair} onChange={setPair}>
-          {PAIRS.map((p) => (
+          {pairOptions.map((p) => (
             <option key={p} value={p}>
               {p === "auto" ? t("analyzer.autoDetect") : p}
             </option>
@@ -142,15 +182,16 @@ export default function AnalyzerPage() {
         </label>
       </div>
 
-      {preview && (
-        <button
-          onClick={analyze}
-          disabled={loading}
-          className="btn-primary mt-5"
-        >
-          {loading ? t("analyzer.readingChart") : t("analyzer.analyzeChart")}
-        </button>
-      )}
+      <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
+        {preview && (
+          <button onClick={analyze} disabled={loading || remaining <= 0} className="btn-primary">
+            {loading ? t("analyzer.readingChart") : t("analyzer.analyzeChart")}
+          </button>
+        )}
+        <span className="text-xs text-text-muted">
+          {remaining} / {DAILY_ANALYZE_LIMIT} {t("analyzer.usesRemainingLabel")}
+        </span>
+      </div>
 
       {error && (
         <div className="mt-6 border border-bear/30 bg-bear/5 rounded-lg p-5">
@@ -164,6 +205,28 @@ export default function AnalyzerPage() {
         <p className="mt-8 text-xs text-text-muted leading-relaxed max-w-xl">
           {t("analyzer.precisionNote")}
         </p>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-10 border-t border-line pt-6">
+          <h2 className="font-heading text-base font-semibold tracking-tight">
+            {t("analyzer.historyTitle")}
+          </h2>
+          <div className="mt-3 divide-y divide-line border border-line rounded-lg overflow-hidden">
+            {history.map((h) => (
+              <div key={h.id} className="flex items-center justify-between px-4 py-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <span className="font-data text-text-muted">{h.pair}</span>
+                  <span className="text-text-muted text-xs">{h.timeframe}</span>
+                  <span className="text-xs">{h.marketStructure}</span>
+                </div>
+                <span className="text-xs text-text-muted">
+                  {new Date(h.date).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </main>
   );

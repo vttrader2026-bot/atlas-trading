@@ -34,6 +34,64 @@ export function tradePnl(t: Trade): number | null {
   return (t.exit - t.entry) * direction * t.size;
 }
 
+export type JournalStats = {
+  totalTrades: number;
+  closedTrades: number;
+  winRate: number;
+  avgWinner: number;
+  avgLoser: number;
+  avgRiskPct: number;
+  bestPair: { pair: string; pnl: number } | null;
+  worstPair: { pair: string; pnl: number } | null;
+};
+
+const MIN_CLOSED_FOR_INSIGHTS = 3;
+
+/** Returns null when there isn't enough closed-trade data for honest insights. */
+export function computeJournalStats(trades: Trade[]): JournalStats | null {
+  const closed = trades.filter((t) => t.exit !== null);
+  if (closed.length < MIN_CLOSED_FOR_INSIGHTS) return null;
+
+  const pnls = closed.map((t) => ({ trade: t, pnl: tradePnl(t) as number }));
+  const winners = pnls.filter((p) => p.pnl > 0);
+  const losers = pnls.filter((p) => p.pnl <= 0);
+
+  const avgWinner = winners.length
+    ? winners.reduce((sum, p) => sum + p.pnl, 0) / winners.length
+    : 0;
+  const avgLoser = losers.length ? losers.reduce((sum, p) => sum + p.pnl, 0) / losers.length : 0;
+
+  const riskPcts = trades
+    .filter((t) => t.entry > 0)
+    .map((t) => (Math.abs(t.entry - t.stop) / t.entry) * 100);
+  const avgRiskPct = riskPcts.length
+    ? riskPcts.reduce((sum, r) => sum + r, 0) / riskPcts.length
+    : 0;
+
+  const byPair = new Map<string, number>();
+  for (const { trade, pnl } of pnls) {
+    byPair.set(trade.pair, (byPair.get(trade.pair) ?? 0) + pnl);
+  }
+  const pairEntries = [...byPair.entries()].map(([pair, pnl]) => ({ pair, pnl }));
+  const bestPair = pairEntries.length
+    ? pairEntries.reduce((a, b) => (b.pnl > a.pnl ? b : a))
+    : null;
+  const worstPair = pairEntries.length
+    ? pairEntries.reduce((a, b) => (b.pnl < a.pnl ? b : a))
+    : null;
+
+  return {
+    totalTrades: trades.length,
+    closedTrades: closed.length,
+    winRate: (winners.length / closed.length) * 100,
+    avgWinner,
+    avgLoser,
+    avgRiskPct,
+    bestPair,
+    worstPair,
+  };
+}
+
 export function tradesToCsv(trades: Trade[]): string {
   const header = ["date", "pair", "side", "entry", "stop", "target", "exit", "size", "pnl", "notes"];
   const rows = trades.map((t) => {

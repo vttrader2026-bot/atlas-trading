@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { getAllTickers24h, getTicker24h, formatPrice, formatCompact } from "@/lib/binance";
 import { buildRadarRows, RadarRow, RadarTag, MarketCondition } from "@/lib/radar";
 import { useLanguage } from "@/lib/i18n";
@@ -133,7 +134,12 @@ export default function RadarPage() {
                     return (
                       <tr key={row.ticker.symbol} className="border-t border-line hover:bg-surface/60">
                         <td className="px-4 py-3 font-data">
-                          {row.ticker.symbol.replace("USDT", "/USDT")}
+                          <Link
+                            href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
+                            className="hover:text-gold transition-colors"
+                          >
+                            {row.ticker.symbol.replace("USDT", "/USDT")}
+                          </Link>
                         </td>
                         <td className="px-4 py-3 font-data text-right">
                           ${formatPrice(row.ticker.lastPrice)}
@@ -188,6 +194,12 @@ function ShortlistCard({ row, t }: { row: RadarRow; t: (key: string) => string }
       <div className="mt-2 text-xs text-gold font-data">
         +{row.vsBtcPct.toFixed(2)}pp {t("radar.vsBtc")}
       </div>
+      <Link
+        href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
+        className="mt-3 block text-center text-xs btn-secondary"
+      >
+        {t("radar.analyze")}
+      </Link>
     </div>
   );
 }

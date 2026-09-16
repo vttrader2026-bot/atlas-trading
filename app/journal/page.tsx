@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Trade, loadTrades, saveTrades, tradePnl, tradesToCsv } from "@/lib/journal";
+import { useMemo, useState } from "react";
+import { Trade, loadTrades, saveTrades, tradePnl, tradesToCsv, computeJournalStats } from "@/lib/journal";
 import { useLanguage } from "@/lib/i18n";
 
 const empty: Omit<Trade, "id"> = {
@@ -16,10 +16,29 @@ const empty: Omit<Trade, "id"> = {
   notes: "",
 };
 
+function InsightStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "bull" | "bear";
+}) {
+  const color = tone === "bull" ? "text-bull" : tone === "bear" ? "text-bear" : "text-text";
+  return (
+    <div>
+      <div className="text-xs text-text-muted">{label}</div>
+      <div className={`font-data text-lg mt-1 ${color}`}>{value}</div>
+    </div>
+  );
+}
+
 export default function JournalPage() {
   const { t } = useLanguage();
   const [trades, setTrades] = useState<Trade[]>(() => loadTrades());
   const [form, setForm] = useState(empty);
+  const stats = useMemo(() => computeJournalStats(trades), [trades]);
 
   function addTrade() {
     if (!form.pair || !form.entry || !form.stop || !form.size) return;
@@ -129,6 +148,39 @@ export default function JournalPage() {
           {t("journal.logTrade")}
         </button>
       </div>
+
+      {stats ? (
+        <div className="mt-8 border border-line rounded-lg bg-surface p-6">
+          <div className="text-xs text-text-muted uppercase tracking-wide mb-3">
+            {t("journal.insightsTitle")}
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <InsightStat label={t("journal.winRate")} value={`${stats.winRate.toFixed(0)}%`} />
+            <InsightStat
+              label={t("journal.avgWinner")}
+              value={`+${stats.avgWinner.toFixed(2)}`}
+              tone="bull"
+            />
+            <InsightStat
+              label={t("journal.avgLoser")}
+              value={stats.avgLoser.toFixed(2)}
+              tone="bear"
+            />
+            <InsightStat label={t("journal.avgRisk")} value={`${stats.avgRiskPct.toFixed(1)}%`} />
+            {stats.bestPair && (
+              <InsightStat label={t("journal.bestPair")} value={stats.bestPair.pair} tone="bull" />
+            )}
+            {stats.worstPair && (
+              <InsightStat label={t("journal.worstPair")} value={stats.worstPair.pair} tone="bear" />
+            )}
+          </div>
+          <p className="mt-4 text-xs text-text-muted leading-relaxed">
+            {t("journal.insightsNote")}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-8 text-sm text-text-muted">{t("journal.insightsEmpty")}</p>
+      )}
 
       <div className="mt-8 border border-line rounded-lg overflow-hidden">
         <table className="w-full text-sm">
