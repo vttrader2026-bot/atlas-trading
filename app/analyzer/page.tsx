@@ -129,7 +129,7 @@ function AnalyzerPageInner() {
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("analyzer.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("analyzer.subtitle")}</p>
       <span className="mt-3 inline-block px-2.5 py-1 rounded-md border border-gold/30 text-gold text-xs">
-        {t("analyzer.valueProp")}
+        {"2 free AI analyses every day"}
       </span>
 
       <div className="mt-6 grid sm:grid-cols-3 gap-3">
@@ -211,9 +211,9 @@ function AnalyzerPageInner() {
         </div>
       ) : (
         <div className="mt-6 border border-gold/30 bg-gold/5 rounded-lg p-5">
-          <div className="text-sm text-gold">{t("analyzer.limitReachedTitle")}</div>
+          <div className="text-sm text-gold">{"Daily limit reached"}</div>
           <p className="mt-2 text-sm text-text-muted leading-relaxed">
-            {t("analyzer.limitReached")}
+            {"You have used your 2 free AI analyses for today. Your limit resets at midnight."}
           </p>
           <a
             href="https://t.me/Atlascryptotrader"
@@ -221,7 +221,7 @@ function AnalyzerPageInner() {
             rel="noopener noreferrer"
             className="mt-3 inline-block text-sm text-gold hover:opacity-80 transition-opacity"
           >
-            {t("analyzer.limitReachedCta")} →
+            {"Learn about Atlas Elite"} →
           </a>
         </div>
       )}
@@ -570,5 +570,6 @@ function PlanField({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
 
 
