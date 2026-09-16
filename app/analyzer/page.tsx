@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useId, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useLanguage } from "@/lib/i18n";
@@ -90,11 +90,7 @@ function AnalyzerPageInner() {
   }
 
   async function analyze() {
-    if (!file) return;
-    if (remaining <= 0) {
-      setError(t("analyzer.limitReached"));
-      return;
-    }
+    if (!file || remaining <= 0) return;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -132,6 +128,9 @@ function AnalyzerPageInner() {
     <main className="max-w-4xl mx-auto px-6 py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("analyzer.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("analyzer.subtitle")}</p>
+      <span className="mt-3 inline-block px-2.5 py-1 rounded-md border border-gold/30 text-gold text-xs">
+        {t("analyzer.valueProp")}
+      </span>
 
       <div className="mt-6 grid sm:grid-cols-3 gap-3">
         <Select label={t("analyzer.pairLabel")} value={pair} onChange={setPair}>
@@ -155,6 +154,23 @@ function AnalyzerPageInner() {
           <option value="learning">{t("analyzer.style.learning")}</option>
         </Select>
       </div>
+
+      {!result && (
+        <div className="mt-5 flex items-center gap-1.5 flex-wrap text-xs text-text-muted">
+          {[
+            "Upload",
+            "Market structure",
+            "Key levels",
+            "Scenarios",
+            "Trade plan",
+          ].map((step, i, arr) => (
+            <span key={step} className="flex items-center gap-1.5">
+              <span className="px-2 py-1 rounded border border-line">{step}</span>
+              {i < arr.length - 1 && <span aria-hidden>→</span>}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div
         onDragOver={(e) => e.preventDefault()}
@@ -182,16 +198,33 @@ function AnalyzerPageInner() {
         </label>
       </div>
 
-      <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
-        {preview && (
-          <button onClick={analyze} disabled={loading || remaining <= 0} className="btn-primary">
-            {loading ? t("analyzer.readingChart") : t("analyzer.analyzeChart")}
-          </button>
-        )}
-        <span className="text-xs text-text-muted">
-          {remaining} / {DAILY_ANALYZE_LIMIT} {t("analyzer.usesRemainingLabel")}
-        </span>
-      </div>
+      {remaining > 0 ? (
+        <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
+          {preview && (
+            <button onClick={analyze} disabled={loading} className="btn-primary">
+              {loading ? t("analyzer.readingChart") : t("analyzer.analyzeChart")}
+            </button>
+          )}
+          <span className="text-xs text-text-muted">
+            {remaining} / {DAILY_ANALYZE_LIMIT} {"free AI analyses remaining today"}
+          </span>
+        </div>
+      ) : (
+        <div className="mt-6 border border-gold/30 bg-gold/5 rounded-lg p-5">
+          <div className="text-sm text-gold">{t("analyzer.limitReachedTitle")}</div>
+          <p className="mt-2 text-sm text-text-muted leading-relaxed">
+            {t("analyzer.limitReached")}
+          </p>
+          <a
+            href="https://t.me/Atlascryptotrader"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-block text-sm text-gold hover:opacity-80 transition-opacity"
+          >
+            {t("analyzer.limitReachedCta")} →
+          </a>
+        </div>
+      )}
 
       {error && (
         <div className="mt-6 border border-bear/30 bg-bear/5 rounded-lg p-5">
@@ -243,10 +276,14 @@ function Select({
   onChange: (v: string) => void;
   children: React.ReactNode;
 }) {
+  const id = useId();
   return (
     <div>
-      <label className="text-xs text-text-muted">{label}</label>
+      <label htmlFor={id} className="text-xs text-text-muted">
+        {label}
+      </label>
       <select
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="input mt-1.5"
@@ -533,3 +570,5 @@ function PlanField({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+
