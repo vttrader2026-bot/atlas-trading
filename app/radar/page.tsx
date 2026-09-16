@@ -200,7 +200,7 @@ function ShortlistCard({ row, t }: { row: RadarRow; t: (key: string) => string }
         href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
         className="mt-3 block text-center text-xs btn-secondary"
       >
-        {t("radar.analyze")}
+        {"Analyze"}
       </Link>
     </div>
   );
@@ -218,3 +218,4 @@ function ConditionBadge({ condition, label }: { condition: MarketCondition; labe
     </span>
   );
 }
+
