@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Sora, JetBrains_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
 import TickerStrip from "@/components/TickerStrip";
@@ -21,10 +21,44 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://atlastradingapp.vercel.app";
+const SITE_TITLE = "Atlas Trading — AI crypto chart analyzer, journal & risk tools";
+const SITE_DESCRIPTION =
+  "Read a chart, size a position, log the trade. Free AI chart analysis, market radar, trade planning, and risk tools for every USDT pair on Binance.";
+
 export const metadata: Metadata = {
-  title: "Atlas Trading — crypto chart analyzer, journal & risk tools",
-  description:
-    "Read a chart, size a position, log the trade. A free crypto trading toolkit for every USDT pair on Binance.",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: "Atlas Trading",
+    type: "website",
+    images: [
+      {
+        url: "/brand/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "Atlas Trading",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/brand/icon-512.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0d12",
 };
 
 export default function RootLayout({

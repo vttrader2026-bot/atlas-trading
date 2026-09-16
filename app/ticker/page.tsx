@@ -68,7 +68,8 @@ export default function TickerPage() {
       {error && <p className="mt-4 text-sm text-bear">{error}</p>}
 
       <div className="mt-6 border border-line rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-surface text-text-muted">
             <tr>
               <Th onClick={() => setSortKey("symbol")} active={sortKey === "symbol"}>
@@ -114,6 +115,7 @@ export default function TickerPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
       {rows.length > 100 && (
         <p className="mt-3 text-xs text-text-muted">

@@ -110,7 +110,8 @@ export default function RadarPage() {
             </div>
 
             <div className="mt-4 border border-line rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[640px]">
                 <thead className="bg-surface text-text-muted">
                   <tr>
                     <th className="text-left px-4 py-3 font-normal">{t("radar.pair")}</th>
@@ -164,6 +165,7 @@ export default function RadarPage() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </>
