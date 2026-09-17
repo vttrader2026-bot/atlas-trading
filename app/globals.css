@@ -172,3 +172,14 @@ h3 {
     animation: none;
   }
 }
+html.light {
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface-raised: #eef2f7;
+  --line: #d7dde6;
+  --text: #111827;
+  --text-muted: #5b6472;
+  --bull: #158a5a;
+  --bear: #d64545;
+  --gold: #b8842f;
+}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useLanguage } from "@/lib/i18n";
 
 export default function Nav() {
@@ -47,6 +48,8 @@ export default function Nav() {
             })}
           </nav>
 
+          <ThemeToggle />
+
           <button
             onClick={toggleLang}
             className="ms-2 px-2.5 py-1 rounded-md border border-line text-xs text-text-muted hover:text-text hover:border-text-muted transition-colors"
@@ -55,15 +58,19 @@ export default function Nav() {
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setMenuOpen((open) => !open)}
-          className="sm:hidden w-9 h-9 flex items-center justify-center rounded-md border border-line text-text-muted hover:text-text hover:border-text-muted transition-colors"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-          aria-expanded={menuOpen}
-        >
-          <span className="text-lg leading-none">{menuOpen ? "×" : "☰"}</span>
-        </button>
+        <div className="sm:hidden flex items-center gap-2">
+          <ThemeToggle />
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            className="w-9 h-9 flex items-center justify-center rounded-md border border-line text-text-muted hover:text-text hover:border-text-muted transition-colors"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+          >
+            <span className="text-lg leading-none">{menuOpen ? "×" : "☰"}</span>
+          </button>
+        </div>
       </div>
 
       {menuOpen && (
