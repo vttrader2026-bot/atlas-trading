@@ -129,7 +129,7 @@ function AnalyzerPageInner() {
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("analyzer.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("analyzer.subtitle")}</p>
       <span className="mt-3 inline-block px-2.5 py-1 rounded-md border border-gold/30 text-gold text-xs">
-        {"2 free AI analyses every day"}
+        {t("analyzer.valueProp")}
       </span>
 
       <div className="mt-6 grid sm:grid-cols-3 gap-3">
@@ -158,11 +158,11 @@ function AnalyzerPageInner() {
       {!result && (
         <div className="mt-5 flex items-center gap-1.5 flex-wrap text-xs text-text-muted">
           {[
-            "Upload",
-            "Market structure",
-            "Key levels",
-            "Scenarios",
-            "Trade plan",
+            t("analyzer.flow.upload"),
+            t("analyzer.flow.structure"),
+            t("analyzer.flow.levels"),
+            t("analyzer.flow.scenarios"),
+            t("analyzer.flow.plan"),
           ].map((step, i, arr) => (
             <span key={step} className="flex items-center gap-1.5">
               <span className="px-2 py-1 rounded border border-line">{step}</span>
@@ -206,14 +206,14 @@ function AnalyzerPageInner() {
             </button>
           )}
           <span className="text-xs text-text-muted">
-            {remaining} / {DAILY_ANALYZE_LIMIT} {"free AI analyses remaining today"}
+            {remaining} / {DAILY_ANALYZE_LIMIT} {t("analyzer.usesRemainingLabel")}
           </span>
         </div>
       ) : (
         <div className="mt-6 border border-gold/30 bg-gold/5 rounded-lg p-5">
-          <div className="text-sm text-gold">{"Daily limit reached"}</div>
+          <div className="text-sm text-gold">{t("analyzer.limitReachedTitle")}</div>
           <p className="mt-2 text-sm text-text-muted leading-relaxed">
-            {"You have used your 2 free AI analyses for today. Your limit resets at midnight."}
+            {t("analyzer.limitReached")}
           </p>
           <a
             href="https://t.me/Atlascryptotrader"
@@ -221,7 +221,7 @@ function AnalyzerPageInner() {
             rel="noopener noreferrer"
             className="mt-3 inline-block text-sm text-gold hover:opacity-80 transition-opacity"
           >
-            {"Learn about Atlas Elite"} →
+            {t("analyzer.limitReachedCta")} →
           </a>
         </div>
       )}
@@ -302,6 +302,64 @@ function stateColor(state: string): string {
   return "text-text-muted border-line";
 }
 
+function buildShareText(result: Analysis, t: (key: string) => string): string {
+  const lines = [
+    `📊 Atlas Trading — ${result.pair} · ${result.timeframe}`,
+    "",
+    `${t("analyzer.marketStructure")}: ${result.marketStructure.state}`,
+    `${t("analyzer.trend")}: ${result.trend.direction} · ${result.trend.strength}`,
+    `${t("analyzer.currentCondition")}: ${result.currentCondition.label}`,
+  ];
+
+  if (result.tradePlan) {
+    lines.push(
+      "",
+      `⚜ ${t("analyzer.tradePlan")}`,
+      `${t("analyzer.direction")}: ${result.tradePlan.direction}`,
+      `${t("analyzer.entryZone")}: ${result.tradePlan.entryZone}`,
+      `${t("analyzer.invalidationShort")}: ${result.tradePlan.invalidation}`
+    );
+    if (result.tradePlan.targets?.length) {
+      lines.push(`${t("analyzer.targets")}: ${result.tradePlan.targets.join(" · ")}`);
+    }
+  }
+
+  lines.push("", t("analyzer.shareFooter"), "https://atlastradingapp.vercel.app/analyzer");
+  return lines.join("\n");
+}
+
+function ShareButton({ result, t }: { result: Analysis; t: (key: string) => string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function share() {
+    const text = buildShareText(result, t);
+    if (navigator.share) {
+      try {
+        await navigator.share({ text, title: "Atlas Trading" });
+      } catch {
+        // user cancelled the native share sheet — nothing to do
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard unavailable — silently do nothing rather than error
+    }
+  }
+
+  return (
+    <button
+      onClick={share}
+      className="px-3 py-1.5 rounded-md text-xs border border-line text-text-muted hover:text-text transition-colors"
+    >
+      {copied ? t("analyzer.shareCopied") : t("analyzer.share")}
+    </button>
+  );
+}
+
 function AnalysisResult({
   result,
   t,
@@ -324,16 +382,19 @@ function AnalysisResult({
             {result.timeframe}
           </span>
         </div>
-        <button
-          onClick={() => setTeachMode((v) => !v)}
-          className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
-            teachMode
-              ? "border-gold text-gold bg-gold/10"
-              : "border-line text-text-muted hover:text-text"
-          }`}
-        >
-          {t("analyzer.teachMeToggle")}
-        </button>
+        <div className="flex items-center gap-2">
+          <ShareButton result={result} t={t} />
+          <button
+            onClick={() => setTeachMode((v) => !v)}
+            className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
+              teachMode
+                ? "border-gold text-gold bg-gold/10"
+                : "border-line text-text-muted hover:text-text"
+            }`}
+          >
+            {t("analyzer.teachMeToggle")}
+          </button>
+        </div>
       </div>
 
       {/* Summary strip — the most important info, always visible */}
@@ -570,6 +631,3 @@ function PlanField({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
-
-
