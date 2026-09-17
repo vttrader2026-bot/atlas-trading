@@ -30,6 +30,16 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Atlas Trading",
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/brand/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
   openGraph: {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
