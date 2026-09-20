@@ -18,8 +18,14 @@ type TraderContext = {
 function buildPrompt(lang: string, context: TraderContext): string {
   const languageLine =
     lang === "ar"
-      ? "Respond with all text values written in Arabic."
-      : "Respond with all text values written in English.";
+      ? `LANGUAGE REQUIREMENT — VERY IMPORTANT:
+- The user selected Arabic. Write EVERY human-readable value in the JSON in Modern Standard Arabic.
+- Do NOT write English words or labels in the analysis text. This includes market structure, trend, strength, conditions, scenario explanations, confirmations, targets descriptions, what-to-watch items, invalidation explanations, trade plan text, risk notes, and Teach Me explanations.
+- Translate labels such as Bullish=صاعد، Bearish=هابط، Ranging=متذبذب، Unclear=غير واضح، Neutral=محايد، Weak=ضعيف، Moderate=متوسط، Strong=قوي، Resistance=مقاومة، Support=دعم، Long=شراء، Short=بيع، Wait — no clear setup=انتظار — لا توجد فرصة واضحة، Potential Breakout=اختراق محتمل، Bearish Breakdown=كسر هابط، Bullish Pullback=تصحيح صاعد، Trend Continuation=استمرار الاتجاه، Reversal Attempt=محاولة انعكاس، Range=نطاق، No Clear Setup=لا توجد فرصة واضحة.
+- Technical abbreviations and symbols may remain standard when appropriate: BTC, ETH, USDT, RSI, MACD, MA, BOS, CHoCH, FVG, 15M, 1H, 4H, 1D, 1W.
+- Price numbers, ticker symbols, and pair names must remain unchanged.
+- Do not mix Arabic and English sentences. The final analysis should read naturally in Arabic.`
+      : "Respond with all human-readable text values written in English.";
 
   const contextLines = [
     context.pair && context.pair !== "auto" ? `Trader says the pair is: ${context.pair}` : null,
@@ -97,7 +103,9 @@ Respond with ONLY a JSON object, no other text, matching exactly this shape:
 
 If bullishScenario or bearishScenario genuinely doesn't apply (e.g. deep in a range with no directional bias), you may set that field to null. If there's no clean setup, set tradePlan.direction to "Wait — no clear setup" and fill noClearSetup with the reason. The teachMe fields always apply regardless of setup quality — they're general trading education tied to this specific chart.
 
-${languageLine}`;
+${languageLine}
+
+Before returning JSON, silently check every human-readable string and remove any unnecessary English when Arabic is selected.`;
 }
 
 // Google's free-tier models occasionally return 503 "high demand" errors.
