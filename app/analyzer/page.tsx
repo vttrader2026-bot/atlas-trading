@@ -94,7 +94,6 @@ function AnalyzerPageInner() {
     setLoading(true);
     setError(null);
     setResult(null);
-    setRemaining(recordUse());
     try {
       const formData = new FormData();
       formData.append("image", file);
@@ -107,6 +106,9 @@ function AnalyzerPageInner() {
       if (!res.ok) {
         setError(data.error ?? t("analyzer.genericError"));
       } else {
+        // Only consume a free analysis after the AI successfully returns a result.
+        // Loading, busy, timeout, API, or parsing failures must not use an attempt.
+        setRemaining(recordUse());
         setResult(data);
         addHistoryEntry({
           pair: data.pair,
