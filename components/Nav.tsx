@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import { useLanguage } from "@/lib/i18n";
+import { useAuth, UserButton } from "@clerk/nextjs";
 
 export default function Nav() {
   const pathname = usePathname();
   const { lang, toggleLang, t } = useLanguage();
+  const { isLoaded, isSignedIn } = useAuth();
 
   const LINKS = [
     { href: "/radar", label: t("nav.radar") },
@@ -43,6 +45,25 @@ export default function Nav() {
             );
           })}
         </nav>
+        {isLoaded && !isSignedIn && (
+          <Link
+            href="/sign-in"
+            className="shrink-0 px-2.5 py-1 rounded-md border border-line text-xs text-text-muted hover:text-text hover:border-text-muted transition-colors"
+          >
+            {t("nav.signIn")}
+          </Link>
+        )}
+        {isLoaded && isSignedIn && (
+          <>
+            <Link
+              href="/account"
+              className="shrink-0 px-2 py-1 text-xs text-text-muted hover:text-text transition-colors"
+            >
+              {t("nav.account")}
+            </Link>
+            <UserButton />
+          </>
+        )}
         <button
           onClick={toggleLang}
           className="shrink-0 px-2.5 py-1 rounded-md border border-line text-xs text-text-muted hover:text-text hover:border-text-muted transition-colors"

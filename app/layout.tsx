@@ -4,6 +4,7 @@ import Nav from "@/components/Nav";
 import TickerStrip from "@/components/TickerStrip";
 import Footer from "@/components/Footer";
 import { LanguageProvider } from "@/lib/i18n";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 const inter = Inter({
@@ -86,12 +87,14 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${sora.variable} ${jetbrainsMono.variable} antialiased`}
       >
+        <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
         <LanguageProvider>
           <Nav />
           <TickerStrip />
           {children}
           <Footer />
         </LanguageProvider>
+      </ClerkProvider>
       </body>
     </html>
   );
