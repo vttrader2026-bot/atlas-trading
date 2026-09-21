@@ -5,18 +5,24 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/i18n";
 import { TradePlanDraft, emptyDraft, loadDraft, saveDraft, clearDraft } from "@/lib/tradePlan";
 import { loadTrades, saveTrades, Trade } from "@/lib/journal";
+import Link from "next/link";
+import { useAuth } from "@clerk/nextjs";
 
 const ADMIN_KEY = "atlas-trading.adminSecret";
 
 export default function TradePlanPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useAuth();
   const [draft, setDraft] = useState<TradePlanDraft>(emptyDraft);
   const [accountSize, setAccountSize] = useState("1000");
   const [riskPct, setRiskPct] = useState("1");
   const [saved, setSaved] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
+  const [savingAccount, setSavingAccount] = useState(false);
+  const [accountMsg, setAccountMsg] = useState<string | null>(null);
+  const [showSignIn, setShowSignIn] = useState(false);
 
   // Loading the saved draft only after mount avoids an SSR/client hydration
   // mismatch — localStorage isn't available on the server.
@@ -81,6 +87,30 @@ export default function TradePlanPage() {
   function clearPlan() {
     setDraft(emptyDraft);
     clearDraft();
+  }
+
+  async function saveToAccount() {
+    if (!draft.pair || savingAccount || !isLoaded) return;
+    if (!isSignedIn) {
+      setAccountMsg(t("tradePlan.signInToSave"));
+      setShowSignIn(true);
+      return;
+    }
+    setShowSignIn(false);
+    setSavingAccount(true);
+    setAccountMsg(null);
+    try {
+      const res = await fetch("/api/me/plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+      setAccountMsg(res.ok ? t("tradePlan.savedToAccount") : t("tradePlan.accountSaveError"));
+    } catch {
+      setAccountMsg(t("tradePlan.accountSaveError"));
+    } finally {
+      setSavingAccount(false);
+    }
   }
 
   async function publishToFeed() {
@@ -246,6 +276,13 @@ export default function TradePlanPage() {
           {publishing ? t("tradePlan.publishing") : t("tradePlan.publishToFeed")}
         </button>
         <button
+          onClick={saveToAccount}
+          disabled={savingAccount || !draft.pair}
+          className="btn-secondary"
+        >
+          {savingAccount ? t("tradePlan.savingToAccount") : t("tradePlan.saveToAccount")}
+        </button>
+        <button
           onClick={clearPlan}
           className="btn-secondary"
         >
@@ -253,6 +290,16 @@ export default function TradePlanPage() {
         </button>
       </div>
       {publishMsg && <p className="mt-3 text-sm text-text-muted">{publishMsg}</p>}
+      {accountMsg && (
+        <p className="mt-3 text-sm text-text-muted">
+          {accountMsg}{" "}
+          {showSignIn && (
+            <Link href="/sign-in" className="underline">
+              {t("account.signIn")}
+            </Link>
+          )}
+        </p>
+      )}
 
       <p className="mt-6 text-xs text-text-muted leading-relaxed max-w-xl">
         {t("tradePlan.disclaimer")}

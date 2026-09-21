@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState, Suspense } from "react";
+import { useEffect, useId, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useLanguage } from "@/lib/i18n";
@@ -78,6 +78,7 @@ function AnalyzerPageInner() {
   const [result, setResult] = useState<Analysis | null>(null);
   const [remaining, setRemaining] = useState(DAILY_ANALYZE_LIMIT);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const analyzingRef = useRef(false);
 
   useEffect(() => {
     // Restoring localStorage-backed state after mount avoids an SSR/client
@@ -97,10 +98,14 @@ function AnalyzerPageInner() {
 
   async function analyze() {
     if (!file || remaining <= 0) return;
+    // Synchronous guard against double-firing from a rapid double-click —
+    // React state (`loading`) can be stale across two clicks in the same
+    // tick, but a ref updates immediately.
+    if (analyzingRef.current) return;
+    analyzingRef.current = true;
     setLoading(true);
     setError(null);
     setResult(null);
-    setRemaining(recordUse());
     try {
       const formData = new FormData();
       formData.append("image", file);
@@ -110,9 +115,14 @@ function AnalyzerPageInner() {
       formData.append("style", t(`analyzer.style.${style}`));
       const res = await fetch("/api/analyze", { method: "POST", body: formData });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? t("analyzer.genericError"));
+      // Only a genuinely successful, well-formed analysis consumes one of
+      // the 2 free attempts — never a 429/503/network/validation failure.
+      const isValidAnalysis =
+        res.ok && data && typeof data === "object" && data.marketStructure && data.tradePlan;
+      if (!isValidAnalysis) {
+        setError((data && data.error) || t("analyzer.genericError"));
       } else {
+        setRemaining(recordUse());
         setResult(data);
         addHistoryEntry({
           pair: data.pair,
@@ -127,6 +137,7 @@ function AnalyzerPageInner() {
       setError(t("analyzer.connectionError"));
     } finally {
       setLoading(false);
+      analyzingRef.current = false;
     }
   }
 

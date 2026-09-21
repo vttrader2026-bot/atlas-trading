@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Trade, loadTrades, saveTrades, tradePnl, tradesToCsv, computeJournalStats } from "@/lib/journal";
 import { useLanguage } from "@/lib/i18n";
 
@@ -37,6 +37,13 @@ function InsightStat({
 export default function JournalPage() {
   const { t } = useLanguage();
   const [trades, setTrades] = useState<Trade[]>(() => loadTrades());
+
+  // Refresh when account sync updates the journal on this device.
+  useEffect(() => {
+    const refresh = () => setTrades(loadTrades());
+    window.addEventListener("atlas-journal-updated", refresh);
+    return () => window.removeEventListener("atlas-journal-updated", refresh);
+  }, []);
   const [form, setForm] = useState(empty);
   const stats = useMemo(() => computeJournalStats(trades), [trades]);
 

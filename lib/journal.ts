@@ -23,9 +23,22 @@ export function loadTrades(): Trade[] {
   }
 }
 
-export function saveTrades(trades: Trade[]) {
+/** Writes the journal to this device only (no sync side effects). */
+export function writeLocalTrades(trades: Trade[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(KEY, JSON.stringify(trades));
+}
+
+let saveListener: ((trades: Trade[]) => void) | null = null;
+
+/** Lets account sync hook into saves without this file knowing about accounts. */
+export function setJournalSaveListener(fn: ((trades: Trade[]) => void) | null) {
+  saveListener = fn;
+}
+
+export function saveTrades(trades: Trade[]) {
+  writeLocalTrades(trades);
+  saveListener?.(trades);
 }
 
 export function tradePnl(t: Trade): number | null {

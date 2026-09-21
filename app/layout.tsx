@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Sora, JetBrains_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
+import JournalSync from "@/components/JournalSync";
 import TickerStrip from "@/components/TickerStrip";
 import Footer from "@/components/Footer";
 import { LanguageProvider } from "@/lib/i18n";
@@ -90,6 +91,7 @@ export default function RootLayout({
         <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
         <LanguageProvider>
           <Nav />
+          <JournalSync />
           <TickerStrip />
           {children}
           <Footer />
