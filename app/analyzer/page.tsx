@@ -61,11 +61,17 @@ function AnalyzerPageInner() {
   const initialPair = queryPair || "auto";
   const pairOptions =
     queryPair && !PAIRS.includes(queryPair) ? [...PAIRS, queryPair] : PAIRS;
+  const queryTimeframe = searchParams.get("timeframe");
+  const initialTimeframe = queryTimeframe || "auto";
+  const timeframeOptions =
+    queryTimeframe && !TIMEFRAMES.includes(queryTimeframe)
+      ? [...TIMEFRAMES, queryTimeframe]
+      : TIMEFRAMES;
 
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [pair, setPair] = useState(initialPair);
-  const [timeframe, setTimeframe] = useState("auto");
+  const [timeframe, setTimeframe] = useState(initialTimeframe);
   const [style, setStyle] = useState("spotSwing");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +100,7 @@ function AnalyzerPageInner() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setRemaining(recordUse());
     try {
       const formData = new FormData();
       formData.append("image", file);
@@ -106,9 +113,6 @@ function AnalyzerPageInner() {
       if (!res.ok) {
         setError(data.error ?? t("analyzer.genericError"));
       } else {
-        // Only consume a free analysis after the AI successfully returns a result.
-        // Loading, busy, timeout, API, or parsing failures must not use an attempt.
-        setRemaining(recordUse());
         setResult(data);
         addHistoryEntry({
           pair: data.pair,
@@ -143,7 +147,7 @@ function AnalyzerPageInner() {
           ))}
         </Select>
         <Select label={t("analyzer.timeframeLabel")} value={timeframe} onChange={setTimeframe}>
-          {TIMEFRAMES.map((tf) => (
+          {timeframeOptions.map((tf) => (
             <option key={tf} value={tf}>
               {tf === "auto" ? t("analyzer.autoDetect") : tf}
             </option>
@@ -551,6 +555,7 @@ function CreateTradePlanButton({ result, t }: { result: Analysis; t: (key: strin
     const draft: TradePlanDraft = {
       pair: result.pair,
       direction,
+      timeframe: result.timeframe || "",
       entryZone: result.tradePlan.entryZone,
       invalidationText: result.invalidation?.level || result.tradePlan.invalidation,
       entry: firstNumber(result.tradePlan.entryZone),

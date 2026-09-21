@@ -5,12 +5,29 @@ import Link from "next/link";
 import { getTicker24h, formatPrice, Ticker24h } from "@/lib/binance";
 import { useLanguage } from "@/lib/i18n";
 import { IconRadar, IconAnalyzer, IconJournal, IconRisk } from "@/components/icons";
+import type { PublishedTrade } from "@/lib/tradeFeed";
 
 const HERO_PAIRS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
 
 export default function Home() {
   const { t } = useLanguage();
   const [tickers, setTickers] = useState<Record<string, Ticker24h>>({});
+  const [latestTrades, setLatestTrades] = useState<PublishedTrade[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/trade-feed")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data.trades)) {
+          setLatestTrades(data.trades.slice(0, 3));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -177,6 +194,43 @@ export default function Home() {
           </span>
         </Link>
       </section>
+
+      {/* LATEST TRADE PLANS */}
+      {latestTrades.length > 0 && (
+        <section className="max-w-6xl mx-auto px-6 pb-14">
+          <div className="flex items-baseline justify-between gap-3 flex-wrap">
+            <h2 className="font-heading text-lg font-semibold tracking-tight">
+              {t("home.latestTrades.title")}
+            </h2>
+            <Link href="/trade-feed" className="text-xs text-text-muted hover:text-gold transition-colors">
+              {t("home.latestTrades.viewAll")} →
+            </Link>
+          </div>
+          <div className="mt-4 grid sm:grid-cols-3 gap-3">
+            {latestTrades.map((trade) => (
+              <Link
+                key={trade.id}
+                href="/trade-feed"
+                className="border border-line rounded-lg bg-surface p-4 hover:border-text-muted transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-data text-sm">{trade.pair}</span>
+                  <span
+                    className={`px-2 py-0.5 rounded border text-[11px] ${
+                      trade.direction === "Long" ? "border-bull/40 text-bull" : "border-bear/40 text-bear"
+                    }`}
+                  >
+                    {trade.direction === "Long" ? t("risk.long") : t("risk.short")}
+                  </span>
+                </div>
+                <div className="mt-2 text-xs text-text-muted">
+                  {t("tradePlan.entry")}: <span className="font-data text-text">{trade.entryZone}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ATLAS WORKFLOW */}
       <section className="max-w-6xl mx-auto px-6 pb-16">

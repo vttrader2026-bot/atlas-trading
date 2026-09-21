@@ -1,6 +1,7 @@
 export type TradePlanDraft = {
   pair: string;
   direction: "Long" | "Short" | "Wait";
+  timeframe: string;
   entryZone: string;
   invalidationText: string;
   entry: string; // best-effort numeric parse of entryZone, editable
@@ -16,6 +17,7 @@ const STORAGE_KEY = "atlas-trading.tradeplan.v1";
 export const emptyDraft: TradePlanDraft = {
   pair: "",
   direction: "Long",
+  timeframe: "",
   entryZone: "",
   invalidationText: "",
   entry: "",

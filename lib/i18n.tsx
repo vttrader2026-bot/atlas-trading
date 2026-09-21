@@ -14,6 +14,7 @@ const en: Dict = {
     ticker: "Ticker",
     journal: "Journal",
     risk: "Risk",
+    tradeFeed: "Trade Feed",
   },
   home: {
     heroTitle: "Read the chart before you risk the trade.",
@@ -102,6 +103,10 @@ const en: Dict = {
       vipBody:
         "Higher-conviction calls and closer access. By request — message directly to get set up.",
       contactVip: "Join Atlas Elite",
+    },
+    latestTrades: {
+      title: "Latest trade setups",
+      viewAll: "View all",
     },
     faq: {
       heading: "Common questions",
@@ -270,6 +275,15 @@ const en: Dict = {
     saveToJournal: "Save to journal",
     saved: "Saved — opening journal…",
     clear: "Clear plan",
+    publishToFeed: "Publish to feed",
+    publishing: "Publishing...",
+    publishSuccess: "Published to the feed.",
+    publishError: "Couldn't publish. Please try again.",
+    publishUnauthorized: "Wrong admin secret. Publishing was not authorized.",
+    enterAdminSecret: "Enter the admin secret to publish",
+    timeframe: "Timeframe",
+    targets: "Targets",
+    riskNote: "Risk note",
     disclaimer:
       "This plan is built from your own numbers (or transferred from an Analyzer read you can edit) — not a signal, not financial advice.",
   },
@@ -327,6 +341,16 @@ const en: Dict = {
     disclaimer:
       "Rules, not magic: Breakout = within 1% of the 24h high and green. Pullback = up 3%+ over 24h but at least 3% off that high. High volume = top 40 pairs by 24h quote volume. Near high/low = within 1% of the 24h high/low. Range = 24h change within ±1%. This is a screen to narrow your own research, not a signal to trade.",
   },
+  tradeFeed: {
+    title: "Trade Feed",
+    subtitle: "Trade setups published by Atlas. Not financial advice - use them to check your own thinking.",
+    loading: "Loading trades...",
+    empty: "No trades published yet.",
+    error: "Couldn't load the feed. Try again shortly.",
+    remove: "Delete",
+    confirmRemove: "Delete this trade setup from the feed? This cannot be undone.",
+    removeError: "Couldn't delete the trade. Try again.",
+  },
 };
 
 const ar: Dict = {
@@ -337,6 +361,7 @@ const ar: Dict = {
     ticker: "الأسعار",
     journal: "السجل",
     risk: "حاسبة المخاطر",
+    tradeFeed: "خلاصة الصفقات",
   },
   home: {
     heroTitle: "اقرأ الشارت قبل أن تخاطر بالصفقة.",
@@ -425,6 +450,10 @@ const ar: Dict = {
       vipBody:
         "توصيات أعلى ثقة ووصول أقرب. بالطلب فقط — راسلنا مباشرة للانضمام.",
       contactVip: "انضم إلى Atlas Elite",
+    },
+    latestTrades: {
+      title: "أحدث إعدادات الصفقات",
+      viewAll: "عرض الكل",
     },
     faq: {
       heading: "أسئلة شائعة",
@@ -591,6 +620,15 @@ const ar: Dict = {
     saveToJournal: "احفظ في السجل",
     saved: "تم الحفظ — جارٍ فتح السجل…",
     clear: "امسح الخطة",
+    publishToFeed: "نشر في الخلاصة",
+    publishing: "جارٍ النشر...",
+    publishSuccess: "تم النشر في الخلاصة.",
+    publishError: "تعذر النشر. حاول مرة أخرى.",
+    publishUnauthorized: "الرمز السري غير صحيح. لم يتم التصريح بالنشر.",
+    enterAdminSecret: "أدخل الرمز السري للمشرف للنشر",
+    timeframe: "الإطار الزمني",
+    targets: "الأهداف",
+    riskNote: "ملاحظة المخاطرة",
     disclaimer:
       "هذه الخطة مبنية على أرقامك الخاصة (أو منقولة من قراءة المحلل ويمكنك تعديلها) — وليست توصية أو نصيحة مالية.",
   },
@@ -647,6 +685,16 @@ const ar: Dict = {
     },
     disclaimer:
       "قواعد واضحة لا سحر: اختراق = ضمن 1% من أعلى 24 ساعة وبتغير إيجابي. ارتداد = صعود 3%+ خلال 24 ساعة لكن بانخفاض 3% على الأقل عن ذلك الأعلى. حجم مرتفع = أعلى 40 زوجًا من حيث حجم التداول خلال 24 ساعة. قرب الأعلى/الأدنى = ضمن 1% من أعلى/أدنى 24 ساعة. نطاق = تغير 24 ساعة ضمن ±1%. هذا فحص لتضييق بحثك الخاص، وليس إشارة للتداول.",
+  },
+  tradeFeed: {
+    title: "خلاصة الصفقات",
+    subtitle: "إعدادات صفقات نشرها أطلس. ليست نصيحة مالية — استخدمها لمراجعة تفكيرك الخاص.",
+    loading: "جارٍ تحميل الصفقات...",
+    empty: "لم تُنشر أي صفقات بعد.",
+    error: "تعذر تحميل الخلاصة. حاول لاحقًا.",
+    remove: "حذف",
+    confirmRemove: "هل تريد حذف هذا الإعداد من الخلاصة؟ لا يمكن التراجع عن ذلك.",
+    removeError: "تعذر حذف الصفقة. حاول مرة أخرى.",
   },
 };
 

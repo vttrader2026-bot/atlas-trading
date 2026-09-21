@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/i18n";
 import { TradePlanDraft, emptyDraft, loadDraft, saveDraft, clearDraft } from "@/lib/tradePlan";
 import { loadTrades, saveTrades, Trade } from "@/lib/journal";
+
+const ADMIN_KEY = "atlas-trading.adminSecret";
 
 export default function TradePlanPage() {
   const { t } = useLanguage();
@@ -13,6 +15,8 @@ export default function TradePlanPage() {
   const [accountSize, setAccountSize] = useState("1000");
   const [riskPct, setRiskPct] = useState("1");
   const [saved, setSaved] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishMsg, setPublishMsg] = useState<string | null>(null);
 
   // Loading the saved draft only after mount avoids an SSR/client hydration
   // mismatch — localStorage isn't available on the server.
@@ -79,16 +83,61 @@ export default function TradePlanPage() {
     clearDraft();
   }
 
+  async function publishToFeed() {
+    if (!draft.pair || draft.direction === "Wait") return;
+    let secret = window.localStorage.getItem(ADMIN_KEY);
+    if (!secret) {
+      secret = window.prompt(t("tradePlan.enterAdminSecret"));
+      if (!secret) return;
+    }
+    setPublishing(true);
+    setPublishMsg(null);
+    try {
+      const res = await fetch("/api/trade-feed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secret,
+          pair: draft.pair,
+          direction: draft.direction,
+          timeframe: draft.timeframe,
+          entryZone: draft.entryZone || draft.entry,
+          invalidation: draft.invalidationText || draft.invalidation,
+          tp1: draft.tp1,
+          tp2: draft.tp2,
+          tp3: draft.tp3,
+          reasoning: draft.reasoning,
+        }),
+      });
+      if (res.status === 401) {
+        window.localStorage.removeItem(ADMIN_KEY);
+        setPublishMsg(t("tradePlan.publishUnauthorized"));
+      } else if (res.ok) {
+        window.localStorage.setItem(ADMIN_KEY, secret);
+        setPublishMsg(t("tradePlan.publishSuccess"));
+      } else {
+        setPublishMsg(t("tradePlan.publishError"));
+      }
+    } catch {
+      setPublishMsg(t("tradePlan.publishError"));
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("tradePlan.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("tradePlan.subtitle")}</p>
 
-      <div className="mt-8 grid sm:grid-cols-2 gap-4">
+      <div className="mt-8 grid sm:grid-cols-3 gap-4">
         <Field label={t("tradePlan.pair")} value={draft.pair} onChange={(v) => update("pair", v)} placeholder="BTC/USDT" />
         <div>
-          <label className="text-xs text-text-muted">{t("tradePlan.direction")}</label>
+          <label htmlFor="tp-direction" className="text-xs text-text-muted">
+            {t("tradePlan.direction")}
+          </label>
           <select
+            id="tp-direction"
             value={draft.direction}
             onChange={(e) => update("direction", e.target.value as TradePlanDraft["direction"])}
             className="input mt-1.5"
@@ -98,6 +147,12 @@ export default function TradePlanPage() {
             <option value="Wait">{t("tradePlan.wait")}</option>
           </select>
         </div>
+        <Field
+          label={t("tradePlan.timeframe")}
+          value={draft.timeframe}
+          onChange={(v) => update("timeframe", v)}
+          placeholder="4H"
+        />
       </div>
 
       <div className="mt-4 grid sm:grid-cols-2 gap-4">
@@ -139,8 +194,11 @@ export default function TradePlanPage() {
       </div>
 
       <div className="mt-6">
-        <label className="text-xs text-text-muted">{t("tradePlan.reasoning")}</label>
+        <label htmlFor="tp-reasoning" className="text-xs text-text-muted">
+          {t("tradePlan.reasoning")}
+        </label>
         <textarea
+          id="tp-reasoning"
           value={draft.reasoning}
           onChange={(e) => update("reasoning", e.target.value)}
           rows={3}
@@ -181,12 +239,20 @@ export default function TradePlanPage() {
           {saved ? t("tradePlan.saved") : t("tradePlan.saveToJournal")}
         </button>
         <button
+          onClick={publishToFeed}
+          disabled={publishing || !draft.pair || draft.direction === "Wait"}
+          className="btn-secondary"
+        >
+          {publishing ? t("tradePlan.publishing") : t("tradePlan.publishToFeed")}
+        </button>
+        <button
           onClick={clearPlan}
           className="btn-secondary"
         >
           {t("tradePlan.clear")}
         </button>
       </div>
+      {publishMsg && <p className="mt-3 text-sm text-text-muted">{publishMsg}</p>}
 
       <p className="mt-6 text-xs text-text-muted leading-relaxed max-w-xl">
         {t("tradePlan.disclaimer")}
@@ -208,10 +274,14 @@ function Field({
   placeholder?: string;
   numeric?: boolean;
 }) {
+  const id = useId();
   return (
     <div>
-      <label className="text-xs text-text-muted">{label}</label>
+      <label htmlFor={id} className="text-xs text-text-muted">
+        {label}
+      </label>
       <input
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
