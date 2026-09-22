@@ -65,7 +65,7 @@ export default function Home() {
               <br />
               <span className="text-gold">{t("home.heroLine3")}</span>
             </h1>
-            <p className="mt-6 text-white/70 text-lg sm:text-xl max-w-md leading-relaxed">
+            <p className="mt-6 text-text-muted text-lg sm:text-xl max-w-md leading-relaxed">
               {t("home.heroBody")}
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
@@ -79,9 +79,9 @@ export default function Home() {
           </div>
 
           {/* Demo analyzer preview - clearly labeled example, not live data */}
-          <div className="rounded-2xl border border-white/10 bg-[#0b0f16] p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
             <div className="flex items-center justify-between px-5 h-11 border-b border-line bg-surface-raised/60">
-              <span className="font-data text-base text-white/70">BTC/USDT · 4H</span>
+              <span className="font-data text-base text-text-muted">BTC/USDT · 4H</span>
               <span className="text-label px-2.5 py-1 rounded-full border border-line">
                 {t("home.exampleLabel")}
               </span>
@@ -98,7 +98,7 @@ export default function Home() {
                 <DemoStat label={t("home.demoResistance")} value="$64,800" tone="bear" />
               </div>
               <DemoRow label={t("analyzer.whatToWatch")}>
-                <span className="text-base text-white/70">{t("home.demoWatch")}</span>
+                <span className="text-base text-text-muted">{t("home.demoWatch")}</span>
               </DemoRow>
             </div>
           </div>
@@ -107,7 +107,7 @@ export default function Home() {
 
       {/* LIVE MARKET SNAPSHOT */}
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
-        <div className="rounded-2xl border border-white/10 bg-[#0b0f16] p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
           <div className="flex items-center gap-2 px-5 h-10 border-b border-line">
             <span className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
             <span className="text-label">{t("home.snapshotTitle")}</span>
@@ -119,7 +119,7 @@ export default function Home() {
               const positive = change >= 0;
               return (
                 <div key={symbol} className="flex items-center justify-between px-5 py-4">
-                  <span className="text-base text-white/70">
+                  <span className="text-base text-text-muted">
                     {symbol.replace("USDT", " / USDT")}
                   </span>
                   <div className="flex items-baseline gap-3">
@@ -143,7 +143,7 @@ export default function Home() {
 
       {/* ANALYZER - FLAGSHIP */}
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
-        <div className="rounded-2xl border border-white/10 bg-[#0b0f16] p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
           <div className="flex items-start gap-4">
             <span className="w-11 h-11 rounded-xl border border-gold/30 bg-gold/10 flex items-center justify-center text-gold shrink-0">
               <IconAnalyzer className="w-5 h-5" />
@@ -152,7 +152,7 @@ export default function Home() {
               <div className="font-heading text-xl sm:text-2xl font-bold tracking-tight">
                 {t("home.showcase.analyzerTitle")}
               </div>
-              <p className="mt-2.5 text-base sm:text-base text-white/70 leading-relaxed max-w-xl">
+              <p className="mt-2.5 text-base sm:text-base text-text-muted leading-relaxed max-w-xl">
                 {t("home.showcase.analyzerBody")}
               </p>
             </div>
@@ -173,20 +173,20 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
         <Link
           href="/radar"
-          className="flex items-center gap-4 group rounded-2xl border border-white/10 bg-[#0b0f16] p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]"
+          className="flex items-center gap-4 group rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]"
         >
-          <span className="w-11 h-11 rounded-xl border border-line flex items-center justify-center text-white/70 group-hover:text-gold transition-colors shrink-0">
+          <span className="w-11 h-11 rounded-xl border border-line flex items-center justify-center text-text-muted group-hover:text-gold transition-colors shrink-0">
             <IconRadar className="w-5 h-5" />
           </span>
           <div className="flex-1">
             <div className="text-base font-medium group-hover:text-gold transition-colors">
               {t("home.showcase.radarTitle")}
             </div>
-            <p className="mt-1 text-base text-white/70 leading-relaxed max-w-xl">
+            <p className="mt-1 text-base text-text-muted leading-relaxed max-w-xl">
               {t("home.showcase.radarBody")}
             </p>
           </div>
-          <span className="text-white/70 group-hover:text-gold transition-colors text-base shrink-0">
+          <span className="text-text-muted group-hover:text-gold transition-colors text-base shrink-0">
             {t("home.showcase.radarCta")} →
           </span>
         </Link>
@@ -199,7 +199,7 @@ export default function Home() {
             <h2 className="font-heading text-xl sm:text-2xl font-bold tracking-tight">
               {t("home.latestTrades.title")}
             </h2>
-            <Link href="/trade-feed" className="text-xs text-white/70 hover:text-gold transition-colors">
+            <Link href="/trade-feed" className="text-xs text-text-muted hover:text-gold transition-colors">
               {t("home.latestTrades.viewAll")} →
             </Link>
           </div>
@@ -208,7 +208,7 @@ export default function Home() {
               <Link
                 key={trade.id}
                 href="/trade-feed"
-                className="rounded-2xl border border-white/10 bg-[#0b0f16] p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]"
+                className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-data text-base font-medium">{trade.pair}</span>
@@ -220,7 +220,7 @@ export default function Home() {
                     {trade.direction === "Long" ? t("risk.long") : t("risk.short")}
                   </span>
                 </div>
-                <div className="mt-2 text-xs text-white/70">
+                <div className="mt-2 text-xs text-text-muted">
                   {t("tradePlan.entry")}: <span className="font-data text-text">{trade.entryZone}</span>
                 </div>
               </Link>
@@ -265,10 +265,10 @@ export default function Home() {
       {/* COMMUNITY */}
       <section className="max-w-6xl mx-auto px-6 pb-24">
         <div className="grid sm:grid-cols-2 gap-5">
-          <div className="rounded-2xl border border-white/10 bg-[#0b0f16] p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
             <div className="text-label">{t("home.community.freeLabel")}</div>
             <div className="mt-2 text-lg font-semibold">{t("home.community.freeTitle")}</div>
-            <p className="mt-2 text-base text-white/70 leading-relaxed">
+            <p className="mt-2 text-base text-text-muted leading-relaxed">
               {t("home.community.freeBody")}
             </p>
             
@@ -282,10 +282,10 @@ export default function Home() {
             </a>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-[#0b0f16] p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
             <div className="text-label text-gold">{t("home.community.vipLabel")}</div>
             <div className="mt-2 text-lg font-semibold">{t("home.community.vipTitle")}</div>
-            <p className="mt-2 text-base text-white/70 leading-relaxed">
+            <p className="mt-2 text-base text-text-muted leading-relaxed">
               {t("home.community.vipBody")}
             </p>
             <a
@@ -317,7 +317,7 @@ export default function Home() {
 function DemoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-white/70">{label}</span>
+      <span className="text-xs text-text-muted">{label}</span>
       {children}
     </div>
   );
@@ -334,7 +334,7 @@ function DemoStat({
 }) {
   return (
     <div className={`rounded-lg border p-3 ${tone === "bull" ? "border-bull/30" : "border-bear/30"}`}>
-      <div className="text-[11px] text-white/70">{label}</div>
+      <div className="text-[11px] text-text-muted">{label}</div>
       <div className={`font-data text-base font-medium mt-0.5 ${tone === "bull" ? "text-bull" : "text-bear"}`}>
         {value}
       </div>
@@ -361,7 +361,7 @@ function WorkflowStep({ n, label, last }: { n: number; label: string; last?: boo
         <span className="text-base">{label}</span>
       </div>
       {!last && (
-        <span className="text-white/70 hidden sm:block text-lg" aria-hidden>
+        <span className="text-text-muted hidden sm:block text-lg" aria-hidden>
           →
         </span>
       )}
@@ -381,12 +381,12 @@ function ToolCard({
   href: string;
 }) {
   return (
-    <Link href={href} className="rounded-2xl border border-white/10 bg-[#0b0f16] p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
-      <span className="w-10 h-10 rounded-xl border border-line flex items-center justify-center text-white/70 group-hover:text-gold transition-colors">
+    <Link href={href} className="group rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+      <span className="w-10 h-10 rounded-xl border border-line flex items-center justify-center text-text-muted group-hover:text-gold transition-colors">
         {icon}
       </span>
       <div className="mt-4 text-base font-medium group-hover:text-gold transition-colors">{title}</div>
-      <p className="mt-1.5 text-base text-white/70 leading-relaxed">{body}</p>
+      <p className="mt-1.5 text-base text-text-muted leading-relaxed">{body}</p>
     </Link>
   );
 }
@@ -395,7 +395,7 @@ function Faq({ q, a }: { q: string; a: string }) {
   return (
     <div className="py-5 border-b border-line">
       <div className="text-base font-medium">{q}</div>
-      <p className="mt-2 text-base text-white/70 leading-relaxed max-w-2xl">{a}</p>
+      <p className="mt-2 text-base text-text-muted leading-relaxed max-w-2xl">{a}</p>
     </div>
   );
 }
