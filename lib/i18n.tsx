@@ -82,8 +82,8 @@ const en: Dict = {
     },
     spotPromo: {
       title: "Strategic Spot Setups. Zero Cost.",
-      body: "Build your portfolio with battle-tested crypto spot signals delivered straight to your feed. Timing is everything — enable alerts to catch every setup the moment it goes live.",
-      cta: "Enable Live Alerts",
+      body: "Build your portfolio with battle-tested crypto spot signals delivered straight to your feed. Timing is everything — don't forget to enable notifications so you catch every setup the moment it goes live.",
+      cta: "View Free Setups",
       sampleTag: "SAMPLE SETUP",
       currentPrice: "Live BTC price",
       disclaimer: "Illustrative example — not a live trade recommendation.",
@@ -491,8 +491,8 @@ const ar: Dict = {
     },
     spotPromo: {
       title: "إعدادات سبوت استراتيجية. بدون تكلفة.",
-      body: "ابنِ محفظتك بإشارات سبوت مختبرة تصلك مباشرة في خلاصتك. التوقيت كل شيء — فعّل التنبيهات لتلتقط كل إعداد لحظة صدوره.",
-      cta: "فعّل التنبيهات المباشرة",
+      body: "ابنِ محفظتك بإشارات سبوت مختبرة تصلك مباشرة في خلاصتك. التوقيت كل شيء — لا تنسَ تفعيل الإشعارات لتلتقط كل إعداد لحظة صدوره.",
+      cta: "شاهد الإعدادات المجانية",
       sampleTag: "إعداد توضيحي",
       currentPrice: "سعر BTC المباشر",
       disclaimer: "مثال توضيحي — وليس توصية تداول مباشرة.",
