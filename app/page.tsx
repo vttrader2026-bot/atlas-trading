@@ -192,6 +192,59 @@ export default function Home() {
         </Link>
       </section>
 
+      {/* SPOT SETUPS PROMO */}
+      <section className="max-w-6xl mx-auto px-6 pb-10">
+        <div className="card card-accent p-6 sm:p-8 grid sm:grid-cols-[1fr_auto] gap-6 sm:gap-8 items-center">
+          <div>
+            <h3 className="font-heading text-xl sm:text-2xl font-bold tracking-tight">
+              {t("home.spotPromo.title")}
+            </h3>
+            <p className="mt-2.5 text-text-muted max-w-md">{t("home.spotPromo.body")}</p>
+            <a
+              href="https://t.me/atlastradingcrypto"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary mt-5 inline-flex"
+            >
+              {t("home.spotPromo.cta")}
+            </a>
+          </div>
+
+          <div className="rounded-2xl border border-line bg-surface p-5 w-full sm:w-72 shadow-[0_0_40px_rgba(227,162,61,0.12)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <IconBtc className="w-6 h-6 shrink-0" />
+                <span className="font-data text-sm font-medium">BTC/USDT</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full border border-line text-[10px] tracking-wide text-text-muted">
+                {t("home.spotPromo.sampleTag")}
+              </span>
+            </div>
+
+            <div className="mt-3 font-data text-2xl font-bold">
+              {tickers["BTCUSDT"] ? `$${formatPrice(tickers["BTCUSDT"].lastPrice)}` : "—"}
+            </div>
+            <div className="text-[11px] text-text-muted">{t("home.spotPromo.currentPrice")}</div>
+
+            <div className="mt-4 pt-4 border-t border-line grid grid-cols-3 gap-2 text-center">
+              <div>
+                <div className="text-[10px] text-text-muted uppercase tracking-wide">{t("tradePlan.entry")}</div>
+                <div className="font-data text-sm mt-0.5">$61,250</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-text-muted uppercase tracking-wide">TP</div>
+                <div className="font-data text-sm mt-0.5 text-bull">$64,000</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-text-muted uppercase tracking-wide">SL</div>
+                <div className="font-data text-sm mt-0.5 text-bear">$59,800</div>
+              </div>
+            </div>
+            <div className="mt-3 text-[10px] text-text-muted text-center">{t("home.spotPromo.disclaimer")}</div>
+          </div>
+        </div>
+      </section>
+
       {/* LATEST TRADE PLANS */}
       {latestTrades.length > 0 && (
         <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
@@ -229,18 +282,76 @@ export default function Home() {
         </section>
       )}
 
-      {/* ATLAS WORKFLOW */}
+      {/* FREE VS VIP */}
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center">
-          {t("home.workflow.title")}
+          {t("home.plans.title")}
         </h2>
-        <div className="mt-10 grid sm:grid-cols-6 gap-4">
-          <WorkflowStep n={1} label={t("home.workflow.discover")} />
-          <WorkflowStep n={2} label={t("home.workflow.analyze")} />
-          <WorkflowStep n={3} label={t("home.workflow.plan")} />
-          <WorkflowStep n={4} label={t("home.workflow.control")} />
-          <WorkflowStep n={5} label={t("home.workflow.review")} />
-          <WorkflowStep n={6} label={t("home.workflow.improve")} last />
+        <p className="mt-3 text-text-muted text-center max-w-xl mx-auto">
+          {t("home.plans.subtitle")}
+        </p>
+
+        <div className="mt-10 card overflow-hidden">
+          {/* Column headers */}
+          <div className="grid grid-cols-[1.4fr_1fr_1fr] sm:grid-cols-[2fr_1fr_1fr] border-b border-line">
+            <div className="px-4 sm:px-6 py-4" />
+            <div className="px-3 sm:px-6 py-4 text-center border-l border-line">
+              <div className="text-label">{t("home.plans.freeLabel")}</div>
+            </div>
+            <div className="px-3 sm:px-6 py-4 text-center border-l border-line bg-gold/5">
+              <div className="text-label text-gold">{t("home.plans.vipLabel")}</div>
+            </div>
+          </div>
+
+          {/* Feature rows */}
+          {[
+            { key: "alerts", free: "teaser", vip: "full" },
+            { key: "entryZone", free: false, vip: true },
+            { key: "stopLoss", free: false, vip: true },
+            { key: "targets", free: false, vip: true },
+            { key: "monitoring", free: false, vip: true },
+            { key: "channel", free: "public", vip: "vip" },
+          ].map((row) => (
+            <div
+              key={row.key}
+              className="grid grid-cols-[1.4fr_1fr_1fr] sm:grid-cols-[2fr_1fr_1fr] border-b border-line last:border-b-0"
+            >
+              <div className="px-4 sm:px-6 py-4 text-sm sm:text-base">
+                {t(`home.plans.rows.${row.key}`)}
+              </div>
+              <div className="px-3 sm:px-6 py-4 flex items-center justify-center border-l border-line text-center">
+                <PlanCell value={row.free} />
+              </div>
+              <div className="px-3 sm:px-6 py-4 flex items-center justify-center border-l border-line bg-gold/5 text-center">
+                <PlanCell value={row.vip} />
+              </div>
+            </div>
+          ))}
+
+          {/* CTA row */}
+          <div className="grid grid-cols-[1.4fr_1fr_1fr] sm:grid-cols-[2fr_1fr_1fr]">
+            <div className="px-4 sm:px-6 py-5" />
+            <div className="px-3 sm:px-6 py-5 flex items-center justify-center border-l border-line">
+              <a
+                href="https://t.me/atlastradingcrypto"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-2.5 w-full"
+              >
+                {t("home.community.joinFree")}
+              </a>
+            </div>
+            <div className="px-3 sm:px-6 py-5 flex items-center justify-center border-l border-line bg-gold/5">
+              <a
+                href="https://t.me/Atlascryptotrader"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-2.5 w-full"
+              >
+                {t("home.community.contactVip")}
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -351,22 +462,49 @@ function FlowStep({ n, label }: { n: number; label: string }) {
   );
 }
 
-function WorkflowStep({ n, label, last }: { n: number; label: string; last?: boolean }) {
+function IconBtc({ className }: { className?: string }) {
   return (
-    <div className="flex sm:flex-col items-center gap-3 sm:gap-2.5 text-center">
-      <div className="flex items-center gap-3 sm:flex-col sm:gap-2.5 flex-1">
-        <span className="w-9 h-9 rounded-full border border-gold/40 bg-gold/5 text-gold flex items-center justify-center text-base font-data shrink-0">
-          {n}
-        </span>
-        <span className="text-base">{label}</span>
-      </div>
-      {!last && (
-        <span className="text-text-muted hidden sm:block text-lg" aria-hidden>
-          →
-        </span>
-      )}
-    </div>
+    <svg viewBox="0 0 32 32" className={className} xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#F7931A" />
+      <path
+        fill="#fff"
+        d="M22.5 14.1c.3-2.1-1.3-3.2-3.5-4l.7-2.9-1.7-.4-.7 2.8c-.5-.1-.9-.2-1.4-.3l.7-2.8-1.7-.4-.7 2.9c-.4-.1-.7-.2-1.1-.3v0l-2.3-.6-.5 1.8s1.2.3 1.2.3c.7.2.8.6.8 1l-.8 3.2c0 .1.1.1.2.1h-.2l-1.1 4.5c-.1.2-.3.5-.8.4 0 0-1.2-.3-1.2-.3l-.8 1.9 2.2.5c.4.1.8.2 1.2.3l-.7 2.9 1.7.4.7-2.9c.5.1.9.2 1.4.3l-.7 2.9 1.7.4.7-2.9c2.9.5 5.1.3 6-2.3.7-2.1 0-3.3-1.5-4.1 1.1-.3 1.9-1 2.1-2.5zm-3.9 5.5c-.5 2.1-4 1-5.1.7l.9-3.7c1.1.3 4.7.8 4.2 3zm.5-5.6c-.5 1.9-3.4.9-4.3.7l.8-3.4c.9.2 4 .6 3.5 2.7z"
+      />
+    </svg>
   );
+}
+
+function PlanCell({ value }: { value: boolean | "teaser" | "full" | "public" | "vip" }) {
+  const { t } = useLanguage();
+  if (value === true) {
+    return (
+      <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-bull shrink-0">
+        <path
+          d="M4 10.5L8 14.5L16 5.5"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  if (value === false) {
+    return (
+      <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-text-muted/50 shrink-0">
+        <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  const label =
+    value === "teaser"
+      ? t("home.plans.values.teaser")
+      : value === "full"
+      ? t("home.plans.values.full")
+      : value === "public"
+      ? t("home.plans.values.publicGroup")
+      : t("home.plans.values.vipChannel");
+  return <span className="text-xs sm:text-sm font-medium">{label}</span>;
 }
 
 function ToolCard({
