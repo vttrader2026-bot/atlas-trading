@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
 import { saveDraft } from "@/lib/tradePlan";
+import { enablePush, disablePush, thisDeviceSubscribed } from "@/lib/pushClient";
 import { defaultPrefs, type NotificationPrefs } from "@/lib/notificationPrefs";
 import type { SavedPlan } from "@/lib/savedPlans";
 
@@ -35,13 +36,14 @@ function Toggle({
 }
 
 export default function AccountPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
   const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
   const [prefsMsg, setPrefsMsg] = useState<string | null>(null);
   const [plans, setPlans] = useState<SavedPlan[] | null>(null);
   const [plansFailed, setPlansFailed] = useState(false);
+  const [deviceOn, setDeviceOn] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -64,6 +66,52 @@ export default function AccountPage() {
       cancelled = true;
     };
   }, [isSignedIn]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    let cancelled = false;
+    thisDeviceSubscribed().then((on) => {
+      if (!cancelled) setDeviceOn(on);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn]);
+  
+  async function toggleMaster(on: boolean) {
+    setPrefsMsg(null);
+    if (on) {
+      const result = await enablePush(lang);
+      if (result !== "ok") {
+        setPrefsMsg(
+          t(
+            result === "denied"
+              ? "account.pushDenied"
+              : result === "unsupported"
+                ? "account.pushUnsupported"
+                : "account.pushError",
+          ),
+        );
+        return;
+      }
+      setDeviceOn(true);
+    } else {
+      await disablePush();
+      setDeviceOn(false);
+    }
+    await updatePref({ enabled: on });
+  }
+  
+  async function sendTest() {
+    setPrefsMsg(null);
+    try {
+      const res = await fetch("/api/me/push/test", { method: "POST" });
+      const data = res.ok ? await res.json() : null;
+      setPrefsMsg(data && data.delivered > 0 ? t("account.pushTestSent") : t("account.pushTestError"));
+    } catch {
+      setPrefsMsg(t("account.pushTestError"));
+    }
+  }
 
   async function updatePref(patch: Partial<NotificationPrefs>) {
     const previous = prefs;
@@ -144,7 +192,7 @@ export default function AccountPage() {
               <Toggle
                 label={t("account.notifyEnabled")}
                 checked={prefs.enabled}
-                onChange={(v) => updatePref({ enabled: v })}
+                onChange={toggleMaster}
               />
               <div className="ps-7 space-y-3">
                 <Toggle
@@ -161,6 +209,24 @@ export default function AccountPage() {
                 />
               </div>
             </div>
+            {prefs.enabled && deviceOn === false && (
+              <button
+                type="button"
+                onClick={() => toggleMaster(true)}
+                className="mt-3 me-2 text-xs px-3 py-1 rounded-full border border-line hover:border-text-muted transition-colors"
+              >
+                {t("account.pushEnableDevice")}
+              </button>
+            )}
+            {prefs.enabled && deviceOn && (
+              <button
+                type="button"
+                onClick={sendTest}
+                className="mt-3 text-xs px-3 py-1 rounded-full border border-line hover:border-text-muted transition-colors"
+              >
+                {t("account.pushTest")}
+              </button>
+            )}
             {prefsMsg && <p className="mt-3 text-xs text-text-muted">{prefsMsg}</p>}
           </section>
 

@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { Redis } from "@upstash/redis";
 import { timingSafeEqual, randomUUID } from "crypto";
 import type { PublishedTrade } from "@/lib/tradeFeed";
+import { notifyTradeSubscribers } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
   try {
     await redis.lpush(FEED_KEY, trade);
     await redis.ltrim(FEED_KEY, 0, MAX_TRADES - 1);
+    after(() => notifyTradeSubscribers(trade));
     return NextResponse.json({ ok: true, trade }, { status: 201 });
   } catch (err) {
     console.error("trade-feed POST failed:", err);
