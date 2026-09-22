@@ -62,8 +62,8 @@ export default function RadarPage() {
   }, [rows, filter]);
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10">
-      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("radar.title")}</h1>
+    <main className="max-w-6xl mx-auto px-6 py-12 sm:py-14">
+      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("radar.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-2xl leading-relaxed">
         {t("radar.subtitle")}
       </p>
@@ -75,7 +75,7 @@ export default function RadarPage() {
         <>
           <div className="mt-8">
             <div className="flex items-baseline justify-between gap-3 flex-wrap">
-              <h2 className="font-heading text-lg font-semibold tracking-tight">
+              <h2 className="font-heading text-xl sm:text-2xl font-bold tracking-tight">
                 {t("radar.shortlistTitle")}
               </h2>
               <span className="text-xs text-text-muted">{t("radar.shortlistNote")}</span>
@@ -92,7 +92,7 @@ export default function RadarPage() {
             )}
           </div>
 
-          <div className="mt-10 border-t border-line pt-8">
+          <div className="mt-14 border-t border-line pt-10">
             <div className="flex flex-wrap gap-2">
               {FILTERS.map((f) => (
                 <button
@@ -109,7 +109,7 @@ export default function RadarPage() {
               ))}
             </div>
 
-            <div className="mt-4 border border-line rounded-lg overflow-hidden">
+            <div className="mt-4 card overflow-hidden">
               <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[640px]">
                 <thead className="bg-surface text-text-muted">
@@ -181,7 +181,7 @@ export default function RadarPage() {
 function ShortlistCard({ row, t }: { row: RadarRow; t: (key: string) => string }) {
   const positive = row.change >= 0;
   return (
-    <div className="border border-line rounded-lg bg-surface p-4">
+    <div className="card card-hover p-4">
       <div className="flex items-center justify-between">
         <span className="font-data text-sm">{row.ticker.symbol.replace("USDT", "/USDT")}</span>
         <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />

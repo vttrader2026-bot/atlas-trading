@@ -60,7 +60,7 @@ export default function Nav() {
   );
 
   return (
-    <header className="relative">
+    <header className="relative sticky top-0 z-40 backdrop-blur-md bg-bg/75 border-b border-line">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center gap-2 h-14">
         <Link href="/" className="shrink-0">
           <Logo />

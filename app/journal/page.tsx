@@ -29,22 +29,26 @@ function InsightStat({
   return (
     <div>
       <div className="text-xs text-text-muted">{label}</div>
-      <div className={`font-data text-lg mt-1 ${color}`}>{value}</div>
+      <div className={`font-data text-xl mt-1 ${color}`}>{value}</div>
     </div>
   );
 }
 
 export default function JournalPage() {
   const { t } = useLanguage();
-  const [trades, setTrades] = useState<Trade[]>(() => loadTrades());
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [mounted, setMounted] = useState(false);
+  const [form, setForm] = useState(empty);
 
-  // Refresh when account sync updates the journal on this device.
   useEffect(() => {
+    setMounted(true);
+    setTrades(loadTrades());
+
     const refresh = () => setTrades(loadTrades());
     window.addEventListener("atlas-journal-updated", refresh);
     return () => window.removeEventListener("atlas-journal-updated", refresh);
   }, []);
-  const [form, setForm] = useState(empty);
+
   const stats = useMemo(() => computeJournalStats(trades), [trades]);
 
   function addTrade() {
@@ -72,11 +76,13 @@ export default function JournalPage() {
     URL.revokeObjectURL(url);
   }
 
+  if (!mounted) return null;
+
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10">
+    <main className="max-w-5xl mx-auto px-6 py-12 sm:py-14">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("journal.title")}</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("journal.title")}</h1>
           <p className="text-text-muted text-sm mt-1">{t("journal.subtitle")}</p>
         </div>
         <button
@@ -88,7 +94,7 @@ export default function JournalPage() {
         </button>
       </div>
 
-      <div className="mt-6 border border-line rounded-lg bg-surface p-5">
+      <div className="mt-6 card p-5">
         <div className="grid sm:grid-cols-3 md:grid-cols-6 gap-3">
           <input
             className="input"
@@ -148,38 +154,21 @@ export default function JournalPage() {
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
         </div>
-        <button
-          onClick={addTrade}
-          className="btn-primary mt-4"
-        >
+        <button onClick={addTrade} className="btn-primary mt-4">
           {t("journal.logTrade")}
         </button>
       </div>
 
       {stats ? (
-        <div className="mt-8 border border-line rounded-lg bg-surface p-6">
-          <div className="text-xs text-text-muted uppercase tracking-wide mb-3">
-            {t("journal.insightsTitle")}
-          </div>
+        <div className="mt-8 card p-6">
+          <div className="text-label mb-3">{t("journal.insightsTitle")}</div>
           <div className="grid sm:grid-cols-3 gap-4">
             <InsightStat label={t("journal.winRate")} value={`${stats.winRate.toFixed(0)}%`} />
-            <InsightStat
-              label={t("journal.avgWinner")}
-              value={`+${stats.avgWinner.toFixed(2)}`}
-              tone="bull"
-            />
-            <InsightStat
-              label={t("journal.avgLoser")}
-              value={stats.avgLoser.toFixed(2)}
-              tone="bear"
-            />
+            <InsightStat label={t("journal.avgWinner")} value={`+${stats.avgWinner.toFixed(2)}`} tone="bull" />
+            <InsightStat label={t("journal.avgLoser")} value={stats.avgLoser.toFixed(2)} tone="bear" />
             <InsightStat label={t("journal.avgRisk")} value={`${stats.avgRiskPct.toFixed(1)}%`} />
-            {stats.bestPair && (
-              <InsightStat label={t("journal.bestPair")} value={stats.bestPair.pair} tone="bull" />
-            )}
-            {stats.worstPair && (
-              <InsightStat label={t("journal.worstPair")} value={stats.worstPair.pair} tone="bear" />
-            )}
+            {stats.bestPair && <InsightStat label={t("journal.bestPair")} value={stats.bestPair.pair} tone="bull" />}
+            {stats.worstPair && <InsightStat label={t("journal.worstPair")} value={stats.worstPair.pair} tone="bear" />}
           </div>
           <p className="mt-4 text-xs text-text-muted leading-relaxed">
             {t("journal.insightsNote")}
@@ -189,7 +178,7 @@ export default function JournalPage() {
         <p className="mt-8 text-sm text-text-muted">{t("journal.insightsEmpty")}</p>
       )}
 
-      <div className="mt-8 border border-line rounded-lg overflow-hidden">
+      <div className="mt-8 card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-surface text-text-muted">
             <tr>
@@ -204,41 +193,42 @@ export default function JournalPage() {
             </tr>
           </thead>
           <tbody>
-            {trades.length === 0 && (
+            {trades.length === 0 ? (
               <tr>
                 <td colSpan={8} className="text-center py-10 text-text-muted">
                   {t("journal.noTrades")}
                 </td>
               </tr>
-            )}
-            {trades.map((tr) => {
-              const pnl = tradePnl(tr);
-              return (
-                <tr key={tr.id} className="border-t border-line">
-                  <td className="px-4 py-3 text-text-muted">{tr.date}</td>
-                  <td className="px-4 py-3 font-data">{tr.pair}</td>
-                  <td className="px-4 py-3">{tr.side === "Long" ? t("risk.long") : t("risk.short")}</td>
-                  <td className="px-4 py-3 font-data text-right">{tr.entry}</td>
-                  <td className="px-4 py-3 font-data text-right">{tr.stop}</td>
-                  <td className="px-4 py-3 font-data text-right">{tr.exit ?? "—"}</td>
-                  <td
-                    className={`px-4 py-3 font-data text-right ${
-                      pnl === null ? "text-text-muted" : pnl >= 0 ? "text-bull" : "text-bear"
-                    }`}
-                  >
-                    {pnl === null ? t("journal.open") : `${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => removeTrade(tr.id)}
-                      className="text-text-muted hover:text-bear text-xs"
+            ) : (
+              trades.map((tr) => {
+                const pnl = tradePnl(tr);
+                return (
+                  <tr key={tr.id} className="border-t border-line">
+                    <td className="px-4 py-3 text-text-muted">{tr.date}</td>
+                    <td className="px-4 py-3 font-data">{tr.pair}</td>
+                    <td className="px-4 py-3">{tr.side === "Long" ? t("risk.long") : t("risk.short")}</td>
+                    <td className="px-4 py-3 font-data text-right">{tr.entry}</td>
+                    <td className="px-4 py-3 font-data text-right">{tr.stop}</td>
+                    <td className="px-4 py-3 font-data text-right">{tr.exit ?? "—"}</td>
+                    <td
+                      className={`px-4 py-3 font-data text-right ${
+                        pnl === null ? "text-text-muted" : pnl >= 0 ? "text-bull" : "text-bear"
+                      }`}
                     >
-                      {t("journal.remove")}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                      {pnl === null ? t("journal.open") : `${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => removeTrade(tr.id)}
+                        className="text-text-muted hover:text-bear text-xs"
+                      >
+                        {t("journal.remove")}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

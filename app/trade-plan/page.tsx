@@ -156,8 +156,8 @@ export default function TradePlanPage() {
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
-      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("tradePlan.title")}</h1>
+    <main className="max-w-4xl mx-auto px-6 py-12 sm:py-14">
+      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("tradePlan.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("tradePlan.subtitle")}</p>
 
       <div className="mt-8 grid sm:grid-cols-3 gap-4">
@@ -201,7 +201,7 @@ export default function TradePlanPage() {
       </div>
 
       <div className="mt-6 border-t border-line pt-6">
-        <div className="text-xs text-text-muted uppercase tracking-wide mb-3">
+        <div className="text-label mb-3">
           {t("tradePlan.numbersHeading")}
         </div>
         <div className="grid sm:grid-cols-3 gap-3">
@@ -237,8 +237,8 @@ export default function TradePlanPage() {
         />
       </div>
 
-      <div className="mt-8 border border-line rounded-lg bg-surface p-6">
-        <div className="text-xs text-text-muted uppercase tracking-wide mb-3">
+      <div className="mt-8 card p-6">
+        <div className="text-label mb-3">
           {t("tradePlan.riskHeading")}
         </div>
         <div className="grid sm:grid-cols-2 gap-3">

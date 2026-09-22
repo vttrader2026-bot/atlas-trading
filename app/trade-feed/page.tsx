@@ -2,15 +2,39 @@
 
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/lib/i18n";
+import { getTicker24h, formatPrice, Ticker24h } from "@/lib/binance";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 
-function Row({ label, value }: { label: string; value: string }) {
-  if (!value) return null;
+// Deterministic color per pair so each coin badge looks distinct without
+// needing a real logo asset for every symbol Atlas might publish.
+const BADGE_COLORS = ["#F7931A", "#627EEA", "#00D4B4", "#E3A23D", "#9B6DFF", "#35C48A", "#EF5350"];
+
+function badgeColorFor(pair: string) {
+  let hash = 0;
+  for (const ch of pair) hash = (hash * 31 + ch.charCodeAt(0)) % BADGE_COLORS.length;
+  return BADGE_COLORS[hash];
+}
+
+function pairBase(pair: string) {
+  // "BTC/USDT" -> "BTC", "BTCUSDT" -> "BTC"
+  const cleaned = pair.replace("/", "").toUpperCase();
+  return cleaned.endsWith("USDT") ? cleaned.slice(0, -4) : cleaned.slice(0, 4);
+}
+
+function binanceSymbol(pair: string) {
+  return pair.replace("/", "").toUpperCase();
+}
+
+function CoinBadge({ pair }: { pair: string }) {
+  const base = pairBase(pair);
+  const color = badgeColorFor(pair);
   return (
-    <div className="text-sm">
-      <span className="text-text-muted">{label}: </span>
-      <span className="font-data">{value}</span>
-    </div>
+    <span
+      className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 font-data"
+      style={{ backgroundColor: color }}
+    >
+      {base.slice(0, 3)}
+    </span>
   );
 }
 
@@ -20,6 +44,7 @@ export default function TradeFeedPage() {
   const [failed, setFailed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [tickers, setTickers] = useState<Record<string, Ticker24h>>({});
 
   useEffect(() => {
     // Admin mode is only a UI switch; the API still checks the secret.
@@ -44,6 +69,32 @@ export default function TradeFeedPage() {
       cancelled = true;
     };
   }, []);
+
+  // Live prices for every unique pair currently shown, mirroring the
+  // homepage's BTC card. Failures for any one symbol are swallowed so a bad
+  // pair doesn't block the rest.
+  useEffect(() => {
+    if (!trades || trades.length === 0) return;
+    let cancelled = false;
+    const symbols = Array.from(new Set(trades.map((tr) => binanceSymbol(tr.pair))));
+    Promise.all(
+      symbols.map((sym) =>
+        getTicker24h(sym)
+          .then((data) => [sym, data] as const)
+          .catch(() => null)
+      )
+    ).then((results) => {
+      if (cancelled) return;
+      const next: Record<string, Ticker24h> = {};
+      for (const r of results) {
+        if (r) next[r[0]] = r[1];
+      }
+      setTickers(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [trades]);
 
   async function removeTrade(id: string) {
     if (!window.confirm(t("tradeFeed.confirmRemove"))) return;
@@ -82,28 +133,43 @@ export default function TradeFeedPage() {
         {trades !== null && trades.length === 0 && (
           <p className="text-text-muted text-sm">{t("tradeFeed.empty")}</p>
         )}
+
         {trades?.map((trade) => {
-          const targets = [trade.tp1, trade.tp2, trade.tp3].filter(Boolean).join(" / ");
           const isLong = trade.direction === "Long";
+          const sym = binanceSymbol(trade.pair);
+          const ticker = tickers[sym];
+          const targets = [trade.tp1, trade.tp2, trade.tp3].filter(Boolean);
+
           return (
-            <article key={trade.id} className="rounded-xl border border-white/10 p-5">
+            <article
+              key={trade.id}
+              className="rounded-2xl border border-line bg-surface p-5 shadow-[0_0_40px_rgba(227,162,61,0.08)]"
+            >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="font-data text-lg">{trade.pair}</span>
-                  <span
-                    className={
-                      "text-xs px-2 py-0.5 rounded-full border " +
-                      (isLong ? "border-bull/40 text-bull" : "border-bear/40 text-bear")
-                    }
-                  >
-                    {isLong ? t("risk.long") : t("risk.short")}
-                  </span>
-                  {trade.timeframe && (
-                    <span className="text-xs text-text-muted font-data">{trade.timeframe}</span>
-                  )}
+                  <CoinBadge pair={trade.pair} />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-data text-base font-medium">{trade.pair}</span>
+                      <span
+                        className={
+                          "text-[11px] px-2 py-0.5 rounded-full border " +
+                          (isLong ? "border-bull/40 text-bull" : "border-bear/40 text-bear")
+                        }
+                      >
+                        {isLong ? t("risk.long") : t("risk.short")}
+                      </span>
+                    </div>
+                    {ticker && (
+                      <div className="font-data text-lg font-bold mt-0.5">${formatPrice(ticker.lastPrice)}</div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <time className="text-xs text-text-muted">
+                <div className="flex flex-col items-end gap-1.5">
+                  {trade.timeframe && (
+                    <span className="text-[11px] text-text-muted font-data">{trade.timeframe}</span>
+                  )}
+                  <time className="text-[11px] text-text-muted">
                     {new Date(trade.createdAt).toLocaleString(lang === "ar" ? "ar" : "en")}
                   </time>
                   {isAdmin && (
@@ -117,11 +183,26 @@ export default function TradeFeedPage() {
                   )}
                 </div>
               </div>
-              <div className="mt-3 space-y-1">
-                <Row label={t("tradePlan.entry")} value={trade.entryZone} />
-                <Row label={t("tradePlan.invalidation")} value={trade.invalidation} />
-                <Row label={t("tradePlan.targets")} value={targets} />
+
+              <div className="mt-4 pt-4 border-t border-line grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-[10px] text-text-muted uppercase tracking-wide">{t("tradePlan.entry")}</div>
+                  <div className="font-data text-sm mt-0.5">{trade.entryZone || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-text-muted uppercase tracking-wide">{t("tradePlan.targets")}</div>
+                  <div className="font-data text-sm mt-0.5 text-bull">
+                    {targets.length > 0 ? targets.join(" / ") : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-text-muted uppercase tracking-wide">
+                    {t("tradePlan.invalidation")}
+                  </div>
+                  <div className="font-data text-sm mt-0.5 text-bear">{trade.invalidation || "—"}</div>
+                </div>
               </div>
+
               {trade.reasoning && (
                 <p className="mt-3 text-sm text-text-muted leading-relaxed whitespace-pre-line">
                   {trade.reasoning}

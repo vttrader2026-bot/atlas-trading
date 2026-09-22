@@ -41,11 +41,11 @@ export default function RiskPage() {
   }, [balance, riskPct, entry, stop, target, side]);
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-10">
-      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("risk.title")}</h1>
+    <main className="max-w-3xl mx-auto px-6 py-12 sm:py-14">
+      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("risk.title")}</h1>
       <p className="text-text-muted text-sm mt-1">{t("risk.subtitle")}</p>
 
-      <div className="mt-8 grid sm:grid-cols-2 gap-5">
+      <div className="mt-10 grid sm:grid-cols-2 gap-6">
         <Field label={t("risk.balance")} value={balance} onChange={setBalance} />
         <Field label={t("risk.riskPct")} value={riskPct} onChange={setRiskPct} />
 
@@ -71,7 +71,7 @@ export default function RiskPage() {
         <Field label={t("risk.target")} value={target} onChange={setTarget} placeholder="e.g. 66000" />
       </div>
 
-      <div className="mt-8 border border-line rounded-lg bg-surface p-6">
+      <div className="mt-8 card p-6">
         {!result && <p className="text-text-muted text-sm">{t("risk.empty")}</p>}
         {result && (
           <div className="grid sm:grid-cols-2 gap-6">
@@ -126,7 +126,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div className="text-xs text-text-muted">{label}</div>
-      <div className="font-data text-xl mt-1">{value}</div>
+      <div className="font-data text-2xl mt-1">{value}</div>
     </div>
   );
 }

@@ -142,10 +142,10 @@ function AnalyzerPageInner() {
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
-      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("analyzer.title")}</h1>
+    <main className="max-w-4xl mx-auto px-6 py-12 sm:py-14">
+      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("analyzer.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("analyzer.subtitle")}</p>
-      <span className="mt-3 inline-block px-2.5 py-1 rounded-md border border-gold/30 text-gold text-xs">
+      <span className="mt-3 inline-block px-2.5 py-1 rounded-full border border-gold/30 text-gold text-xs font-semibold">
         {t("analyzer.valueProp")}
       </span>
 
@@ -195,7 +195,7 @@ function AnalyzerPageInner() {
           e.preventDefault();
           onFile(e.dataTransfer.files?.[0] ?? null);
         }}
-        className="mt-4 border border-dashed border-line rounded-lg p-10 text-center"
+        className="mt-4 border border-dashed border-line rounded-xl p-12 text-center"
       >
         {preview ? (
           <div className="relative w-full max-w-lg mx-auto aspect-video">
@@ -227,7 +227,7 @@ function AnalyzerPageInner() {
           </span>
         </div>
       ) : (
-        <div className="mt-6 border border-gold/30 bg-gold/5 rounded-lg p-5">
+        <div className="mt-6 border border-gold/30 bg-gold/5 rounded-xl p-6">
           <div className="text-sm text-gold">{t("analyzer.limitReachedTitle")}</div>
           <p className="mt-2 text-sm text-text-muted leading-relaxed">
             {t("analyzer.limitReached")}
@@ -244,7 +244,7 @@ function AnalyzerPageInner() {
       )}
 
       {error && (
-        <div className="mt-6 border border-bear/30 bg-bear/5 rounded-lg p-5">
+        <div className="mt-6 border border-bear/30 bg-bear/5 rounded-xl p-6">
           <p className="text-sm text-bear leading-relaxed">{error}</p>
         </div>
       )}
@@ -259,10 +259,10 @@ function AnalyzerPageInner() {
 
       {history.length > 0 && (
         <div className="mt-10 border-t border-line pt-6">
-          <h2 className="font-heading text-base font-semibold tracking-tight">
+          <h2 className="font-heading text-xl font-bold tracking-tight">
             {t("analyzer.historyTitle")}
           </h2>
-          <div className="mt-3 divide-y divide-line border border-line rounded-lg overflow-hidden">
+          <div className="mt-3 divide-y divide-line card overflow-hidden">
             {history.map((h) => (
               <div key={h.id} className="flex items-center justify-between px-4 py-3 text-sm">
                 <div className="flex items-center gap-3">
@@ -499,7 +499,7 @@ function AnalysisResult({
         </Section>
       )}
 
-      <div className="border border-bear/30 bg-bear/5 rounded-lg p-5">
+      <div className="border border-bear/30 bg-bear/5 rounded-xl p-6">
         <div className="text-sm text-bear">{t("analyzer.invalidation")}</div>
         <div className="mt-1 font-data text-base">{result.invalidation.level}</div>
         <p className="mt-2 text-sm text-text-muted leading-relaxed">
@@ -508,7 +508,7 @@ function AnalysisResult({
       </div>
 
       {result.tradePlan && (
-        <div className="border border-gold/30 rounded-lg p-5 bg-surface">
+        <div className="border border-gold/30 rounded-xl p-6 bg-surface">
           <div className="text-sm text-gold">{t("analyzer.tradePlan")}</div>
           <div className="mt-3 grid sm:grid-cols-2 gap-3 text-sm">
             <PlanField label={t("analyzer.direction")} value={result.tradePlan.direction} />
@@ -526,7 +526,7 @@ function AnalysisResult({
 
 function SummaryStat({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className={`border rounded-lg p-3.5 ${tone.split(" ")[1] || "border-line"}`}>
+    <div className={`border rounded-xl p-4 ${tone.split(" ")[1] || "border-line"}`}>
       <div className="text-[11px] text-text-muted uppercase tracking-wide">{label}</div>
       <div className={`mt-1 text-sm font-medium ${tone.split(" ")[0] || "text-text"}`}>{value}</div>
     </div>
@@ -535,7 +535,7 @@ function SummaryStat({ label, value, tone }: { label: string; value: string; ton
 
 function CollapsibleExplain({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <details className="group border border-line rounded-lg bg-surface overflow-hidden">
+    <details className="group card card-hover overflow-hidden">
       <summary className="px-5 py-3 text-sm cursor-pointer select-none flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
         <span className="text-text-muted">{title}</span>
         <span className="text-text-muted text-xs group-open:rotate-180 transition-transform">▾</span>
@@ -600,8 +600,8 @@ function Section({
   highlight?: boolean;
 }) {
   return (
-    <div className={`border rounded-lg p-5 ${highlight ? "border-gold/30 bg-surface" : "border-line bg-surface"}`}>
-      <div className="text-xs text-text-muted uppercase tracking-wide mb-2">{title}</div>
+    <div className={`border rounded-xl p-6 ${highlight ? "border-gold/30 bg-surface" : "border-line bg-surface"}`}>
+      <div className="text-label mb-2">{title}</div>
       {children}
     </div>
   );
@@ -621,7 +621,7 @@ function ScenarioCard({
   const border = tone === "bull" ? "border-bull/30" : "border-bear/30";
   const text = tone === "bull" ? "text-bull" : "text-bear";
   return (
-    <div className={`border ${border} rounded-lg p-5 bg-surface`}>
+    <div className={`border ${border} rounded-xl p-6 bg-surface`}>
       <div className={`text-sm ${text}`}>{title}</div>
       <div className="mt-3">
         <div className="text-xs text-text-muted">{t("analyzer.confirmation")}</div>

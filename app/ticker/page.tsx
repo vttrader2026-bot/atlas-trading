@@ -49,10 +49,10 @@ export default function TickerPage() {
   }, [tickers, query, sortKey]);
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10">
+    <main className="max-w-6xl mx-auto px-6 py-12 sm:py-14">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("ticker.title")}</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("ticker.title")}</h1>
           <p className="text-text-muted text-sm mt-1">
             {t("ticker.subtitle")} · {tickers.length || "…"} {t("ticker.symbols")} · {t("ticker.refreshes")}
           </p>
@@ -61,13 +61,13 @@ export default function TickerPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("ticker.searchPlaceholder")}
-          className="bg-surface border border-line rounded-md px-3 py-2 text-sm w-56 outline-none focus:border-text-muted"
+          className="input w-56"
         />
       </div>
 
       {error && <p className="mt-4 text-sm text-bear">{error}</p>}
 
-      <div className="mt-6 border border-line rounded-lg overflow-hidden">
+      <div className="mt-6 card overflow-hidden">
         <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-surface text-text-muted">

@@ -299,14 +299,16 @@ export default function Home() {
           </div>
 
           {/* Feature rows */}
-          {[
-            { key: "alerts", free: "teaser", vip: "full" },
-            { key: "entryZone", free: false, vip: true },
-            { key: "stopLoss", free: false, vip: true },
-            { key: "targets", free: false, vip: true },
-            { key: "monitoring", free: false, vip: true },
-            { key: "channel", free: "public", vip: "vip" },
-          ].map((row) => (
+          {(
+            [
+              { key: "alerts", free: "teaser" as const, vip: "full" as const },
+              { key: "entryZone", free: false as const, vip: true as const },
+              { key: "stopLoss", free: false as const, vip: true as const },
+              { key: "targets", free: false as const, vip: true as const },
+              { key: "monitoring", free: false as const, vip: true as const },
+              { key: "channel", free: "public" as const, vip: "vip" as const },
+            ] as { key: string; free: boolean | "teaser" | "full" | "public" | "vip"; vip: boolean | "teaser" | "full" | "public" | "vip" }[]
+          ).map((row) => (
             <div
               key={row.key}
               className="grid grid-cols-[1.4fr_1fr_1fr] sm:grid-cols-[2fr_1fr_1fr] border-b border-line last:border-b-0"
