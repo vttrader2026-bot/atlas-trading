@@ -197,7 +197,7 @@ export default function TradeFeedPage() {
                 </div>
                 <div>
                   <div className="text-[10px] text-text-muted uppercase tracking-wide">
-                    {t("tradePlan.invalidation")}
+                    {t("tradeFeed.slLabel")}
                   </div>
                   <div className="font-data text-sm mt-0.5 text-bear">{trade.invalidation || "—"}</div>
                 </div>
