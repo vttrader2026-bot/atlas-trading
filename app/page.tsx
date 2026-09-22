@@ -200,14 +200,9 @@ export default function Home() {
               {t("home.spotPromo.title")}
             </h3>
             <p className="mt-2.5 text-text-muted max-w-md">{t("home.spotPromo.body")}</p>
-            <a
-              href="https://t.me/atlastradingcrypto"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary mt-5 inline-flex"
-            >
+            <Link href="/trade-feed" className="btn-primary mt-5 inline-flex">
               {t("home.spotPromo.cta")}
-            </a>
+            </Link>
           </div>
 
           <div className="rounded-2xl border border-line bg-surface p-5 w-full sm:w-72 shadow-[0_0_40px_rgba(227,162,61,0.12)]">
