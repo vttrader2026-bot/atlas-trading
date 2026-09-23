@@ -25,6 +25,13 @@ function binanceSymbol(pair: string) {
   return pair.replace("/", "").toUpperCase();
 }
 
+// Same spirit as the Journal's data-sufficiency rule: don't show stats until
+// there's enough real data to not look thin. Adjust to match the Journal's
+// actual threshold if it differs from this.
+const MIN_TRADES_FOR_STATS = 10;
+
+const ELITE_JOIN_LINK = "https://t.me/Atlascryptotrader";
+
 function CoinBadge({ pair }: { pair: string }) {
   const base = pairBase(pair);
   const color = badgeColorFor(pair);
@@ -45,6 +52,11 @@ export default function TradeFeedPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [tickers, setTickers] = useState<Record<string, Ticker24h>>({});
+
+  // Real counts from the actual feed — never shown until there's enough data.
+  const publishedCount = trades?.length ?? 0;
+  const activeCount = trades?.filter((x) => (x.status ?? "open") !== "closed").length ?? 0;
+  const hasEnoughDataForStats = trades !== null && publishedCount >= MIN_TRADES_FOR_STATS;
 
   useEffect(() => {
     // Admin mode is only a UI switch; the API still checks the secret.
@@ -125,6 +137,36 @@ export default function TradeFeedPage() {
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("tradeFeed.subtitle")}</p>
 
       <div className="mt-8 space-y-4">
+        <div className="rounded-2xl border border-line bg-surface p-5">
+          <p className="text-sm text-text-muted leading-relaxed">
+            {lang === "ar"
+              ? "هذه هي القناة العامة المجانية. يحصل أعضاء Atlas Elite على هذه الصفقات بشكل أبكر، مع إدارة كاملة للمركز وتحديثات أثناء تطور الصفقة."
+              : "This is the free public feed. Atlas Elite gets these calls earlier, with full position management and updates as trades develop."}
+          </p>
+          <a
+            href={ELITE_JOIN_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary mt-4"
+          >
+            {lang === "ar" ? "انضم إلى Atlas Elite" : "Join Atlas Elite"}
+          </a>
+        </div>
+
+        {hasEnoughDataForStats && (
+          <div className="flex items-center gap-2 text-sm text-text-muted">
+            <span>
+              <span className="font-data text-text">{publishedCount}</span>{" "}
+              {lang === "ar" ? "صفقة منشورة" : "calls published"}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              <span className="font-data text-text">{activeCount}</span>{" "}
+              {lang === "ar" ? "نشطة حالياً" : "currently active"}
+            </span>
+          </div>
+        )}
+
         {message && <p className="text-bear text-sm">{message}</p>}
         {failed && <p className="text-bear text-sm">{t("tradeFeed.error")}</p>}
         {!failed && trades === null && (
@@ -139,6 +181,11 @@ export default function TradeFeedPage() {
           const sym = binanceSymbol(trade.pair);
           const ticker = tickers[sym];
           const targets = [trade.tp1, trade.tp2, trade.tp3].filter(Boolean);
+          const hitLevels = trade.hitLevels ?? [];
+          const hitAnyTp = hitLevels.some((h) => h.startsWith("TP"));
+          const hitSl = hitLevels.includes("SL");
+          // Only a clean TP close — never a trade that hit SL after a partial TP.
+          const showEliteNudge = trade.status === "closed" && hitAnyTp && !hitSl;
 
           return (
             <article
@@ -206,6 +253,13 @@ export default function TradeFeedPage() {
               {trade.reasoning && (
                 <p className="mt-3 text-sm text-text-muted leading-relaxed whitespace-pre-line">
                   {trade.reasoning}
+                </p>
+              )}
+              {showEliteNudge && (
+                <p className="mt-3 text-xs text-gold">
+                  {lang === "ar"
+                    ? "أعضاء Atlas Elite رصدوا هذه الصفقة قبل تحركها."
+                    : "Elite members caught this before it moved."}
                 </p>
               )}
             </article>
