@@ -46,9 +46,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const adminSecret = process.env.ADMIN_SECRET;
+  const botSecret = process.env.TRADE_BOT_SECRET;
   const redis = getRedis();
-  if (!adminSecret || !redis) {
-    console.error("trade-feed: ADMIN_SECRET or Upstash env vars are missing");
+  if ((!adminSecret && !botSecret) || !redis) {
+    console.error("trade-feed: ADMIN_SECRET/TRADE_BOT_SECRET or Upstash env vars are missing");
     return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   }
 
@@ -60,7 +61,9 @@ export async function POST(req: Request) {
   }
 
   const secret = typeof body.secret === "string" ? body.secret : "";
-  if (!safeEqual(secret, adminSecret)) {
+  const isAdmin = !!adminSecret && safeEqual(secret, adminSecret);
+  const isBot = !!botSecret && safeEqual(secret, botSecret);
+  if (!isAdmin && !isBot) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -83,7 +86,10 @@ export async function POST(req: Request) {
     tp2: clean(body.tp2, 50),
     tp3: clean(body.tp3, 50),
     reasoning: clean(body.reasoning, 2000),
+    status: "open",
   };
+  const tradeId = clean(body.tradeId, 20);
+  if (tradeId) trade.tradeId = tradeId;
 
   try {
     await redis.lpush(FEED_KEY, trade);
@@ -93,6 +99,55 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("trade-feed POST failed:", err);
     return NextResponse.json({ error: "Could not save trade" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  const botSecret = process.env.TRADE_BOT_SECRET;
+  const redis = getRedis();
+  if (!botSecret || !redis) {
+    console.error("trade-feed: TRADE_BOT_SECRET or Upstash env vars are missing");
+    return NextResponse.json({ error: "Server not configured" }, { status: 500 });
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const secret = typeof body.secret === "string" ? body.secret : "";
+  if (!safeEqual(secret, botSecret)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const tradeId = clean(body.tradeId, 20);
+  if (!tradeId) {
+    return NextResponse.json({ error: "Missing tradeId" }, { status: 400 });
+  }
+
+  const status = body.status === "open" || body.status === "closed" ? body.status : undefined;
+  const hitLevels = Array.isArray(body.hitLevels)
+    ? body.hitLevels.filter((x): x is string => typeof x === "string").slice(0, 10)
+    : undefined;
+
+  try {
+    const trades = await redis.lrange<PublishedTrade>(FEED_KEY, 0, MAX_TRADES - 1);
+    const index = trades.findIndex((t) => t.tradeId === tradeId);
+    if (index === -1) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    const updated: PublishedTrade = {
+      ...trades[index],
+      ...(status ? { status } : {}),
+      ...(hitLevels ? { hitLevels } : {}),
+    };
+    await redis.lset(FEED_KEY, index, updated);
+    return NextResponse.json({ ok: true, trade: updated });
+  } catch (err) {
+    console.error("trade-feed PATCH failed:", err);
+    return NextResponse.json({ error: "Could not update trade" }, { status: 500 });
   }
 }
 
