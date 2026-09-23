@@ -32,6 +32,47 @@ const MIN_TRADES_FOR_STATS = 10;
 
 const ELITE_JOIN_LINK = "https://t.me/Atlascryptotrader";
 
+const TP_LABEL_EN: Record<string, string> = { TP1: "TP1", TP2: "TP2", TP3: "TP3" };
+const TP_LABEL_AR: Record<string, string> = {
+  TP1: "الهدف الأول",
+  TP2: "الهدف الثاني",
+  TP3: "الهدف الثالث",
+};
+
+function tradeStatus(trade: PublishedTrade, lang: string) {
+  const hitLevels = trade.hitLevels ?? [];
+  const status = trade.status ?? "open";
+  const last = hitLevels[hitLevels.length - 1];
+
+  if (status === "closed") {
+    if (last === "SL") {
+      return {
+        text: lang === "ar" ? "مغلقة — وقف خسارة" : "Closed — Stop Loss",
+        className: "border-bear/40 text-bear",
+      };
+    }
+    if (last && TP_LABEL_EN[last]) {
+      return {
+        text:
+          lang === "ar"
+            ? `مغلقة بربح (${TP_LABEL_AR[last]})`
+            : `Closed — Profit (${TP_LABEL_EN[last]} Hit)`,
+        className: "border-bull/40 text-bull",
+      };
+    }
+    return { text: lang === "ar" ? "مغلقة" : "Closed", className: "border-line text-text-muted" };
+  }
+
+  if (last && TP_LABEL_EN[last]) {
+    return {
+      text: lang === "ar" ? `تحقق ${TP_LABEL_AR[last]}` : `${TP_LABEL_EN[last]} Hit`,
+      className: "border-bull/40 text-bull",
+    };
+  }
+
+  return { text: lang === "ar" ? "نشطة" : "Active", className: "border-gold/40 text-gold" };
+}
+
 function CoinBadge({ pair }: { pair: string }) {
   const base = pairBase(pair);
   const color = badgeColorFor(pair);
@@ -186,6 +227,7 @@ export default function TradeFeedPage() {
           const hitSl = hitLevels.includes("SL");
           // Only a clean TP close — never a trade that hit SL after a partial TP.
           const showEliteNudge = trade.status === "closed" && hitAnyTp && !hitSl;
+          const status = tradeStatus(trade, lang);
 
           return (
             <article
@@ -205,6 +247,9 @@ export default function TradeFeedPage() {
                         }
                       >
                         {isLong ? t("risk.long") : t("risk.short")}
+                      </span>
+                      <span className={"text-[11px] px-2 py-0.5 rounded-full border " + status.className}>
+                        {status.text}
                       </span>
                     </div>
                     {ticker && (
