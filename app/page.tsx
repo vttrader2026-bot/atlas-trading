@@ -79,7 +79,7 @@ export default function Home() {
           </div>
 
           {/* Demo analyzer preview - clearly labeled example, not live data */}
-          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
             <div className="flex items-center justify-between px-5 h-11 border-b border-line bg-surface-raised/60">
               <span className="font-data text-base text-text-muted">BTC/USDT · 4H</span>
               <span className="text-label px-2.5 py-1 rounded-full border border-line">
@@ -107,7 +107,7 @@ export default function Home() {
 
       {/* LIVE MARKET SNAPSHOT */}
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
-        <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
           <div className="flex items-center gap-2 px-5 h-10 border-b border-line">
             <span className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
             <span className="text-label">{t("home.snapshotTitle")}</span>
@@ -143,7 +143,7 @@ export default function Home() {
 
       {/* ANALYZER - FLAGSHIP */}
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
-        <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
           <div className="flex items-start gap-4">
             <span className="w-11 h-11 rounded-xl border border-gold/30 bg-gold/10 flex items-center justify-center text-gold shrink-0">
               <IconAnalyzer className="w-5 h-5" />
@@ -173,7 +173,7 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
         <Link
           href="/radar"
-          className="flex items-center gap-4 group rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]"
+          className="flex items-center gap-4 group rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]"
         >
           <span className="w-11 h-11 rounded-xl border border-line flex items-center justify-center text-text-muted group-hover:text-gold transition-colors shrink-0">
             <IconRadar className="w-5 h-5" />
@@ -256,7 +256,7 @@ export default function Home() {
               <Link
                 key={trade.id}
                 href="/trade-feed"
-                className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]"
+                className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-data text-base font-medium">{trade.pair}</span>
@@ -299,16 +299,14 @@ export default function Home() {
           </div>
 
           {/* Feature rows */}
-          {(
-            [
-              { key: "alerts", free: "teaser" as const, vip: "full" as const },
-              { key: "entryZone", free: false as const, vip: true as const },
-              { key: "stopLoss", free: false as const, vip: true as const },
-              { key: "targets", free: false as const, vip: true as const },
-              { key: "monitoring", free: false as const, vip: true as const },
-              { key: "channel", free: "public" as const, vip: "vip" as const },
-            ] as { key: string; free: boolean | "teaser" | "full" | "public" | "vip"; vip: boolean | "teaser" | "full" | "public" | "vip" }[]
-          ).map((row) => (
+          {[
+            { key: "alerts", free: "teaser", vip: "full" },
+            { key: "entryZone", free: false, vip: true },
+            { key: "stopLoss", free: false, vip: true },
+            { key: "targets", free: false, vip: true },
+            { key: "monitoring", free: false, vip: true },
+            { key: "channel", free: "public", vip: "vip" },
+          ].map((row) => (
             <div
               key={row.key}
               className="grid grid-cols-[1.4fr_1fr_1fr] sm:grid-cols-[2fr_1fr_1fr] border-b border-line last:border-b-0"
@@ -373,14 +371,13 @@ export default function Home() {
       {/* COMMUNITY */}
       <section className="max-w-6xl mx-auto px-6 pb-24">
         <div className="grid sm:grid-cols-2 gap-5">
-          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
             <div className="text-label">{t("home.community.freeLabel")}</div>
             <div className="mt-2 text-lg font-semibold">{t("home.community.freeTitle")}</div>
             <p className="mt-2 text-base text-text-muted leading-relaxed">
               {t("home.community.freeBody")}
             </p>
-            
-                        <a
+            <a
               href="https://t.me/atlastradingcrypto"
               target="_blank"
               rel="noopener noreferrer"
@@ -390,7 +387,7 @@ export default function Home() {
             </a>
           </div>
 
-          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
             <div className="text-label text-gold">{t("home.community.vipLabel")}</div>
             <div className="mt-2 text-lg font-semibold">{t("home.community.vipTitle")}</div>
             <p className="mt-2 text-base text-text-muted leading-relaxed">
@@ -516,7 +513,7 @@ function ToolCard({
   href: string;
 }) {
   return (
-    <Link href={href} className="group rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
+    <Link href={href} className="group rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
       <span className="w-10 h-10 rounded-xl border border-line flex items-center justify-center text-text-muted group-hover:text-gold transition-colors">
         {icon}
       </span>
