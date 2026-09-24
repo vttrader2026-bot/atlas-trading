@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { consumeAnalyzeUsage } from "@/lib/plan";
 
 // Google-maintained aliases for the current Gemini releases — avoid
 // hardcoding specific dated model names that Google later retires.
@@ -138,6 +140,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const { userId } = await auth();
+  let usageInfo: { plan: string; remaining: number; limit: number } | null = null;
+  if (userId) {
+    const usage = await consumeAnalyzeUsage(userId);
+    if (!usage.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            usage.plan === "elite"
+              ? "You've used all 20 Elite analyses for today. This resets at midnight UTC."
+              : "You've used both free analyses for today. This resets at midnight UTC, or upgrade to Atlas Elite for 20 a day.",
+        },
+        { status: 429 }
+      );
+    }
+    usageInfo = { plan: usage.plan, remaining: usage.remaining, limit: usage.limit };
+  }
+
   const formData = await req.formData();
   const file = formData.get("image");
   const lang = (formData.get("lang") as string) || "en";
@@ -230,7 +250,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const parsed = JSON.parse(text);
-    return NextResponse.json(parsed);
+    return NextResponse.json(usageInfo ? { ...parsed, _usage: usageInfo } : parsed);
   } catch {
     console.error("Couldn't parse Gemini response as JSON:", text.slice(0, 500));
     return NextResponse.json(

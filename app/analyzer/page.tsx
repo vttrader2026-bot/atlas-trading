@@ -7,6 +7,7 @@ import { useLanguage } from "@/lib/i18n";
 import { saveDraft, firstNumber, TradePlanDraft } from "@/lib/tradePlan";
 import { getRemainingUses, recordUse, DAILY_ANALYZE_LIMIT } from "@/lib/usageLimit";
 import { loadHistory, addHistoryEntry, HistoryEntry } from "@/lib/analysisHistory";
+import { useAuth } from "@clerk/nextjs";
 
 type Level = { label: string; price: string };
 type Scenario = { confirmation: string; targets: string[]; why: string } | null;
@@ -56,6 +57,7 @@ export default function AnalyzerPage() {
 function AnalyzerPageInner() {
   const { t, lang } = useLanguage();
   const searchParams = useSearchParams();
+  const { isSignedIn } = useAuth();
 
   const queryPair = searchParams.get("pair");
   const initialPair = queryPair || "auto";
@@ -77,6 +79,7 @@ function AnalyzerPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Analysis | null>(null);
   const [remaining, setRemaining] = useState(DAILY_ANALYZE_LIMIT);
+  const [limit, setLimit] = useState(DAILY_ANALYZE_LIMIT);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const analyzingRef = useRef(false);
 
@@ -87,6 +90,25 @@ function AnalyzerPageInner() {
     setRemaining(getRemainingUses());
     setHistory(loadHistory());
   }, []);
+
+  // Signed-in accounts have a real, server-tracked plan limit - fetch it
+  // once so the display and gating reflect it instead of the anonymous
+  // local default.
+  useEffect(() => {
+    if (!isSignedIn) return;
+    let cancelled = false;
+    fetch("/api/me/plan", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("bad status"))))
+      .then((data) => {
+        if (cancelled) return;
+        if (typeof data.limit === "number") setLimit(data.limit);
+        if (typeof data.remaining === "number") setRemaining(data.remaining);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn]);
 
   function onFile(f: File | null) {
     if (!f) return;
@@ -123,6 +145,10 @@ function AnalyzerPageInner() {
         setError((data && data.error) || t("analyzer.genericError"));
       } else {
         setRemaining(recordUse());
+        if (data._usage && typeof data._usage.remaining === "number") {
+          setRemaining(data._usage.remaining);
+          if (typeof data._usage.limit === "number") setLimit(data._usage.limit);
+        }
         setResult(data);
         addHistoryEntry({
           pair: data.pair,
@@ -223,7 +249,7 @@ function AnalyzerPageInner() {
             </button>
           )}
           <span className="text-xs text-text-muted">
-            {remaining} / {DAILY_ANALYZE_LIMIT} {t("analyzer.usesRemainingLabel")}
+            {remaining} / {limit} {t("analyzer.usesRemainingLabel")}
           </span>
         </div>
       ) : (
