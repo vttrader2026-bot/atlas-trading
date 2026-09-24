@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { consumeAnalyzeUsage } from "@/lib/plan";
+import { consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
 
 // Google-maintained aliases for the current Gemini releases — avoid
 // hardcoding specific dated model names that Google later retires.
@@ -143,7 +143,9 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   let usageInfo: { plan: string; remaining: number; limit: number } | null = null;
   if (userId) {
-    const usage = await consumeAnalyzeUsage(userId);
+    // Read-only check — do NOT consume a use yet. We only spend one of the
+    // user's daily attempts once the analysis genuinely succeeds, below.
+    const usage = await peekAnalyzeUsage(userId);
     if (!usage.allowed) {
       return NextResponse.json(
         {
@@ -155,7 +157,6 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-    usageInfo = { plan: usage.plan, remaining: usage.remaining, limit: usage.limit };
   }
 
   const formData = await req.formData();
@@ -250,6 +251,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const parsed = JSON.parse(text);
+    if (userId) {
+      const usage = await consumeAnalyzeUsage(userId);
+      usageInfo = { plan: usage.plan, remaining: usage.remaining, limit: usage.limit };
+    }
     return NextResponse.json(usageInfo ? { ...parsed, _usage: usageInfo } : parsed);
   } catch {
     console.error("Couldn't parse Gemini response as JSON:", text.slice(0, 500));
