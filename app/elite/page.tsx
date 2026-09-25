@@ -1,30 +1,15 @@
-﻿"use client";
+"use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
 
 type Method = "usdt" | "bankily" | "masrivi" | "sedad";
-type PaymentStatus = "pending" | "approved" | "rejected";
-type PaymentRequest = {
-  id: string;
-  status: PaymentStatus;
-  amount: string;
-  method: string;
-  createdAt: number;
-  updatedAt: number;
-};
 
 const METHOD_DETAILS: Record<
   Method,
-  {
-    title: string;
-    badgeColor: string;
-    badgeLabel: string;
-    rows: { label: string; value: string }[];
-    note?: string;
-  }
+  { title: string; badgeColor?: string; badgeLabel?: string; logo?: string; rows: { label: string; value: string }[]; note?: string }
 > = {
   usdt: {
     title: "USDT — TRC20 Network",
@@ -38,20 +23,17 @@ const METHOD_DETAILS: Record<
   },
   bankily: {
     title: "Bankily",
-    badgeColor: "#2B8FE0",
-    badgeLabel: "B",
+    logo: "/logos/bankily.png",
     rows: [{ label: "Account Number", value: "33848396" }],
   },
   masrivi: {
     title: "Masrivi",
-    badgeColor: "#35C48A",
-    badgeLabel: "M",
+    logo: "/logos/masrivi.png",
     rows: [{ label: "Account Number", value: "33848396" }],
   },
   sedad: {
     title: "Sedad",
-    badgeColor: "#9B6DFF",
-    badgeLabel: "S",
+    logo: "/logos/sedad.png",
     rows: [{ label: "Account Number", value: "33554452" }],
   },
 };
@@ -112,31 +94,6 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
-/** Renders the Pending / Approved / Rejected step indicator based on real status. */
-function StatusTracker({ status }: { status: PaymentStatus | null }) {
-  const step = status ?? "pending";
-  const isRejected = step === "rejected";
-
-  const pillClass = (active: boolean, rejected = false) =>
-    "border rounded-full px-3 py-1 " +
-    (rejected
-      ? "border-bear text-bear"
-      : active
-      ? "border-gold text-gold"
-      : "border-line text-text-muted");
-
-  return (
-    <div className="flex gap-2 mt-5 text-xs">
-      <span className={pillClass(step === "pending")}>Pending</span>
-      {isRejected ? (
-        <span className={pillClass(true, true)}>Rejected</span>
-      ) : (
-        <span className={pillClass(step === "approved")}>→ Approved</span>
-      )}
-    </div>
-  );
-}
-
 export default function ElitePage() {
   const { t } = useLanguage();
   const { isSignedIn, isLoaded } = useUser();
@@ -148,36 +105,6 @@ export default function ElitePage() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<"success" | "error" | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
-
-  const [latestRequest, setLatestRequest] = useState<PaymentRequest | null>(null);
-  const [statusLoading, setStatusLoading] = useState(false);
-
-  const fetchStatus = useCallback(async () => {
-    setStatusLoading(true);
-    try {
-      const res = await fetch("/api/payments/me", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      setLatestRequest(data.request ?? null);
-    } catch {
-      /* non-fatal - the tracker just stays on its last known state */
-    } finally {
-      setStatusLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isSignedIn) {
-      fetchStatus();
-    }
-  }, [isSignedIn, fetchStatus]);
-
-  // Poll every 15s while a request is pending, so approval reflects without a manual refresh.
-  useEffect(() => {
-    if (!isSignedIn || latestRequest?.status !== "pending") return;
-    const interval = setInterval(fetchStatus, 15000);
-    return () => clearInterval(interval);
-  }, [isSignedIn, latestRequest?.status, fetchStatus]);
 
   async function handleSubmit() {
     if (!amount.trim() || !telegramUsername.trim() || !file) {
@@ -202,7 +129,6 @@ export default function ElitePage() {
       setAmount("");
       setTelegramUsername("");
       setFile(null);
-      fetchStatus();
     } catch (err) {
       setResult("error");
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -220,8 +146,8 @@ export default function ElitePage() {
       </span>
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-3">Upgrade to Atlas Elite</h1>
       <p className="text-text-muted text-sm mt-1.5 max-w-md">
-        Private spot signals, full trade management, and priority access — $14.99/month. Manual verification, no
-        recurring card charges.
+        Private spot signals, full trade management, and priority access — $14.99/month (≈ 600 MRU). Manual
+        verification, no recurring card charges.
       </p>
 
       <div className="grid sm:grid-cols-2 gap-3 mt-6">
@@ -242,6 +168,7 @@ export default function ElitePage() {
           <div className="text-xl font-bold mt-1">
             $14.99<span className="text-sm text-text-muted font-normal">/mo</span>
           </div>
+          <div className="text-xs text-text-muted mt-0.5">≈ 600 MRU</div>
           <ul className="mt-2.5 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
             <li>Everything in Free</li>
             <li>AI Analyzer — 20/day</li>
@@ -278,12 +205,21 @@ export default function ElitePage() {
                   }
                 >
                   <div className="flex items-center gap-2.5">
-                    <span
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold shrink-0"
-                      style={{ backgroundColor: m.badgeColor }}
-                    >
-                      {m.badgeLabel}
-                    </span>
+                    {m.logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={m.logo}
+                        alt={m.title}
+                        className="w-8 h-8 rounded-lg object-contain bg-white p-0.5 shrink-0"
+                      />
+                    ) : (
+                      <span
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold shrink-0"
+                        style={{ backgroundColor: m.badgeColor }}
+                      >
+                        {m.badgeLabel}
+                      </span>
+                    )}
                     <span className="font-medium text-sm">{key === "usdt" ? "USDT (TRC20)" : m.title}</span>
                   </div>
                 </button>
@@ -313,7 +249,7 @@ export default function ElitePage() {
                 type="text"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g. 14.99 USDT"
+                placeholder="e.g. 14.99 USDT or 600 MRU"
                 className="input"
               />
             </div>
@@ -352,16 +288,11 @@ export default function ElitePage() {
             </button>
           </div>
 
-          {latestRequest?.status === "approved" && (
-            <p className="text-bull text-sm mt-4">🎉 Your payment was approved — you're on Atlas Elite.</p>
-          )}
-          {latestRequest?.status === "rejected" && (
-            <p className="text-bear text-sm mt-4">
-              Your last payment request was rejected. Please contact support or submit a new one.
-            </p>
-          )}
-
-          <StatusTracker status={latestRequest?.status ?? null} />
+          <div className="flex gap-2 mt-5 text-xs text-text-muted">
+            <span className="border border-gold text-gold rounded-full px-3 py-1">Pending</span>
+            <span className="border border-line rounded-full px-3 py-1">→ Approved</span>
+            <span className="border border-line rounded-full px-3 py-1">or Rejected</span>
+          </div>
         </>
       )}
     </main>
