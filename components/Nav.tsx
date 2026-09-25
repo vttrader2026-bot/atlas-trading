@@ -83,6 +83,14 @@ export default function Nav() {
               </Link>
             );
           })}
+          <Link
+            href="/elite"
+            className={`shrink-0 whitespace-nowrap ms-1 px-2.5 sm:px-3 py-1.5 text-sm font-medium transition-colors ${
+              pathname === "/elite" ? "text-gold" : "text-gold/80 hover:text-gold"
+            }`}
+          >
+            ⚜ {lang === "ar" ? "إيليت" : "Elite"}
+          </Link>
         </nav>
         <div className="hidden sm:flex items-center gap-2 shrink-0 ms-auto">{controls}</div>
 
@@ -125,6 +133,14 @@ export default function Nav() {
                 </Link>
               );
             })}
+            <Link
+              href="/elite"
+              className={`px-2 py-2.5 text-sm font-medium transition-colors ${
+                pathname === "/elite" ? "text-gold" : "text-gold/80 hover:text-gold"
+              }`}
+            >
+              ⚜ {lang === "ar" ? "إيليت" : "Elite"}
+            </Link>
           </nav>
           <div className="max-w-6xl mx-auto px-4 pb-3 pt-1 flex flex-wrap items-center gap-2">
             {isLoaded && !isSignedIn && (

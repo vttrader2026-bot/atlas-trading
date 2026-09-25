@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/lib/i18n";
 import { saveDraft, firstNumber, TradePlanDraft } from "@/lib/tradePlan";
@@ -258,14 +259,9 @@ function AnalyzerPageInner() {
           <p className="mt-2 text-sm text-text-muted leading-relaxed">
             {t("analyzer.limitReached")}
           </p>
-          <a
-            href="https://t.me/Atlascryptotrader"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-block text-sm text-gold hover:opacity-80 transition-opacity"
-          >
-            {t("analyzer.limitReachedCta")} →
-          </a>
+          <Link href="/elite" className="btn-primary mt-3 inline-flex">
+            {t("analyzer.limitReachedCta")}
+          </Link>
         </div>
       )}
 

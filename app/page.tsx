@@ -337,14 +337,12 @@ export default function Home() {
               </a>
             </div>
             <div className="px-3 sm:px-6 py-5 flex items-center justify-center border-l border-line bg-gold/5">
-              <a
-                href="https://t.me/Atlascryptotrader"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/elite"
                 className="btn-primary text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-2.5 w-full"
               >
                 {t("home.community.contactVip")}
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -393,14 +391,12 @@ export default function Home() {
             <p className="mt-2 text-base text-text-muted leading-relaxed">
               {t("home.community.vipBody")}
             </p>
-            <a
-              href="https://t.me/Atlascryptotrader"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/elite"
               className="btn-secondary mt-6 hover:border-gold! hover:text-gold!"
             >
               {t("home.community.contactVip")}
-            </a>
+            </Link>
           </div>
         </div>
       </section>

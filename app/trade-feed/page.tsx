@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
 import { getTicker24h, formatPrice, Ticker24h } from "@/lib/binance";
 import type { PublishedTrade } from "@/lib/tradeFeed";
@@ -311,6 +312,20 @@ export default function TradeFeedPage() {
           );
         })}
       </div>
+
+      {trades && trades.length > 0 && (
+        <div className="mt-8 rounded-2xl border border-line bg-surface p-6 text-center shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
+          <div className="text-label text-gold">⚜ Atlas Elite</div>
+          <p className="mt-2 text-sm text-text-muted max-w-md mx-auto">
+            {lang === "ar"
+              ? "هذه إشارات عامة. أعضاء Elite يحصلون على إشارات خاصة، وصول أبكر، وتحديثات كاملة للصفقة."
+              : "These are the public signals. Elite members get private signals, earlier access, and full trade management."}
+          </p>
+          <Link href="/elite" className="btn-primary mt-4 inline-flex">
+            {lang === "ar" ? "انضم إلى Atlas Elite" : "Join Atlas Elite"}
+          </Link>
+        </div>
+      )}
     </main>
   );
 }
