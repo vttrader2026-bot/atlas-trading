@@ -9,13 +9,14 @@ export type PaymentRequest = {
   amount: string;
   method: string;
   proof: string;
+  telegramUsername?: string;
   status: PaymentStatus;
   createdAt: number;
   updatedAt: number;
 };
 
 // Single Redis hash (field = request id) on the same Upstash instance
-// every other route already uses ? no new storage system.
+// every other route already uses — no new storage system.
 const KEY = "payments:requests";
 
 /**
@@ -30,6 +31,7 @@ export async function createPaymentRequest(input: {
   amount: string;
   method: string;
   proof: string;
+  telegramUsername?: string;
 }): Promise<PaymentRequest> {
   const redis = getRedis();
   if (!redis) throw new Error("Upstash is not configured");
@@ -40,6 +42,7 @@ export async function createPaymentRequest(input: {
     amount: input.amount,
     method: input.method,
     proof: input.proof,
+    telegramUsername: input.telegramUsername,
     status: "pending",
     createdAt: now,
     updatedAt: now,
@@ -65,7 +68,7 @@ export async function listPaymentRequests(status?: PaymentStatus): Promise<Payme
   return filtered.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** One user's payment/membership history, newest first ? doubles as their Elite history log. */
+/** One user's payment/membership history, newest first — doubles as their Elite history log. */
 export async function listPaymentRequestsForUser(userId: string): Promise<PaymentRequest[]> {
   const all = await listPaymentRequests();
   return all.filter((r) => r.userId === userId);
