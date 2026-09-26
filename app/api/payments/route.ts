@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createPaymentRequest, listPaymentRequests, type PaymentStatus } from "@/lib/paymentRequests";
-import { notifyAdmin } from "@/lib/telegram";
+import { sendPaymentProofToAdmin } from "@/lib/telegram";
 
 const MAX_PROOF_BYTES = 4 * 1024 * 1024; // ~4MB base64 payload ceiling, kept well under typical Redis/request limits
 
@@ -40,8 +40,11 @@ export async function POST(req: NextRequest) {
   });
 
   // Best-effort - a failed notification should never fail the submission
-  // itself, since the request is already safely recorded in Redis.
-  await notifyAdmin(
+  // itself, since the request is already safely recorded in Redis. Sends
+  // the actual screenshot straight to the admin's Telegram DM, with the
+  // request details as the caption underneath it.
+  await sendPaymentProofToAdmin(
+    proof,
     `💳 <b>New Atlas Elite payment request</b>\n` +
       `Method: ${escapeHtml(method)}\n` +
       `Amount: ${escapeHtml(amount)}\n` +

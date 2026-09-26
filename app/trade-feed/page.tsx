@@ -31,8 +31,6 @@ function binanceSymbol(pair: string) {
 // actual threshold if it differs from this.
 const MIN_TRADES_FOR_STATS = 10;
 
-const ELITE_JOIN_LINK = "https://t.me/Atlascryptotrader";
-
 const TP_LABEL_EN: Record<string, string> = { TP1: "TP1", TP2: "TP2", TP3: "TP3" };
 const TP_LABEL_AR: Record<string, string> = {
   TP1: "الهدف الأول",
@@ -180,19 +178,19 @@ export default function TradeFeedPage() {
 
       <div className="mt-8 space-y-4">
         <div className="rounded-2xl border border-line bg-surface p-5">
-          <p className="text-sm text-text-muted leading-relaxed">
+          <div className="font-medium">
             {lang === "ar"
-              ? "هذه هي القناة العامة المجانية. يحصل أعضاء Atlas Elite على هذه الصفقات بشكل أبكر، مع إدارة كاملة للمركز وتحديثات أثناء تطور الصفقة."
-              : "This is the free public feed. Atlas Elite gets these calls earlier, with full position management and updates as trades develop."}
+              ? "⚜️ لا تكتفِ بمشاهدة الصفقة. كن مستعدًا لها."
+              : "⚜️ Don't just watch the trade. Be ready for it."}
+          </div>
+          <p className="text-sm text-text-muted leading-relaxed mt-1.5">
+            {lang === "ar"
+              ? "يحصل أعضاء Atlas Elite على إشارات سبوت خاصة قبل غيرهم، مع مستويات الدخول، وأهداف TP1/TP2/TP3، وتحديثات وقف الخسارة، وإدارة كاملة للصفقة مع تطور الإعداد."
+              : "Atlas Elite members get private spot signals earlier, with entry levels, TP1/TP2/TP3, stop-loss updates, and trade management as the setup develops."}
           </p>
-          <a
-            href={ELITE_JOIN_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary mt-4"
-          >
-            {lang === "ar" ? "انضم إلى Atlas Elite" : "Join Atlas Elite"}
-          </a>
+          <Link href="/elite" className="btn-primary mt-4 inline-flex">
+            {lang === "ar" ? "انضم إلى Atlas Elite — 14.99$/شهر = 600 أوقية" : "Join Atlas Elite — $14.99/month = 600 MRU"}
+          </Link>
         </div>
 
         {hasEnoughDataForStats && (
