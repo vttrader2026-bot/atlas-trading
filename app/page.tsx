@@ -10,7 +10,7 @@ import type { PublishedTrade } from "@/lib/tradeFeed";
 const HERO_PAIRS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
 
 export default function Home() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [tickers, setTickers] = useState<Record<string, Ticker24h>>({});
   const [latestTrades, setLatestTrades] = useState<PublishedTrade[]>([]);
 
@@ -286,64 +286,49 @@ export default function Home() {
           {t("home.plans.subtitle")}
         </p>
 
-        <div className="mt-10 card overflow-hidden">
-          {/* Column headers */}
-          <div className="grid grid-cols-[1.4fr_1fr_1fr] sm:grid-cols-[2fr_1fr_1fr] border-b border-line">
-            <div className="px-4 sm:px-6 py-4" />
-            <div className="px-3 sm:px-6 py-4 text-center border-l border-line">
-              <div className="text-label">{t("home.plans.freeLabel")}</div>
-            </div>
-            <div className="px-3 sm:px-6 py-4 text-center border-l border-line bg-gold/5">
-              <div className="text-label text-gold">{t("home.plans.vipLabel")}</div>
-            </div>
+        <div className="grid sm:grid-cols-2 gap-4 mt-10">
+          <div className="card p-6">
+            <div className="text-label">🆓 {lang === "ar" ? "مجاني" : "FREE"}</div>
+            <ul className="mt-4 text-sm sm:text-base text-text-muted space-y-2.5 list-disc list-inside">
+              <li>{lang === "ar" ? "خلاصة الصفقات العامة" : "Public Trade Feed"}</li>
+              <li>{lang === "ar" ? "مجموعة تيليجرام العامة" : "Public Telegram Group"}</li>
+              <li>{lang === "ar" ? "مجموعة واتساب العامة" : "Public WhatsApp Group"}</li>
+              <li>{lang === "ar" ? "رادار السوق" : "Market Radar"}</li>
+              <li>{lang === "ar" ? "المحلل بالذكاء الاصطناعي — 2 تحليل/يوم" : "AI Analyzer — 2 analyses/day"}</li>
+              <li>{lang === "ar" ? "خطة الصفقة" : "Trade Plan"}</li>
+              <li>{lang === "ar" ? "حاسبة المخاطر" : "Risk Calculator"}</li>
+              <li>{lang === "ar" ? "سجل التداول" : "Trading Journal"}</li>
+              <li>{lang === "ar" ? "محتوى تعليمي" : "Educational content"}</li>
+            </ul>
+            <a
+              href="https://t.me/atlastradingcrypto"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary mt-6 w-full"
+            >
+              {t("home.community.joinFree")}
+            </a>
           </div>
 
-          {/* Feature rows */}
-          {([
-            { key: "alerts", free: "teaser", vip: "full" },
-            { key: "entryZone", free: false, vip: true },
-            { key: "stopLoss", free: false, vip: true },
-            { key: "targets", free: false, vip: true },
-            { key: "monitoring", free: false, vip: true },
-            { key: "channel", free: "public", vip: "vip" },
-          ] as const).map((row) => (
-            <div
-              key={row.key}
-              className="grid grid-cols-[1.4fr_1fr_1fr] sm:grid-cols-[2fr_1fr_1fr] border-b border-line last:border-b-0"
-            >
-              <div className="px-4 sm:px-6 py-4 text-sm sm:text-base">
-                {t(`home.plans.rows.${row.key}`)}
-              </div>
-              <div className="px-3 sm:px-6 py-4 flex items-center justify-center border-l border-line text-center">
-                <PlanCell value={row.free} />
-              </div>
-              <div className="px-3 sm:px-6 py-4 flex items-center justify-center border-l border-line bg-gold/5 text-center">
-                <PlanCell value={row.vip} />
-              </div>
+          <div className="card card-accent p-6">
+            <div className="text-label text-gold">
+              ⚜️ {lang === "ar" ? "أطلس إيليت" : "ATLAS ELITE"} — $14.99{lang === "ar" ? "/شهريًا" : "/month"}
             </div>
-          ))}
-
-          {/* CTA row */}
-          <div className="grid grid-cols-[1.4fr_1fr_1fr] sm:grid-cols-[2fr_1fr_1fr]">
-            <div className="px-4 sm:px-6 py-5" />
-            <div className="px-3 sm:px-6 py-5 flex items-center justify-center border-l border-line">
-              <a
-                href="https://t.me/atlastradingcrypto"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-2.5 w-full"
-              >
-                {t("home.community.joinFree")}
-              </a>
-            </div>
-            <div className="px-3 sm:px-6 py-5 flex items-center justify-center border-l border-line bg-gold/5">
-              <Link
-                href="/elite"
-                className="btn-primary text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-2.5 w-full"
-              >
-                {t("home.community.contactVip")}
-              </Link>
-            </div>
+            <ul className="mt-4 text-sm sm:text-base text-text-muted space-y-2.5 list-disc list-inside marker:text-gold">
+              <li>{lang === "ar" ? "كل ما في المجاني" : "Everything in Free"}</li>
+              <li>{lang === "ar" ? "المحلل بالذكاء الاصطناعي — 20 تحليل/يوم" : "AI Analyzer — 20 analyses/day"}</li>
+              <li>{lang === "ar" ? "إشارات سبوت خاصة" : "Private Spot Signals"}</li>
+              <li>{lang === "ar" ? "وصول مبكر للإشارات" : "Earlier Signal Access"}</li>
+              <li>{lang === "ar" ? "تحديثات TP1 / TP2 / TP3" : "TP1 / TP2 / TP3 Updates"}</li>
+              <li>{lang === "ar" ? "تحديثات وقف الخسارة" : "Stop-Loss Updates"}</li>
+              <li>{lang === "ar" ? "إدارة كاملة للصفقات" : "Full Trade Management"}</li>
+              <li>{lang === "ar" ? "مجموعة تيليجرام خاصة" : "Private Telegram Group"}</li>
+              <li>{lang === "ar" ? "تنبيهات Atlas Bot" : "Atlas Bot Alerts"}</li>
+              <li>{lang === "ar" ? "تحديثات السوق للنخبة" : "Elite Market Updates"}</li>
+            </ul>
+            <Link href="/elite" className="btn-primary mt-6 w-full">
+              {t("home.community.contactVip")}
+            </Link>
           </div>
         </div>
       </section>
@@ -462,39 +447,6 @@ function IconBtc({ className }: { className?: string }) {
       />
     </svg>
   );
-}
-
-function PlanCell({ value }: { value: boolean | "teaser" | "full" | "public" | "vip" }) {
-  const { t } = useLanguage();
-  if (value === true) {
-    return (
-      <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-bull shrink-0">
-        <path
-          d="M4 10.5L8 14.5L16 5.5"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-  if (value === false) {
-    return (
-      <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-text-muted/50 shrink-0">
-        <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  const label =
-    value === "teaser"
-      ? t("home.plans.values.teaser")
-      : value === "full"
-      ? t("home.plans.values.full")
-      : value === "public"
-      ? t("home.plans.values.publicGroup")
-      : t("home.plans.values.vipChannel");
-  return <span className="text-xs sm:text-sm font-medium">{label}</span>;
 }
 
 function ToolCard({
