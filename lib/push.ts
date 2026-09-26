@@ -76,6 +76,64 @@ export function testPayload(lang: Lang): Payload {
   };
 }
 
+/** A single newly-hit level: a take-profit ("TP1"/"TP2"/"TP3") or the stop-loss ("SL"). */
+export type HitLevel = string;
+
+const TP_LABEL_EN: Record<string, string> = { TP1: "TP1", TP2: "TP2", TP3: "TP3" };
+const TP_LABEL_AR: Record<string, string> = {
+  TP1: "\u0627\u0644\u0647\u062f\u0641 \u0627\u0644\u0623\u0648\u0644",
+  TP2: "\u0627\u0644\u0647\u062f\u0641 \u0627\u0644\u062b\u0627\u0646\u064a",
+  TP3: "\u0627\u0644\u0647\u062f\u0641 \u0627\u0644\u062b\u0627\u0644\u062b",
+};
+
+export function tpSlPayload(trade: PublishedTrade, level: HitLevel, lang: Lang): Payload {
+  const isSl = level === "SL";
+  if (lang === "ar") {
+    const label = isSl ? "\u0648\u0642\u0641 \u0627\u0644\u062e\u0633\u0627\u0631\u0629" : TP_LABEL_AR[level] || level;
+    return {
+      title: (isSl ? "\u0625\u063a\u0644\u0627\u0642 \u0628\u0648\u0642\u0641 \u0627\u0644\u062e\u0633\u0627\u0631\u0629: " : "\u062a\u062d\u0642\u0642 " + label + ": ") + trade.pair,
+      body: isSl
+        ? "\u062a\u0645 \u0625\u063a\u0644\u0627\u0642 \u0635\u0641\u0642\u0629 " + trade.pair + " \u0639\u0646\u062f \u0648\u0642\u0641 \u0627\u0644\u062e\u0633\u0627\u0631\u0629."
+        : "\u0648\u0635\u0644\u062a \u0635\u0641\u0642\u0629 " + trade.pair + " \u0625\u0644\u0649 " + label + ".",
+      url: "/trade-feed",
+      tag: "trade-" + trade.id + "-" + level,
+    };
+  }
+  const label = isSl ? "Stop-Loss" : TP_LABEL_EN[level] || level;
+  return {
+    title: (isSl ? "Stop-Loss hit: " : label + " hit: ") + trade.pair,
+    body: isSl
+      ? trade.pair + " closed at stop-loss."
+      : trade.pair + " reached " + label + ".",
+    url: "/trade-feed",
+    tag: "trade-" + trade.id + "-" + level,
+  };
+}
+
+/**
+ * Notifies everyone who turned on notifications and "new trade setups" —
+ * the same toggle as new-trade alerts, since TP/SL hits are updates to
+ * that same feed rather than a distinct notification category.
+ */
+export async function notifyTpSlSubscribers(trade: PublishedTrade, level: HitLevel): Promise<void> {
+  try {
+    const redis = getRedis();
+    if (!redis || !configure()) return;
+    const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
+    for (let i = 0; i < userIds.length; i += 20) {
+      await Promise.allSettled(
+        userIds.slice(i, i + 20).map(async (userId) => {
+          const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
+          if (!prefs.enabled || !prefs.tradeFeed) return;
+          await sendToUser(userId, (lang) => tpSlPayload(trade, level, lang));
+        }),
+      );
+    }
+  } catch (err) {
+    console.error("push: notifyTpSlSubscribers failed", err);
+  }
+}
+
 /** Sends to all of one user's devices. Returns how many deliveries succeeded. */
 export async function sendToUser(userId: string, build: (lang: Lang) => Payload): Promise<number> {
   const redis = getRedis();

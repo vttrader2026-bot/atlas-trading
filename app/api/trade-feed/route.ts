@@ -2,7 +2,7 @@ import { NextResponse, after } from "next/server";
 import { Redis } from "@upstash/redis";
 import { timingSafeEqual, randomUUID } from "crypto";
 import type { PublishedTrade } from "@/lib/tradeFeed";
-import { notifyTradeSubscribers } from "@/lib/push";
+import { notifyTradeSubscribers, notifyTpSlSubscribers } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
 
@@ -138,12 +138,23 @@ export async function PATCH(req: Request) {
     if (index === -1) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+    const previousLevels = trades[index].hitLevels ?? [];
     const updated: PublishedTrade = {
       ...trades[index],
       ...(status ? { status } : {}),
       ...(hitLevels ? { hitLevels } : {}),
     };
     await redis.lset(FEED_KEY, index, updated);
+
+    // Only alert on levels that genuinely just fired — a bot re-sending the
+    // same hitLevels array on a later monitoring cycle should never re-notify.
+    if (hitLevels) {
+      const newlyHit = hitLevels.filter((level) => !previousLevels.includes(level));
+      for (const level of newlyHit) {
+        after(() => notifyTpSlSubscribers(updated, level));
+      }
+    }
+
     return NextResponse.json({ ok: true, trade: updated });
   } catch (err) {
     console.error("trade-feed PATCH failed:", err);
