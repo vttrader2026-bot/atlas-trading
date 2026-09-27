@@ -33,14 +33,20 @@ export async function GET() {
   const redis = getRedis();
   if (!redis) {
     console.error("trade-feed: UPSTASH_REDIS_REST_URL / TOKEN are not set");
-    return NextResponse.json({ trades: [] }, { status: 500 });
+    return NextResponse.json({ trades: [], debug: "redis client is null - env vars missing" }, { status: 500 });
   }
   try {
     const trades = await redis.lrange<PublishedTrade>(FEED_KEY, 0, MAX_TRADES - 1);
     return NextResponse.json({ trades }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("trade-feed GET failed:", err);
-    return NextResponse.json({ trades: [] }, { status: 500 });
+    // TEMPORARY: surfaces the real error in the response body so it's visible
+    // in the browser Network tab without needing Vercel's runtime logs.
+    // Remove the "debug" field once the actual cause is found.
+    return NextResponse.json(
+      { trades: [], debug: err instanceof Error ? err.message : String(err) },
+      { status: 500 }
+    );
   }
 }
 
