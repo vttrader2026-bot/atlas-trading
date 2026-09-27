@@ -119,7 +119,19 @@ export async function PATCH(req: Request) {
 
   const secret = typeof body.secret === "string" ? body.secret : "";
   if (!safeEqual(secret, botSecret)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      {
+        error: "Unauthorized",
+        debug: {
+          botSecretIsSet: !!botSecret,
+          botSecretLength: botSecret ? botSecret.length : 0,
+          receivedSecretLength: secret.length,
+          receivedFirst3: secret.slice(0, 3),
+          storedFirst3: botSecret ? botSecret.slice(0, 3) : null,
+        },
+      },
+      { status: 401 }
+    );
   }
 
   const tradeId = clean(body.tradeId, 20);
