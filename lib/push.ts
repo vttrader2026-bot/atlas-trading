@@ -1,4 +1,4 @@
-import webpush from "web-push";
+﻿import webpush from "web-push";
 import { createHash } from "crypto";
 import { getRedis } from "@/lib/userStore";
 import { normalizePrefs } from "@/lib/notificationPrefs";
@@ -146,7 +146,9 @@ export async function sendToUser(userId: string, build: (lang: Lang) => Payload)
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: sub.keys },
-          JSON.stringify(build(sub.lang === "ar" ? "ar" : "en")),
+          // Always Arabic for now, regardless of the subscriber's stored
+          // browser language — was sub.lang === "ar" ? "ar" : "en".
+          JSON.stringify(build("ar")),
           { TTL: 3600 },
         );
         delivered++;
