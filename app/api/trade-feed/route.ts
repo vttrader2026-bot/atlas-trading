@@ -1,4 +1,4 @@
-import { NextResponse, after } from "next/server";
+﻿import { NextResponse, after } from "next/server";
 import { Redis } from "@upstash/redis";
 import { timingSafeEqual, randomUUID } from "crypto";
 import type { PublishedTrade } from "@/lib/tradeFeed";
@@ -40,9 +40,6 @@ export async function GET() {
     return NextResponse.json({ trades }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("trade-feed GET failed:", err);
-    // TEMPORARY: surfaces the real error in the response body so it's visible
-    // in the browser Network tab without needing Vercel's runtime logs.
-    // Remove the "debug" field once the actual cause is found.
     return NextResponse.json(
       { trades: [], debug: err instanceof Error ? err.message : String(err) },
       { status: 500 }
@@ -152,8 +149,6 @@ export async function PATCH(req: Request) {
     };
     await redis.lset(FEED_KEY, index, updated);
 
-    // Only alert on levels that genuinely just fired — a bot re-sending the
-    // same hitLevels array on a later monitoring cycle should never re-notify.
     if (hitLevels) {
       const newlyHit = hitLevels.filter((level) => !previousLevels.includes(level));
       for (const level of newlyHit) {
