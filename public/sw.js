@@ -1,4 +1,14 @@
 // Atlas Trading service worker: shows push notifications and handles clicks.
+
+// A minimal pass-through fetch handler. This intentionally does no caching
+// or offline logic — it exists because Chrome's PWA install eligibility
+// check (the "Add to Home Screen" prompt on Android) requires an active
+// fetch handler to be present, not just push/notificationclick listeners.
+// Every request is simply forwarded to the network unchanged.
+self.addEventListener("fetch", (event) => {
+  event.respondWith(fetch(event.request));
+});
+
 self.addEventListener("push", (event) => {
   let data = {};
   try {

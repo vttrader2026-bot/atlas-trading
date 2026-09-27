@@ -4,6 +4,7 @@ import Nav from "@/components/Nav";
 import JournalSync from "@/components/JournalSync";
 import TickerStrip from "@/components/TickerStrip";
 import Footer from "@/components/Footer";
+import RegisterServiceWorker from "@/components/RegisterServiceWorker";
 import { LanguageProvider } from "@/lib/i18n";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
@@ -90,6 +91,7 @@ export default function RootLayout({
       >
         <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
         <LanguageProvider>
+          <RegisterServiceWorker />
           <Nav />
           <JournalSync />
           <TickerStrip />
