@@ -45,12 +45,10 @@ export default function RadarPage() {
     };
   }, []);
 
-  // Shortlist = pairs genuinely beating BTC's 24h performance, ranked by
-  // how far ahead they are. Stablecoins are already excluded upstream.
   const shortlist = useMemo(() => {
     if (!rows) return [];
     return [...rows]
-      .filter((r) => r.tags.includes("outperformBtc"))
+      .filter((r) => r.tags.includes("outperformBtc") && r.tags.includes("highVolume"))
       .sort((a, b) => b.vsBtcPct - a.vsBtcPct)
       .slice(0, SHORTLIST_SIZE);
   }, [rows]);
@@ -218,4 +216,3 @@ function ConditionBadge({ condition, label }: { condition: MarketCondition; labe
     </span>
   );
 }
-
