@@ -1,0 +1,5 @@
+﻿{
+  "crons": [
+    { "path": "/api/cron/analyzer-reset", "schedule": "0 0 * * *" }
+  ]
+}

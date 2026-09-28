@@ -2,6 +2,7 @@
 import { createHash } from "crypto";
 import { getRedis } from "@/lib/userStore";
 import { normalizePrefs } from "@/lib/notificationPrefs";
+import { getUserPlan } from "@/lib/plan";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 
 type Lang = "en" | "ar";
@@ -18,7 +19,6 @@ type Payload = { title: string; body: string; url: string; tag?: string };
 export const PUSH_USERS_KEY = "push:users";
 export const subsKey = (userId: string) => `user:${userId}:push`;
 
-// The server sends to this URL, so only accept real browser push services.
 const ALLOWED_HOST_SUFFIXES = [".googleapis.com", ".mozilla.com", ".apple.com", ".windows.com"];
 
 export function isAllowedEndpoint(endpoint: string): boolean {
@@ -110,11 +110,6 @@ export function tpSlPayload(trade: PublishedTrade, level: HitLevel, lang: Lang):
   };
 }
 
-/**
- * Notifies everyone who turned on notifications and "new trade setups" —
- * the same toggle as new-trade alerts, since TP/SL hits are updates to
- * that same feed rather than a distinct notification category.
- */
 export async function notifyTpSlSubscribers(trade: PublishedTrade, level: HitLevel): Promise<void> {
   try {
     const redis = getRedis();
@@ -134,7 +129,6 @@ export async function notifyTpSlSubscribers(trade: PublishedTrade, level: HitLev
   }
 }
 
-/** Sends to all of one user's devices. Returns how many deliveries succeeded. */
 export async function sendToUser(userId: string, build: (lang: Lang) => Payload): Promise<number> {
   const redis = getRedis();
   if (!redis || !configure()) return 0;
@@ -146,8 +140,6 @@ export async function sendToUser(userId: string, build: (lang: Lang) => Payload)
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: sub.keys },
-          // Always Arabic for now, regardless of the subscriber's stored
-          // browser language — was sub.lang === "ar" ? "ar" : "en".
           JSON.stringify(build("ar")),
           { TTL: 3600 },
         );
@@ -155,7 +147,6 @@ export async function sendToUser(userId: string, build: (lang: Lang) => Payload)
       } catch (err) {
         const code = (err as { statusCode?: number }).statusCode;
         if (code === 404 || code === 410) {
-          // The browser dropped this subscription: forget it.
           await redis.hdel(subsKey(userId), field);
         } else {
           console.error("push: send failed", code);
@@ -166,7 +157,6 @@ export async function sendToUser(userId: string, build: (lang: Lang) => Payload)
   return delivered;
 }
 
-/** Notifies everyone who turned on notifications and "new trade setups". Never throws. */
 export async function notifyTradeSubscribers(trade: PublishedTrade): Promise<void> {
   try {
     const redis = getRedis();
@@ -184,4 +174,48 @@ export async function notifyTradeSubscribers(trade: PublishedTrade): Promise<voi
   } catch (err) {
     console.error("push: notifyTradeSubscribers failed", err);
   }
+}
+
+export function analyzerResetPayload(): Payload {
+  return {
+    title: "\u{1F916} \u062A\u062D\u0644\u064A\u0644\u0643 \u0627\u0644\u064A\u0648\u0645\u064A \u062C\u0627\u0647\u0632",
+    body:
+      "\u0644\u062F\u064A\u0643 \u062A\u062D\u0644\u064A\u0644\u0627\u0646 \u0645\u062C\u0627\u0646\u064A\u0627\u0646 " +
+      "\u0627\u0644\u064A\u0648\u0645. \u0627\u0633\u062A\u062E\u062F\u0645\u0647\u0645\u0627 \u0644\u062A\u062D\u0644\u064A\u0644 " +
+      "\u0627\u0644\u0634\u0627\u0631\u062A \u0642\u0628\u0644 \u0627\u062A\u062E\u0627\u0630 \u0642\u0631\u0627\u0631\u0643.",
+    url: "/analyzer",
+    tag: "analyzer-daily-reset",
+  };
+}
+
+export async function notifyFreeUsersAnalyzerReset(): Promise<{ sent: number; reason: string }> {
+  const redis = getRedis();
+  if (!redis || !configure()) return { sent: 0, reason: "redis-or-vapid-not-configured" };
+
+  const day = new Date().toISOString().slice(0, 10);
+  const guardKey = `push:analyzer-reset-sent:${day}`;
+  const firstRunToday = await redis.set(guardKey, "1", { nx: true, ex: 60 * 60 * 26 });
+  if (!firstRunToday) {
+    return { sent: 0, reason: "already-sent-today" };
+  }
+
+  let sent = 0;
+  try {
+    const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
+    for (let i = 0; i < userIds.length; i += 20) {
+      await Promise.allSettled(
+        userIds.slice(i, i + 20).map(async (userId) => {
+          const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
+          if (!prefs.enabled) return;
+          const plan = await getUserPlan(userId);
+          if (plan !== "free") return;
+          const delivered = await sendToUser(userId, () => analyzerResetPayload());
+          if (delivered > 0) sent++;
+        }),
+      );
+    }
+  } catch (err) {
+    console.error("push: notifyFreeUsersAnalyzerReset failed", err);
+  }
+  return { sent, reason: "ok" };
 }
