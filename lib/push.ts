@@ -1,4 +1,4 @@
-﻿import webpush from "web-push";
+import webpush from "web-push";
 import { createHash } from "crypto";
 import { getRedis } from "@/lib/userStore";
 import { normalizePrefs } from "@/lib/notificationPrefs";
@@ -52,14 +52,14 @@ export function tradePayload(trade: PublishedTrade, lang: Lang): Payload {
     return {
       title: "\u0635\u0641\u0642\u0629 \u062c\u062f\u064a\u062f\u0629: " + trade.pair + " " + dir,
       body: trade.entryZone ? "\u0627\u0644\u062f\u062e\u0648\u0644: " + trade.entryZone : "Atlas Trading",
-      url: "/trade-feed",
+      url: "https://atlastradingapp.vercel.app/trade-feed",
       tag: "trade-" + trade.id,
     };
   }
   return {
     title: "New trade setup: " + trade.pair + " " + trade.direction,
     body: trade.entryZone ? "Entry: " + trade.entryZone : "Atlas Trading",
-    url: "/trade-feed",
+    url: "https://atlastradingapp.vercel.app/trade-feed",
     tag: "trade-" + trade.id,
   };
 }
@@ -76,7 +76,6 @@ export function testPayload(lang: Lang): Payload {
   };
 }
 
-/** A single newly-hit level: a take-profit ("TP1"/"TP2"/"TP3") or the stop-loss ("SL"). */
 export type HitLevel = string;
 
 const TP_LABEL_EN: Record<string, string> = { TP1: "TP1", TP2: "TP2", TP3: "TP3" };
@@ -216,6 +215,48 @@ export async function notifyFreeUsersAnalyzerReset(): Promise<{ sent: number; re
     }
   } catch (err) {
     console.error("push: notifyFreeUsersAnalyzerReset failed", err);
+  }
+  return { sent, reason: "ok" };
+}
+
+export function dailyTeaserPayload(): Payload {
+  return {
+    title: "\u26A1 Atlas Trading \u2014 \u0643\u0646 \u0645\u0633\u062A\u0639\u062F\u064B\u0627",
+    body:
+      "\u0633\u062A\u064F\u0646\u0634\u0631 \u0635\u0641\u0642\u0629 \u0645\u062C\u0627\u0646\u064A\u0629 " +
+      "\u062C\u062F\u064A\u062F\u0629 \u0642\u0631\u064A\u0628\u064B\u0627.\n\u062A\u062D\u0642\u0642 \u0645\u0646 " +
+      "Trade Feed \u0628\u0639\u062F \u0645\u0646\u062A\u0635\u0641 \u0627\u0644\u0644\u064A\u0644.",
+    url: "https://atlastradingapp.vercel.app/trade-feed",
+    tag: "daily-teaser",
+  };
+}
+
+export async function notifyDailyTeaser(): Promise<{ sent: number; reason: string }> {
+  const redis = getRedis();
+  if (!redis || !configure()) return { sent: 0, reason: "redis-or-vapid-not-configured" };
+
+  const day = new Date().toISOString().slice(0, 10);
+  const guardKey = `push:daily-teaser-sent:${day}`;
+  const firstRunToday = await redis.set(guardKey, "1", { nx: true, ex: 60 * 60 * 26 });
+  if (!firstRunToday) {
+    return { sent: 0, reason: "already-sent-today" };
+  }
+
+  let sent = 0;
+  try {
+    const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
+    for (let i = 0; i < userIds.length; i += 20) {
+      await Promise.allSettled(
+        userIds.slice(i, i + 20).map(async (userId) => {
+          const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
+          if (!prefs.enabled || !prefs.tradeFeed) return;
+          const delivered = await sendToUser(userId, () => dailyTeaserPayload());
+          if (delivered > 0) sent++;
+        }),
+      );
+    }
+  } catch (err) {
+    console.error("push: notifyDailyTeaser failed", err);
   }
   return { sent, reason: "ok" };
 }

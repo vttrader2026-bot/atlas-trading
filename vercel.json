@@ -1,8 +1,6 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/analyzer-reset",
-      "schedule": "0 0 * * *"
-    }
+    { "path": "/api/cron/analyzer-reset", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/daily-teaser", "schedule": "1 0 * * *" }
   ]
 }
