@@ -126,8 +126,9 @@ const en: Dict = {
       freeLabel: "Free",
       freeTitle: "Community group",
       freeBody:
-        "Public calls, market discussion, and updates on the tools here. Anyone can join instantly.",
+        "Public calls, market discussion, and updates on the tools here — free on both Telegram and WhatsApp. Anyone can join instantly.",
       joinFree: "Join free group",
+      joinWhatsapp: "Join WhatsApp Community →",
       vipLabel: "ATLAS ELITE",
       vipTitle: "Premium trade setups & management",
       vipBody:
@@ -535,8 +536,9 @@ const ar: Dict = {
       freeLabel: "مجاني",
       freeTitle: "مجموعة المجتمع",
       freeBody:
-        "توصيات عامة، نقاشات السوق، وتحديثات الأدوات هنا. يمكن لأي شخص الانضمام فورًا.",
+        "توصيات عامة، نقاشات السوق، وتحديثات الأدوات هنا — مجانًا على تيليجرام وواتساب. يمكن لأي شخص الانضمام فورًا.",
       joinFree: "انضم للمجموعة المجانية",
+      joinWhatsapp: "انضم إلى مجتمع واتساب ←",
       vipLabel: "ATLAS ELITE",
       vipTitle: "إعدادات صفقات مميزة وإدارتها",
       vipBody:

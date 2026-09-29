@@ -360,14 +360,24 @@ export default function Home() {
             <p className="mt-2 text-base text-text-muted leading-relaxed">
               {t("home.community.freeBody")}
             </p>
-            <a
-              href="https://t.me/atlastradingcrypto"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary mt-4"
-            >
-              {t("home.community.joinFree")}
-            </a>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                href="https://t.me/atlastradingcrypto"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary"
+              >
+                {t("home.community.joinFree")}
+              </a>
+              <a
+                href="https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary"
+              >
+                {t("home.community.joinWhatsapp")}
+              </a>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
