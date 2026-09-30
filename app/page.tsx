@@ -386,11 +386,14 @@ export default function Home() {
             <p className="mt-2 text-base text-text-muted leading-relaxed">
               {t("home.community.vipBody")}
             </p>
+            <div className="mt-3 text-xl font-bold">
+              $14.99<span className="text-sm text-text-muted font-normal">{lang === "ar" ? "/شهريًا" : "/month"}</span>
+            </div>
             <Link
               href="/elite"
               className="btn-secondary mt-6 hover:border-gold! hover:text-gold!"
             >
-              {t("home.community.contactVip")}
+              {t("home.community.joinElite")}
             </Link>
           </div>
         </div>

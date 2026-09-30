@@ -131,10 +131,11 @@ const en: Dict = {
       joinTelegram: "Join Telegram Community",
       joinWhatsapp: "Join WhatsApp Community →",
       vipLabel: "ATLAS ELITE",
-      vipTitle: "Premium trade setups & management",
+      vipTitle: "Private signals. Earlier access. Full trade management.",
       vipBody:
-        "Higher-conviction calls and closer access. By request — message directly to get set up.",
+        "Get private spot signals, earlier access to selected setups, TP1/TP2/TP3 updates, stop-loss updates, and ongoing trade management.",
       contactVip: "Join Atlas Elite",
+      joinElite: "Join Atlas Elite →",
     },
     latestTrades: {
       title: "Latest trade setups",
@@ -542,10 +543,11 @@ const ar: Dict = {
       joinTelegram: "انضم إلى مجتمع تيليجرام",
       joinWhatsapp: "انضم إلى مجتمع واتساب ←",
       vipLabel: "ATLAS ELITE",
-      vipTitle: "إعدادات صفقات مميزة وإدارتها",
+      vipTitle: "إشارات خاصة. وصول مبكر. إدارة كاملة للصفقات.",
       vipBody:
-        "توصيات أعلى ثقة ووصول أقرب. بالطلب فقط — راسلنا مباشرة للانضمام.",
+        "احصل على إشارات سبوت خاصة، ووصول مبكر لإعدادات مختارة، وتحديثات TP1/TP2/TP3، وتحديثات وقف الخسارة، وإدارة مستمرة للصفقات.",
       contactVip: "انضم إلى Atlas Elite",
+      joinElite: "انضم إلى Atlas Elite ←",
     },
     latestTrades: {
       title: "أحدث إعدادات الصفقات",
