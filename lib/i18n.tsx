@@ -384,6 +384,7 @@ const en: Dict = {
     loading: "Loading trades...",
     empty: "No trades published yet.",
     error: "Couldn't load the feed. Try again shortly.",
+    slLabel: "SL",
     remove: "Delete",
     confirmRemove: "Delete this trade setup from the feed? This cannot be undone.",
     removeError: "Couldn't delete the trade. Try again.",
@@ -883,4 +884,5 @@ export function useLanguage() {
   if (!ctx) throw new Error("useLanguage must be used within LanguageProvider");
   return ctx;
 }
+
 
