@@ -33,9 +33,9 @@ const MIN_TRADES_FOR_STATS = 10;
 
 const TP_LABEL_EN: Record<string, string> = { TP1: "TP1", TP2: "TP2", TP3: "TP3" };
 const TP_LABEL_AR: Record<string, string> = {
-  TP1: "الهدف الأول",
-  TP2: "الهدف الثاني",
-  TP3: "الهدف الثالث",
+  TP1: "\u0627\u0644\u0647\u062F\u0641 \u0627\u0644\u0623\u0648\u0644",
+  TP2: "\u0627\u0644\u0647\u062F\u0641 \u0627\u0644\u062B\u0627\u0646\u064A",
+  TP3: "\u0627\u0644\u0647\u062F\u0641 \u0627\u0644\u062B\u0627\u0644\u062B",
 };
 
 function tradeStatus(trade: PublishedTrade, lang: string) {
@@ -46,7 +46,7 @@ function tradeStatus(trade: PublishedTrade, lang: string) {
   if (status === "closed") {
     if (last === "SL") {
       return {
-        text: lang === "ar" ? "مغلقة — وقف خسارة" : "Closed — Stop Loss",
+        text: lang === "ar" ? "\u0645\u063A\u0644\u0642\u0629 \u2014 \u0648\u0642\u0641 \u062E\u0633\u0627\u0631\u0629" : "Closed \u2014 Stop Loss",
         className: "border-bear/40 text-bear",
       };
     }
@@ -54,22 +54,22 @@ function tradeStatus(trade: PublishedTrade, lang: string) {
       return {
         text:
           lang === "ar"
-            ? `مغلقة بربح (${TP_LABEL_AR[last]})`
-            : `Closed — Profit (${TP_LABEL_EN[last]} Hit)`,
+            ? `\u0645\u063A\u0644\u0642\u0629 \u0628\u0631\u0628\u062D (${TP_LABEL_AR[last]})`
+            : `Closed \u2014 Profit (${TP_LABEL_EN[last]} Hit)`,
         className: "border-bull/40 text-bull",
       };
     }
-    return { text: lang === "ar" ? "مغلقة" : "Closed", className: "border-line text-text-muted" };
+    return { text: lang === "ar" ? "\u0645\u063A\u0644\u0642\u0629" : "Closed", className: "border-line text-text-muted" };
   }
 
   if (last && TP_LABEL_EN[last]) {
     return {
-      text: lang === "ar" ? `تحقق ${TP_LABEL_AR[last]}` : `${TP_LABEL_EN[last]} Hit`,
+      text: lang === "ar" ? `\u062A\u062D\u0642\u0642 ${TP_LABEL_AR[last]}` : `${TP_LABEL_EN[last]} Hit`,
       className: "border-bull/40 text-bull",
     };
   }
 
-  return { text: lang === "ar" ? "نشطة" : "Active", className: "border-gold/40 text-gold" };
+  return { text: lang === "ar" ? "\u0646\u0634\u0637\u0629" : "Active", className: "border-gold/40 text-gold" };
 }
 
 function CoinBadge({ pair }: { pair: string }) {
@@ -85,6 +85,26 @@ function CoinBadge({ pair }: { pair: string }) {
   );
 }
 
+// Real coin logo via CoinCap's free public icon CDN (no API key, indexed by
+// lowercase ticker symbol - e.g. assets.coincap.io/assets/icons/sol@2x.png).
+// Falls back to the colored-initials CoinBadge if a symbol has no icon
+// there (newer/obscure listings) or the request fails for any reason, so
+// every trade still gets a visual regardless of logo availability.
+function CoinLogo({ pair }: { pair: string }) {
+  const base = pairBase(pair);
+  const [imgFailed, setImgFailed] = useState(false);
+  if (imgFailed) return <CoinBadge pair={pair} />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://assets.coincap.io/assets/icons/${base.toLowerCase()}@2x.png`}
+      alt={base}
+      className="w-8 h-8 rounded-full shrink-0 bg-white object-contain p-0.5"
+      onError={() => setImgFailed(true)}
+    />
+  );
+}
+
 export default function TradeFeedPage() {
   const { t, lang } = useLanguage();
   const [trades, setTrades] = useState<PublishedTrade[] | null>(null);
@@ -93,7 +113,7 @@ export default function TradeFeedPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [tickers, setTickers] = useState<Record<string, Ticker24h>>({});
 
-  // Real counts from the actual feed — never shown until there's enough data.
+  // Real counts from the actual feed \u2014 never shown until there's enough data.
   const publishedCount = trades?.length ?? 0;
   const activeCount = trades?.filter((x) => (x.status ?? "open") !== "closed").length ?? 0;
   const hasEnoughDataForStats = trades !== null && publishedCount >= MIN_TRADES_FOR_STATS;
@@ -180,16 +200,16 @@ export default function TradeFeedPage() {
         <div className="rounded-2xl border border-line bg-surface p-5">
           <div className="font-medium">
             {lang === "ar"
-              ? "⚜️ لا تكتفِ بمشاهدة الصفقة. كن مستعدًا لها."
-              : "⚜️ Don't just watch the trade. Be ready for it."}
+              ? "\u269C\uFE0F \u0644\u0627 \u062A\u0643\u062A\u0641\u0650 \u0628\u0645\u0634\u0627\u0647\u062F\u0629 \u0627\u0644\u0635\u0641\u0642\u0629. \u0643\u0646 \u0645\u0633\u062A\u0639\u062F\u064B\u0627 \u0644\u0647\u0627."
+              : "\u269C\uFE0F Don't just watch the trade. Be ready for it."}
           </div>
           <p className="text-sm text-text-muted leading-relaxed mt-1.5">
             {lang === "ar"
-              ? "يحصل أعضاء Atlas Elite على إشارات سبوت خاصة قبل غيرهم، مع مستويات الدخول، وأهداف TP1/TP2/TP3، وتحديثات وقف الخسارة، وإدارة كاملة للصفقة مع تطور الإعداد."
+              ? "\u064A\u062D\u0635\u0644 \u0623\u0639\u0636\u0627\u0621 Atlas Elite \u0639\u0644\u0649 \u0625\u0634\u0627\u0631\u0627\u062A \u0633\u0628\u0648\u062A \u062E\u0627\u0635\u0629 \u0642\u0628\u0644 \u063A\u064A\u0631\u0647\u0645\u060C \u0645\u0639 \u0645\u0633\u062A\u0648\u064A\u0627\u062A \u0627\u0644\u062F\u062E\u0648\u0644\u060C \u0648\u0623\u0647\u062F\u0627\u0641 TP1/TP2/TP3\u060C \u0648\u062A\u062D\u062F\u064A\u062B\u0627\u062A \u0648\u0642\u0641 \u0627\u0644\u062E\u0633\u0627\u0631\u0629\u060C \u0648\u0625\u062F\u0627\u0631\u0629 \u0643\u0627\u0645\u0644\u0629 \u0644\u0644\u0635\u0641\u0642\u0629 \u0645\u0639 \u062A\u0637\u0648\u0631 \u0627\u0644\u0625\u0639\u062F\u0627\u062F."
               : "Atlas Elite members get private spot signals earlier, with entry levels, TP1/TP2/TP3, stop-loss updates, and trade management as the setup develops."}
           </p>
           <Link href="/elite" className="btn-primary mt-4 inline-flex">
-            {lang === "ar" ? "انضم إلى Atlas Elite — 14.99$/شهر = 600 أوقية" : "Join Atlas Elite — $14.99/month = 600 MRU"}
+            {lang === "ar" ? "\u0627\u0646\u0636\u0645 \u0625\u0644\u0649 Atlas Elite \u2014 14.99$/\u0634\u0647\u0631 = 600 \u0623\u0648\u0642\u064A\u0629" : "Join Atlas Elite \u2014 $14.99/month = 600 MRU"}
           </Link>
         </div>
 
@@ -197,12 +217,12 @@ export default function TradeFeedPage() {
           <div className="flex items-center gap-2 text-sm text-text-muted">
             <span>
               <span className="font-data text-text">{publishedCount}</span>{" "}
-              {lang === "ar" ? "صفقة منشورة" : "calls published"}
+              {lang === "ar" ? "\u0635\u0641\u0642\u0629 \u0645\u0646\u0634\u0648\u0631\u0629" : "calls published"}
             </span>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true">\u00B7</span>
             <span>
               <span className="font-data text-text">{activeCount}</span>{" "}
-              {lang === "ar" ? "نشطة حالياً" : "currently active"}
+              {lang === "ar" ? "\u0646\u0634\u0637\u0629 \u062D\u0627\u0644\u064A\u0627\u064B" : "currently active"}
             </span>
           </div>
         )}
@@ -215,7 +235,9 @@ export default function TradeFeedPage() {
         {trades !== null && trades.length === 0 && (
           <p className="text-text-muted text-sm">{t("tradeFeed.empty")}</p>
         )}
+      </div>
 
+      <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {trades?.map((trade) => {
           const isLong = trade.direction === "Long";
           const sym = binanceSymbol(trade.pair);
@@ -224,7 +246,7 @@ export default function TradeFeedPage() {
           const hitLevels = trade.hitLevels ?? [];
           const hitAnyTp = hitLevels.some((h) => h.startsWith("TP"));
           const hitSl = hitLevels.includes("SL");
-          // Only a clean TP close — never a trade that hit SL after a partial TP.
+          // Only a clean TP close \u2014 never a trade that hit SL after a partial TP.
           const showEliteNudge = trade.status === "closed" && hitAnyTp && !hitSl;
           const status = tradeStatus(trade, lang);
 
@@ -235,9 +257,9 @@ export default function TradeFeedPage() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <CoinBadge pair={trade.pair} />
+                  <CoinLogo pair={trade.pair} />
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-data text-base font-medium">{trade.pair}</span>
                       <span
                         className={
@@ -252,7 +274,7 @@ export default function TradeFeedPage() {
                       </span>
                     </div>
                     {ticker && (
-                      <div className="font-data text-lg font-bold mt-0.5">${formatPrice(ticker.lastPrice)}</div>
+                      <div className="font-data text-2xl font-bold mt-0.5">${formatPrice(ticker.lastPrice)}</div>
                     )}
                   </div>
                 </div>
@@ -278,19 +300,19 @@ export default function TradeFeedPage() {
               <div className="mt-4 pt-4 border-t border-line grid grid-cols-3 gap-2 text-center">
                 <div>
                   <div className="text-[10px] text-text-muted uppercase tracking-wide">{t("tradePlan.entry")}</div>
-                  <div className="font-data text-sm mt-0.5">{trade.entryZone || "—"}</div>
+                  <div className="font-data text-sm mt-0.5">{trade.entryZone || "\u2014"}</div>
                 </div>
                 <div>
                   <div className="text-[10px] text-text-muted uppercase tracking-wide">{t("tradePlan.targets")}</div>
                   <div className="font-data text-sm mt-0.5 text-bull">
-                    {targets.length > 0 ? targets.join(" / ") : "—"}
+                    {targets.length > 0 ? targets.join(" / ") : "\u2014"}
                   </div>
                 </div>
                 <div>
                   <div className="text-[10px] text-text-muted uppercase tracking-wide">
                     {t("tradeFeed.slLabel")}
                   </div>
-                  <div className="font-data text-sm mt-0.5 text-bear">{trade.invalidation || "—"}</div>
+                  <div className="font-data text-sm mt-0.5 text-bear">{trade.invalidation || "\u2014"}</div>
                 </div>
               </div>
 
@@ -302,7 +324,7 @@ export default function TradeFeedPage() {
               {showEliteNudge && (
                 <p className="mt-3 text-xs text-gold">
                   {lang === "ar"
-                    ? "أعضاء Atlas Elite رصدوا هذه الصفقة قبل تحركها."
+                    ? "\u0623\u0639\u0636\u0627\u0621 Atlas Elite \u0631\u0635\u062F\u0648\u0627 \u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u0642\u0629 \u0642\u0628\u0644 \u062A\u062D\u0631\u0643\u0647\u0627."
                     : "Elite members caught this before it moved."}
                 </p>
               )}
@@ -313,14 +335,14 @@ export default function TradeFeedPage() {
 
       {trades && trades.length > 0 && (
         <div className="mt-8 rounded-2xl border border-line bg-surface p-6 text-center shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
-          <div className="text-label text-gold">⚜ Atlas Elite</div>
+          <div className="text-label text-gold">\u269C Atlas Elite</div>
           <p className="mt-2 text-sm text-text-muted max-w-md mx-auto">
             {lang === "ar"
-              ? "هذه إشارات عامة. أعضاء Elite يحصلون على إشارات خاصة، وصول أبكر، وتحديثات كاملة للصفقة."
+              ? "\u0647\u0630\u0647 \u0625\u0634\u0627\u0631\u0627\u062A \u0639\u0627\u0645\u0629. \u0623\u0639\u0636\u0627\u0621 Elite \u064A\u062D\u0635\u0644\u0648\u0646 \u0639\u0644\u0649 \u0625\u0634\u0627\u0631\u0627\u062A \u062E\u0627\u0635\u0629\u060C \u0648\u0635\u0648\u0644 \u0623\u0628\u0643\u0631\u060C \u0648\u062A\u062D\u062F\u064A\u062B\u0627\u062A \u0643\u0627\u0645\u0644\u0629 \u0644\u0644\u0635\u0641\u0642\u0629."
               : "These are the public signals. Elite members get private signals, earlier access, and full trade management."}
           </p>
           <Link href="/elite" className="btn-primary mt-4 inline-flex">
-            {lang === "ar" ? "انضم إلى Atlas Elite" : "Join Atlas Elite"}
+            {lang === "ar" ? "\u0627\u0646\u0636\u0645 \u0625\u0644\u0649 Atlas Elite" : "Join Atlas Elite"}
           </Link>
         </div>
       )}
