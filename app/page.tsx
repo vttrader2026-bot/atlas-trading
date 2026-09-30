@@ -367,7 +367,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="btn-primary"
               >
-                {t("home.community.joinFree")}
+                {t("home.community.joinTelegram")}
               </a>
               <a
                 href="https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t"
