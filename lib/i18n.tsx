@@ -20,9 +20,9 @@ const en: Dict = {
   },
   home: {
     heroTitle: "Read the chart before you risk the trade.",
-    heroLine1: "See the market clearly.",
-    heroLine2: "Trade",
-    heroLine3: "with a plan.",
+    heroLine1: "Read the market.",
+    heroLine2: "Plan the trade.",
+    heroLine3: "Control the risk.",
     heroBody:
       "Atlas Trading brings AI chart analysis, market discovery, trade planning, risk management, and journaling into one professional workspace for crypto traders.",
     openAnalyzer: "Open analyzer",
@@ -434,7 +434,7 @@ const ar: Dict = {
     heroLine2: "خطّط للصفقة.",
     heroLine3: "تحكّم بالمخاطرة.",
     heroBody:
-      "تحليل شارت مدعوم بالذكاء الاصطناعي وأدوات تداول مصممة لمساعدة متداولي الكريبتو على اتخاذ قرارات أفضل — كل أزواج USDT على Binance، مجانًا.",
+      "تجمع Atlas Trading بين تحليل الشارت بالذكاء الاصطناعي، واكتشاف السوق، وتخطيط الصفقات، وإدارة المخاطر، والسجل، في مساحة عمل احترافية واحدة لمتداولي الكريبتو.",
     openAnalyzer: "افتح المحلل",
     viewMarket: "عرض السوق المباشر",
     liveMarket: "السوق المباشر",
