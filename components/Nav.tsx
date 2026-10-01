@@ -26,6 +26,7 @@ export default function Nav() {
     { href: "/trade-plan", label: t("nav.tradePlan") },
     { href: "/journal", label: t("nav.journal") },
     { href: "/risk", label: t("nav.risk") },
+    { href: "/academy", label: t("nav.academy") },
   ];
 
   const controls = (
