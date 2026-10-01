@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
 
@@ -386,6 +386,7 @@ const en: Dict = {
     loading: "Loading trades...",
     empty: "No trades published yet.",
     error: "Couldn't load the feed. Try again shortly.",
+    slLabel: "SL",
     remove: "Delete",
     confirmRemove: "Delete this trade setup from the feed? This cannot be undone.",
     removeError: "Couldn't delete the trade. Try again.",
@@ -797,6 +798,7 @@ const ar: Dict = {
     loading: "جارٍ تحميل الصفقات...",
     empty: "لم تُنشر أي صفقات بعد.",
     error: "تعذر تحميل الخلاصة. حاول لاحقًا.",
+    slLabel: "\u0648\u0642\u0641 \u0627\u0644\u062E\u0633\u0627\u0631\u0629",
     remove: "حذف",
     confirmRemove: "هل تريد حذف هذا الإعداد من الخلاصة؟ لا يمكن التراجع عن ذلك.",
     removeError: "تعذر حذف الصفقة. حاول مرة أخرى.",
@@ -888,3 +890,4 @@ export function useLanguage() {
   if (!ctx) throw new Error("useLanguage must be used within LanguageProvider");
   return ctx;
 }
+
