@@ -11,6 +11,22 @@ import { consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
 const MODEL_PRIMARY = "gemini-flash-latest";
 const MODEL_FALLBACK = "gemini-flash-lite-latest";
 
+// Per-attempt timeout for the Gemini call. Vercel serverless functions have
+// their own hard ceiling, so this just makes sure a hung request fails fast
+// and cleanly (as a caught, logged error) rather than running out the clock
+// and surfacing a raw platform timeout to the user.
+const GEMINI_TIMEOUT_MS = 25_000;
+
+// User-facing message for any transient AI-provider failure (503 overload,
+// 429 after both models are exhausted, timeouts, or network errors). Never
+// expose provider name, retry counts, or other internal detail here — that
+// only goes to console.error for server-side logs.
+function serviceUnavailableMessage(lang: string): string {
+  return lang === "ar"
+    ? "المحلل غير متاح مؤقتًا — نشهد إقبالاً كبيرًا حاليًا. يرجى المحاولة مرة أخرى بعد لحظات."
+    : "Analyzer temporarily unavailable — we're experiencing high demand. Please try again in a moment.";
+}
+
 type TraderContext = {
   pair?: string;
   timeframe?: string;
@@ -48,6 +64,7 @@ CORE RULES — these matter more than anything else:
 3. Only name levels, patterns, or structure concepts (support/resistance, supply/demand, liquidity, fair value gap, break of structure) that are genuinely visible or inferable from price action in the image. Don't force concepts onto a chart that doesn't show them.
 4. It is not only acceptable but expected to conclude there is no clean setup and the trader should wait. Do not force a bullish or bearish case where none exists.
 5. Be honest if the image is blurry, not a trading chart, or otherwise hard to read.
+6. Always provide exactly 3 targets per scenario (and in tradePlan.targets) when direction is Long or Short — label them as a progression (first/nearest, second, third/furthest). If the chart doesn't clearly show three distinct levels, the third can be a reasonable further extension based on visible structure — but never fabricate false precision, and never drop below 3 just because fewer levels are obvious at a glance. Only use fewer than 3 (or "N/A") when direction is "Wait — no clear setup".
 
 Respond with ONLY a JSON object, no other text, matching exactly this shape:
 
@@ -73,12 +90,12 @@ Respond with ONLY a JSON object, no other text, matching exactly this shape:
   },
   "bullishScenario": {
     "confirmation": "the specific condition that would confirm this, e.g. 'price reclaims and closes above $X'",
-    "targets": ["potential target 1", "potential target 2"],
+    "targets": ["potential target 1", "potential target 2", "potential target 3 — a further extension level if genuinely visible, otherwise a reasonable continuation based on visible structure (not a guess dressed up as precision)"],
     "why": "1-2 sentences"
   },
   "bearishScenario": {
     "confirmation": "the specific condition that would confirm this",
-    "targets": ["potential target 1", "potential target 2"],
+    "targets": ["potential target 1", "potential target 2", "potential target 3 — a further extension level if genuinely visible, otherwise a reasonable continuation based on visible structure (not a guess dressed up as precision)"],
     "why": "1-2 sentences"
   },
   "whatToWatch": ["practical, specific things to wait for before acting — 2-4 short items"],
@@ -91,7 +108,7 @@ Respond with ONLY a JSON object, no other text, matching exactly this shape:
     "direction": "Long" | "Short" | "Wait — no clear setup",
     "entryZone": "approximate zone, or 'N/A' if direction is Wait",
     "invalidation": "same as invalidation.level, or 'N/A'",
-    "targets": ["target 1", "target 2"],
+    "targets": ["target 1", "target 2", "target 3"],
     "riskNote": "1 short sentence reminding the trader this is structural analysis, not financial advice, and to size position by their own risk tolerance"
   },
   "teachMe": {
@@ -116,16 +133,36 @@ Before returning JSON, silently check every human-readable string and remove any
 async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Promise<Response> {
   let lastRes: Response | undefined;
   for (let i = 0; i < attempts; i++) {
-    const res = await fetch(url, init);
-    if (res.ok) return res;
-    // Only retry on transient server-side errors, not on bad requests/auth issues.
-    if (res.status !== 503 && res.status !== 429) return res;
-    lastRes = res;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, { ...init, signal: controller.signal });
+      clearTimeout(timeout);
+      if (res.ok) return res;
+      // Only retry on transient server-side errors, not on bad requests/auth issues.
+      if (res.status !== 503 && res.status !== 429) return res;
+      lastRes = res;
+    } catch (err) {
+      clearTimeout(timeout);
+      // Timeout (AbortError) or a network-level failure. Treat exactly like
+      // a transient 503 for retry purposes, and log the real cause.
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      console.error(
+        isAbort ? `Gemini request timed out after ${GEMINI_TIMEOUT_MS}ms` : "Gemini request failed",
+        !isAbort ? err : ""
+      );
+      lastRes = undefined;
+      if (i === attempts - 1) throw err;
+    }
     if (i < attempts - 1) {
       await new Promise((r) => setTimeout(r, 800 * (i + 1)));
     }
   }
-  return lastRes!;
+  if (!lastRes) {
+    // Every attempt threw (timeout/network) rather than returning a Response.
+    throw new Error("All retry attempts failed with no response");
+  }
+  return lastRes;
 }
 
 export async function POST(req: NextRequest) {
@@ -199,13 +236,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let geminiRes = await callGemini(MODEL_PRIMARY);
+  let geminiRes: Response;
+  try {
+    geminiRes = await callGemini(MODEL_PRIMARY);
 
-  // Flash and Flash-Lite have separate daily quotas on the same key, so a
-  // 429 on one is worth one real retry on the other before giving up.
-  if (!geminiRes.ok && geminiRes.status === 429) {
-    console.error(`Gemini ${MODEL_PRIMARY} hit 429 — falling back to ${MODEL_FALLBACK}`);
-    geminiRes = await callGemini(MODEL_FALLBACK);
+    // Flash and Flash-Lite have separate daily quotas on the same key, so a
+    // 429 on one is worth one real retry on the other before giving up.
+    if (!geminiRes.ok && geminiRes.status === 429) {
+      console.error(`Gemini ${MODEL_PRIMARY} hit 429 — falling back to ${MODEL_FALLBACK}`);
+      geminiRes = await callGemini(MODEL_FALLBACK);
+    }
+  } catch (err) {
+    // Every retry attempt timed out or failed at the network level. This is
+    // exactly the same class of "temporarily unavailable" failure as a 503
+    // from the provider — never surface the raw cause to the user.
+    console.error("Gemini call failed after retries (timeout or network error):", err);
+    return NextResponse.json({ error: serviceUnavailableMessage(lang) }, { status: 503 });
   }
 
   if (!geminiRes.ok) {
@@ -215,22 +261,13 @@ export async function POST(req: NextRequest) {
     console.error(`Gemini API error (${geminiRes.status}):`, detail.slice(0, 500));
 
     if (geminiRes.status === 503) {
-      return NextResponse.json(
-        {
-          error:
-            "Google's free tier is under heavy load right now, even after a few automatic retries. Wait a minute and try again.",
-        },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: serviceUnavailableMessage(lang) }, { status: 503 });
     }
     if (geminiRes.status === 429) {
-      return NextResponse.json(
-        {
-          error:
-            "The analyzer has hit its free daily usage limit on both available models. This resets automatically — try again tomorrow, or in a little while.",
-        },
-        { status: 429 }
-      );
+      // Both primary and fallback models are exhausted for the day — still
+      // a provider-capacity issue from the user's point of view, not
+      // something they can act on, so same generic message.
+      return NextResponse.json({ error: serviceUnavailableMessage(lang) }, { status: 429 });
     }
     return NextResponse.json(
       { error: "The analyzer couldn't complete this read. Try again in a moment." },
