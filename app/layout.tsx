@@ -24,7 +24,7 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
-const SITE_URL = "https://atlastradingapp.vercel.app";
+const SITE_URL = "https://www.atlastrading.app";
 const SITE_TITLE = "Atlas Trading — AI crypto chart analyzer, journal & risk tools";
 const SITE_DESCRIPTION =
   "Read a chart, size a position, log the trade. Free AI chart analysis, market radar, trade planning, and risk tools for every USDT pair on Binance.";
