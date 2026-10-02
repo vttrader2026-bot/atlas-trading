@@ -438,11 +438,17 @@ function AnalysisResult({
 
       {/* Summary strip — the most important info, always visible */}
       <div className="grid sm:grid-cols-3 gap-3">
-        <SummaryStat label={t("analyzer.marketStructure")} value={result.marketStructure.state} tone={stateColor(result.marketStructure.state)} />
+        <SummaryStat
+          label={t("analyzer.marketStructure")}
+          value={result.marketStructure.state}
+          tone={stateColor(result.marketStructure.state)}
+          lessonHref="/academy/trend-direction"
+        />
         <SummaryStat
           label={t("analyzer.trend")}
           value={`${result.trend.direction} · ${result.trend.strength}`}
           tone={stateColor(result.trend.direction)}
+          lessonHref="/academy/trend-direction"
         />
         <SummaryStat
           label={t("analyzer.currentCondition")}
@@ -460,13 +466,13 @@ function AnalysisResult({
         </div>
       )}
 
-      <CollapsibleExplain title={t("analyzer.marketStructure")}>
+      <CollapsibleExplain title={t("analyzer.marketStructure")} lessonHref="/academy/trend-direction">
         <p className="text-sm text-text-muted leading-relaxed">
           {teachMode ? result.teachMe.structure : result.marketStructure.explanation}
         </p>
       </CollapsibleExplain>
 
-      <CollapsibleExplain title={t("analyzer.trend")}>
+      <CollapsibleExplain title={t("analyzer.trend")} lessonHref="/academy/trend-direction">
         <p className="text-sm text-text-muted leading-relaxed">
           {teachMode ? result.teachMe.trend : result.trend.explanation}
         </p>
@@ -477,7 +483,7 @@ function AnalysisResult({
       </CollapsibleExplain>
 
       {result.keyLevels?.length > 0 && (
-        <Section title={t("analyzer.keyLevels")}>
+        <Section title={t("analyzer.keyLevels")} lessonHref="/academy/support-resistance">
           <div className="divide-y divide-line border border-line rounded-md overflow-hidden">
             {result.keyLevels.map((lvl, i) => (
               <div key={i} className="flex items-center justify-between px-3 py-2 text-sm">
@@ -546,20 +552,57 @@ function AnalysisResult({
   );
 }
 
-function SummaryStat({ label, value, tone }: { label: string; value: string; tone: string }) {
+function SummaryStat({
+  label,
+  value,
+  tone,
+  lessonHref,
+}: {
+  label: string;
+  value: string;
+  tone: string;
+  lessonHref?: string;
+}) {
   return (
     <div className={`border rounded-xl p-4 ${tone.split(" ")[1] || "border-line"}`}>
-      <div className="text-[11px] text-text-muted uppercase tracking-wide">{label}</div>
+      <div className="flex items-center gap-1.5">
+        <div className="text-[11px] text-text-muted uppercase tracking-wide">{label}</div>
+        {lessonHref && (
+          <Link href={lessonHref} className="text-text-muted hover:text-gold transition-colors text-xs" title="تعلّم المزيد">
+            ⓘ
+          </Link>
+        )}
+      </div>
       <div className={`mt-1 text-sm font-medium ${tone.split(" ")[0] || "text-text"}`}>{value}</div>
     </div>
   );
 }
 
-function CollapsibleExplain({ title, children }: { title: string; children: React.ReactNode }) {
+function CollapsibleExplain({
+  title,
+  children,
+  lessonHref,
+}: {
+  title: string;
+  children: React.ReactNode;
+  lessonHref?: string;
+}) {
   return (
     <details className="group card card-hover overflow-hidden">
       <summary className="px-5 py-3 text-sm cursor-pointer select-none flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
-        <span className="text-text-muted">{title}</span>
+        <span className="text-text-muted flex items-center gap-1.5">
+          {title}
+          {lessonHref && (
+            <Link
+              href={lessonHref}
+              onClick={(e) => e.stopPropagation()}
+              className="text-text-muted hover:text-gold transition-colors text-xs"
+              title="تعلّم المزيد"
+            >
+              ⓘ
+            </Link>
+          )}
+        </span>
         <span className="text-text-muted text-xs group-open:rotate-180 transition-transform">▾</span>
       </summary>
       <div className="px-5 pb-4">{children}</div>
@@ -616,14 +659,23 @@ function Section({
   title,
   children,
   highlight,
+  lessonHref,
 }: {
   title: string;
   children: React.ReactNode;
   highlight?: boolean;
+  lessonHref?: string;
 }) {
   return (
     <div className={`border rounded-xl p-6 ${highlight ? "border-gold/30 bg-surface" : "border-line bg-surface"}`}>
-      <div className="text-label mb-2">{title}</div>
+      <div className="text-label mb-2 flex items-center gap-1.5">
+        {title}
+        {lessonHref && (
+          <Link href={lessonHref} className="text-text-muted hover:text-gold transition-colors text-xs normal-case tracking-normal" title="تعلّم المزيد">
+            ⓘ
+          </Link>
+        )}
+      </div>
       {children}
     </div>
   );

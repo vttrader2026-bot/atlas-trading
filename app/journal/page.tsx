@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Trade, loadTrades, saveTrades, tradePnl, tradesToCsv, computeJournalStats } from "@/lib/journal";
 import { useLanguage } from "@/lib/i18n";
 
@@ -84,6 +85,12 @@ export default function JournalPage() {
         <div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("journal.title")}</h1>
           <p className="text-text-muted text-sm mt-1">{t("journal.subtitle")}</p>
+          <Link
+            href="/academy/trading-journal-habit"
+            className="inline-block mt-2 text-xs text-gold hover:opacity-80 transition-opacity"
+          >
+            لا تعرف كيف تكتب يوميات تداول جيدة؟
+          </Link>
         </div>
         <button
           onClick={exportCsv}

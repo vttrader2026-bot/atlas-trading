@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
 
 export default function RiskPage() {
@@ -47,7 +48,13 @@ export default function RiskPage() {
 
       <div className="mt-10 grid sm:grid-cols-2 gap-6">
         <Field label={t("risk.balance")} value={balance} onChange={setBalance} />
-        <Field label={t("risk.riskPct")} value={riskPct} onChange={setRiskPct} />
+        <Field
+          label={t("risk.riskPct")}
+          value={riskPct}
+          onChange={setRiskPct}
+          lessonHref="/academy/risk-percentage"
+          lessonText="لماذا هذه النسبة مهمة؟"
+        />
 
         <div>
           <label className="text-sm text-text-muted">{t("risk.side")}</label>
@@ -102,15 +109,26 @@ function Field({
   value,
   onChange,
   placeholder,
+  lessonHref,
+  lessonText,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  lessonHref?: string;
+  lessonText?: string;
 }) {
   return (
     <div>
-      <label className="text-sm text-text-muted">{label}</label>
+      <div className="flex items-center gap-2 flex-wrap">
+        <label className="text-sm text-text-muted">{label}</label>
+        {lessonHref && (
+          <Link href={lessonHref} className="text-xs text-gold hover:opacity-80 transition-opacity">
+            {lessonText}
+          </Link>
+        )}
+      </div>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}

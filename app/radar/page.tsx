@@ -16,6 +16,13 @@ const FILTERS: { key: RadarTag | "all"; labelKey: string }[] = [
   { key: "outperformBtc", labelKey: "radar.filterOutperform" },
 ];
 
+// Only filters with a genuinely matching Academy lesson get an info icon —
+// no icon is better than a forced, misleading link.
+const FILTER_LESSON_SLUGS: Partial<Record<RadarTag, string>> = {
+  breakout: "breakout-retest",
+  outperformBtc: "relative-strength-btc",
+};
+
 const SHORTLIST_SIZE = 8;
 
 export default function RadarPage() {
@@ -92,19 +99,32 @@ export default function RadarPage() {
 
           <div className="mt-14 border-t border-line pt-10">
             <div className="flex flex-wrap gap-2">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setFilter(f.key)}
-                  className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
-                    filter === f.key
-                      ? "border-gold text-gold bg-gold/10"
-                      : "border-line text-text-muted hover:text-text"
-                  }`}
-                >
-                  {t(f.labelKey)}
-                </button>
-              ))}
+              {FILTERS.map((f) => {
+                const lessonSlug = f.key !== "all" ? FILTER_LESSON_SLUGS[f.key] : undefined;
+                return (
+                  <div key={f.key} className="flex items-center gap-1">
+                    <button
+                      onClick={() => setFilter(f.key)}
+                      className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
+                        filter === f.key
+                          ? "border-gold text-gold bg-gold/10"
+                          : "border-line text-text-muted hover:text-text"
+                      }`}
+                    >
+                      {t(f.labelKey)}
+                    </button>
+                    {lessonSlug && (
+                      <Link
+                        href={`/academy/${lessonSlug}`}
+                        className="text-text-muted hover:text-gold transition-colors text-xs"
+                        title="تعلّم المزيد"
+                      >
+                        ⓘ
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="mt-4 card overflow-hidden">
