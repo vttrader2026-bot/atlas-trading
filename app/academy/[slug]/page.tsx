@@ -20,9 +20,11 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       <div className="text-label text-gold mt-4">{SECTION_LABELS[lesson.section]}</div>
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mt-1">{lesson.title}</h1>
 
-      <div className="mt-6">
-        <LessonDiagram diagramId={lesson.diagramId} />
-      </div>
+      {lesson.hasDiagram !== false && (
+        <div className="mt-6">
+          <LessonDiagram diagramId={lesson.diagramId} />
+        </div>
+      )}
 
       <div className="mt-6 space-y-4 text-base leading-relaxed">
         {paragraphs.map((p, i) => (
@@ -30,7 +32,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         ))}
       </div>
 
-      <ToolCTA href={lesson.linkedTool.href} ctaText={lesson.linkedTool.ctaText} />
+      {lesson.linkedTool && <ToolCTA href={lesson.linkedTool.href} ctaText={lesson.linkedTool.ctaText} />}
     </main>
   );
 }

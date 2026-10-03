@@ -10,7 +10,10 @@ export type Lesson = {
   /** Plain paragraphs separated by a blank line. Rendered as <p> per paragraph. */
   body: string;
   diagramId: string;
-  linkedTool: {
+  /** False only for intentionally text-only lessons (e.g. signals-vs-understanding) — distinguishes "no diagram by design" from "not built yet". */
+  hasDiagram?: boolean;
+  /** Omitted for foundational/awareness lessons with no single matching tool. */
+  linkedTool?: {
     name: LinkedToolName;
     href: string;
     ctaText: string;
@@ -18,8 +21,6 @@ export type Lesson = {
   /** Phase 1: false = placeholder body/diagram, not yet written for real. */
   ready: boolean;
 };
-
-const COMING_SOON_BODY = "هذا الدرس قيد الإعداد حاليًا وسيُضاف قريبًا.";
 
 export const SECTION_LABELS: Record<AcademySection, string> = {
   basics: "الأساسيات",
@@ -37,40 +38,55 @@ export const lessons: Lesson[] = [
     section: "basics",
     title: "ما هي العملات الرقمية؟",
     summary: "شرح مبسط لفكرة البلوكتشين والعملات الرقمية دون تعقيد تقني.",
-    body: COMING_SOON_BODY,
+    body: `العملات الرقمية هي أصول مالية تعمل على شبكة موزعة تسمى البلوكتشين، بدون وسيط مركزي كالبنك. كل معاملة تُسجَّل في سجل عام يراه الجميع ولا يمكن لأحد تعديله بمفرده.
+
+البيتكوين (BTC) كانت أول عملة من هذا النوع، تليها آلاف العملات الأخرى بأغراض مختلفة — بعضها للدفع، وبعضها لتشغيل تطبيقات (مثل إيثريوم).
+
+المهم لك كمتداول: فهم أن السعر يتحرك بالعرض والطلب فقط، لا بقرار شركة أو بنك مركزي — وهذا يجعل التقلبات أكبر وأسرع من الأسواق التقليدية.`,
     diagramId: "what-is-crypto",
-    linkedTool: { name: "Radar", href: "/radar", ctaText: "استكشف السوق الآن → Radar" },
-    ready: false,
+    ready: true,
   },
   {
     slug: "investing-vs-trading",
     section: "basics",
     title: "الاستثمار مقابل التداول",
     summary: "الفرق بين الاحتفاظ طويل المدى (HODL) والتداول النشط.",
-    body: COMING_SOON_BODY,
+    body: `المستثمر يشتري عملة ويحتفظ بها لفترة طويلة، متوقعاً أن ترتفع قيمتها مع نمو السوق عموماً. لا يهمه تقلب السعر يومياً.
+
+المتداول يدخل ويخرج من الصفقات بفترات أقصر (ساعات، أيام، أسابيع)، معتمداً على قراءة الشارت وتحديد نقاط دخول وخروج دقيقة.
+
+الفرق ليس في "من أذكى" — بل في الوقت المتاح لك والمخاطرة التي تتحمّلها. التداول يحتاج انضباطاً وخطة واضحة أكثر من الاستثمار طويل المدى.`,
     diagramId: "investing-vs-trading",
-    linkedTool: { name: "Journal", href: "/journal", ctaText: "سجّل أول قرار تداول لك → Journal" },
-    ready: false,
+    linkedTool: { name: "Journal", href: "/journal", ctaText: "سجّل أي نوع من الصفقات تقوم به فعلاً → Journal" },
+    ready: true,
   },
   {
     slug: "reading-candlesticks",
     section: "basics",
     title: "قراءة الشموع اليابانية",
     summary: "رسم يوضح شمعة صاعدة وهابطة مع الفتح والإغلاق والقمة والقاع.",
-    body: COMING_SOON_BODY,
+    body: `كل شمعة تمثل فترة زمنية محددة (ساعة، يوم..) وتحمل 4 معلومات: سعر الافتتاح، الإغلاق، أعلى نقطة، وأدنى نقطة.
+
+الشمعة الخضراء (أو البيضاء) تعني أن الإغلاق كان أعلى من الافتتاح — ضغط شراء. الشمعة الحمراء تعني العكس — ضغط بيع.
+
+الجسم (Body) يوضح المسافة بين الفتح والإغلاق، والذيل (Wick) يوضح أقصى نقطة وصل إليها السعر قبل أن يرتد.`,
     diagramId: "reading-candlesticks",
     linkedTool: { name: "Analyzer", href: "/analyzer", ctaText: "جرّب قراءة شارت حقيقي الآن → Analyzer" },
-    ready: false,
+    ready: true,
   },
   {
     slug: "trend-direction",
     section: "basics",
     title: "الاتجاه العام (Trend)",
     summary: "رسم يوضح اتجاهًا صاعدًا وهابطًا وعرضيًا (sideways).",
-    body: COMING_SOON_BODY,
+    body: `الاتجاه الصاعد يتكون من قمم وقيعان مرتفعة تدريجياً. الاتجاه الهابط هو العكس — قمم وقيعان منخفضة تدريجياً.
+
+الاتجاه العرضي (Sideways) يعني أن السعر يتحرك بين نطاق محدد بدون اتجاه واضح — غالباً فرصة أضعف للتداول.
+
+التداول مع الاتجاه العام أسهل وأقل مخاطرة من محاولة التنبؤ بانعكاسه — القاعدة الشائعة: "الاتجاه صديقك حتى ينكسر."`,
     diagramId: "trend-direction",
-    linkedTool: { name: "Analyzer", href: "/analyzer", ctaText: "جرّب تحديد الاتجاه الآن → Analyzer" },
-    ready: false,
+    linkedTool: { name: "Radar", href: "/radar", ctaText: "شاهد أي العملات في اتجاه صاعد الآن → Radar" },
+    ready: true,
   },
 
   // ───────── Technical ─────────
@@ -93,20 +109,28 @@ export const lessons: Lesson[] = [
     section: "technical",
     title: "الاختراق وإعادة الاختبار",
     summary: "اختراق مستوى، ثم عودة السعر لاختباره كدعم جديد قبل الاستمرار.",
-    body: COMING_SOON_BODY,
+    body: `عندما يكسر السعر مستوى مقاومة بقوة (بشمعة كبيرة وحجم تداول مرتفع)، فهذا اختراق. لكن الدخول المباشر عند الاختراق خطر — كثير من الاختراقات تكون كاذبة (Fakeout).
+
+الأسلم هو انتظار "إعادة الاختبار" — أن يعود السعر لنفس المستوى الذي كسره، ويرتد عنه صعوداً بدل أن يعود تحته. هذا يؤكد أن المستوى تحول من مقاومة إلى دعم فعلي.
+
+هذا بالضبط ما تبحث عنه أداة Analyzer عند تصنيف فرصة كـ "جاهزة الآن" بدل "خطة معلّقة."`,
     diagramId: "breakout-retest",
-    linkedTool: { name: "Radar", href: "/radar", ctaText: "ابحث عن اختراقات الآن → Radar" },
-    ready: false,
+    linkedTool: { name: "Analyzer", href: "/analyzer", ctaText: "شاهد كيف يحدد الـ Analyzer الاختراقات الحقيقية → Analyzer" },
+    ready: true,
   },
   {
     slug: "relative-strength-btc",
     section: "technical",
     title: "القوة النسبية مقابل BTC",
     summary: "متى تتفوق عملة على البيتكوين، ولماذا يهم ذلك.",
-    body: COMING_SOON_BODY,
+    body: `ليست كل العملات تتحرك بنفس القوة. عملة ترتفع 5% بينما BTC يرتفع 2% فقط تكون "أقوى نسبياً" — وهذا مؤشر جيد على اهتمام المتداولين بها تحديداً.
+
+العكس أيضاً مهم: عملة تنخفض أكثر من BTC في سوق هابط تدل على ضعف حقيقي، لا تقلب عادي.
+
+فلتر "Beating BTC" في Radar يرصد هذا تلقائياً على كل أزواج USDT، بدل أن تتابعها يدوياً واحدة تلو الأخرى.`,
     diagramId: "relative-strength-btc",
-    linkedTool: { name: "Radar", href: "/radar", ctaText: "شاهد العملات المتفوقة على BTC الآن → Radar" },
-    ready: false,
+    linkedTool: { name: "Radar", href: "/radar", ctaText: "شاهد أي العملات تتفوق على BTC الآن → Radar" },
+    ready: true,
   },
 
   // ───────── Risk ─────────
@@ -115,40 +139,56 @@ export const lessons: Lesson[] = [
     section: "risk",
     title: "لماذا نسبة المخاطرة أهم من دقة التوقع",
     summary: "كيف تؤدي المخاطرة العالية إلى تصفية الحساب حتى مع نسبة نجاح جيدة.",
-    body: COMING_SOON_BODY,
+    body: `متداول يصيب 70% من صفقاته لكنه يخاطر بـ 20% من حسابه في كل صفقة سيصفّي حسابه عاجلاً — صفقتان خاسرتان متتاليتان فقط تكفي لخسارة كبيرة يصعب تعويضها.
+
+متداول آخر يصيب 40% فقط لكنه يخاطر بـ 1% فقط لكل صفقة يمكنه الاستمرار لسنوات حتى مع سلسلة خسائر طويلة.
+
+البقاء في السوق أهم من الربح السريع — وهذا يبدأ بنسبة مخاطرة صغيرة وثابتة، لا بالثقة في توقع معين.`,
     diagramId: "risk-percentage",
-    linkedTool: { name: "Risk", href: "/risk", ctaText: "احسب مخاطرتك الآن → Risk" },
-    ready: false,
+    linkedTool: { name: "Risk", href: "/risk", ctaText: "احسب نسبة مخاطرتك الآن قبل الصفقة القادمة → Risk" },
+    ready: true,
   },
   {
     slug: "stop-loss",
     section: "risk",
     title: "وقف الخسارة (Stop-loss)",
     summary: "لماذا يحتاج كل مركز إلى خط وقف خسارة واضح تحت نقطة الدخول.",
-    body: COMING_SOON_BODY,
+    body: `وقف الخسارة هو أمر مسبق يُغلق الصفقة تلقائياً إذا تحرك السعر ضدك لمسافة معينة — يحمي رأس المال من خسارة غير محدودة إذا تحرك السوق بعكس توقعك.
+
+يوضع وقف الخسارة عند نقطة تُثبت أن فكرة الصفقة أصلاً خاطئة — مثلاً تحت أقرب قاع أو مستوى دعم — لا عند مسافة عشوائية "تشعرك بالراحة."
+
+التداول بدون وقف خسارة هو السبب الأول لتصفية الحسابات، حتى لو كانت الفكرة صحيحة في الأغلب.`,
     diagramId: "stop-loss",
-    linkedTool: { name: "Risk", href: "/risk", ctaText: "حدد وقف خسارتك الآن → Risk" },
-    ready: false,
+    linkedTool: { name: "Risk", href: "/risk", ctaText: "أدخل بياناتك واحصل على مستوى وقف خسارة محسوب → Risk" },
+    ready: true,
   },
   {
     slug: "position-sizing",
     section: "risk",
     title: "حساب حجم الصفقة",
     summary: "العلاقة بين حجم الحساب، نسبة المخاطرة، والمسافة لوقف الخسارة.",
-    body: COMING_SOON_BODY,
+    body: `حجم الصفقة الصحيح لا يُحدَّد عشوائياً — بل يُحسب من 3 أرقام: حجم حسابك، نسبة المخاطرة المسموحة (مثلاً 1%)، والمسافة بين نقطة الدخول ووقف الخسارة.
+
+كلما كانت المسافة لوقف الخسارة أكبر، كلما وجب أن يكون حجم الصفقة أصغر — للحفاظ على نفس نسبة المخاطرة الثابتة.
+
+هذا الحساب هو ما يفعله حاسبة Risk تلقائياً، بدل أن تخمّن الحجم بنفسك في كل مرة.`,
     diagramId: "position-sizing",
-    linkedTool: { name: "Risk", href: "/risk", ctaText: "احسب حجم صفقتك الآن → Risk" },
-    ready: false,
+    linkedTool: { name: "Risk", href: "/risk", ctaText: "دع الحاسبة تحدد حجم صفقتك القادمة → Risk" },
+    ready: true,
   },
   {
     slug: "trade-plan-checklist",
     section: "risk",
     title: "خطة التداول قبل الدخول",
     summary: "عناصر الخطة: نقطة الدخول، الهدف، وقف الخسارة، ونسبة R:R.",
-    body: COMING_SOON_BODY,
+    body: `الصفقة الجيدة تُخطَّط قبل الدخول، لا بعده. الخطة تشمل: نقطة الدخول، الهدف (أو الأهداف)، وقف الخسارة، ونسبة المخاطرة إلى المكسب (R:R).
+
+كتابة هذه العناصر قبل الدخول تمنعك من تغيير القرار تحت تأثير العاطفة وسط تقلب السعر لحظة الصفقة.
+
+نسبة R:R لا تقل عادة عن 1:2 — أي أن المكسب المحتمل ضعف الخسارة المحتملة على الأقل، حتى يكون النظام مربحاً على المدى الطويل رغم الخسائر الفردية.`,
     diagramId: "trade-plan-checklist",
-    linkedTool: { name: "Trade Plan", href: "/trade-plan", ctaText: "ابنِ خطة صفقتك الآن → Trade Plan" },
-    ready: false,
+    linkedTool: { name: "Trade Plan", href: "/trade-plan", ctaText: "اكتب خطتك قبل الصفقة القادمة → Trade Plan" },
+    ready: true,
   },
 
   // ───────── Habits ─────────
@@ -157,30 +197,42 @@ export const lessons: Lesson[] = [
     section: "habits",
     title: "خوف فوات الفرصة (FOMO)",
     summary: "دخول متأخر بعد صعود حاد، ثم تصحيح.",
-    body: COMING_SOON_BODY,
+    body: `FOMO يحدث عندما ترى عملة ارتفعت بسرعة وتدخل متأخراً بدافع "لا أريد أن أفوّت الفرصة" — غالباً قرب نهاية الحركة، لا بدايتها.
+
+الدخول في هذه اللحظة يعني شراء عند أعلى نقطة تقريباً، تماماً قبل التصحيح الطبيعي الذي يتبع كل صعود حاد.
+
+الحل ليس تجاهل كل حركة قوية، بل انتظار نقطة دخول منطقية (كإعادة اختبار) بدل الانطلاق فوراً خلف السعر.`,
     diagramId: "fomo",
-    linkedTool: { name: "Journal", href: "/journal", ctaText: "راجع قراراتك السابقة الآن → Journal" },
-    ready: false,
+    linkedTool: { name: "Analyzer", href: "/analyzer", ctaText: "اعرف إن كانت اللحظة مناسبة للدخول أم فائتة → Analyzer" },
+    ready: true,
   },
   {
     slug: "trading-journal-habit",
     section: "habits",
     title: "أهمية اليوميات",
     summary: "دورة: خطة → تنفيذ → تسجيل → مراجعة → تحسين.",
-    body: COMING_SOON_BODY,
+    body: `دورة التداول المحترف تمر بـ 4 خطوات متكررة: خطة → تنفيذ → تسجيل → مراجعة. أغلب المتداولين يتوقفون عند التنفيذ ولا يسجّلون أو يراجعون أبداً.
+
+بدون تسجيل، تتكرر نفس الأخطاء دون أن تلاحظها — الخروج المبكر، تجاهل وقف الخسارة، الدخول بدون خطة.
+
+اليوميات تحوّل التداول من تجربة عشوائية إلى نظام قابل للتحسين، لأنك ترى بوضوح ما ينجح وما يتكرر فشله.`,
     diagramId: "trading-journal-habit",
-    linkedTool: { name: "Journal", href: "/journal", ctaText: "ابدأ يومياتك الآن → Journal" },
-    ready: false,
+    linkedTool: { name: "Journal", href: "/journal", ctaText: "ابدأ تسجيل صفقاتك من الآن → Journal" },
+    ready: true,
   },
   {
     slug: "signals-vs-understanding",
     section: "habits",
     title: "الإشارات مقابل الفهم الحقيقي",
     summary: "لماذا الاعتماد على الفهم أهم من النسخ الأعمى للإشارات.",
-    body: COMING_SOON_BODY,
+    body: `الاعتماد الكامل على إشارات جاهزة (من قناة أو شخص آخر) دون فهم السبب يجعلك عاجزاً عن اتخاذ القرار وحيداً، وعاجزاً عن معرفة متى تكون الإشارة خاطئة.
+
+الفهم الحقيقي يعني أنك تستطيع تقييم أي صفقة بنفسك — حتى لو كانت الإشارة من مصدر موثوق — بدل تنفيذها بشكل أعمى.
+
+الهدف من أقسام هذا الموقع ليس استبدال حكمك، بل بناء فهم تستخدمه لتقييم أي إشارة أو فرصة تصلك من أي مصدر.`,
     diagramId: "signals-vs-understanding",
-    linkedTool: { name: "Analyzer", href: "/analyzer", ctaText: "ابنِ فهمك الخاص الآن → Analyzer" },
-    ready: false,
+    hasDiagram: false,
+    ready: true,
   },
 ];
 
