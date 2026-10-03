@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://atlastradingapp.vercel.app/sitemap.xml",
+    sitemap: "https://www.atlastrading.app/sitemap.xml",
   };
 }

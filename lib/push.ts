@@ -52,14 +52,14 @@ export function tradePayload(trade: PublishedTrade, lang: Lang): Payload {
     return {
       title: "\u0635\u0641\u0642\u0629 \u062c\u062f\u064a\u062f\u0629: " + trade.pair + " " + dir,
       body: trade.entryZone ? "\u0627\u0644\u062f\u062e\u0648\u0644: " + trade.entryZone : "Atlas Trading",
-      url: "https://atlastradingapp.vercel.app/trade-feed",
+      url: "https://www.atlastrading.app/trade-feed",
       tag: "trade-" + trade.id,
     };
   }
   return {
     title: "New trade setup: " + trade.pair + " " + trade.direction,
     body: trade.entryZone ? "Entry: " + trade.entryZone : "Atlas Trading",
-    url: "https://atlastradingapp.vercel.app/trade-feed",
+    url: "https://www.atlastrading.app/trade-feed",
     tag: "trade-" + trade.id,
   };
 }
@@ -226,7 +226,7 @@ export function dailyTeaserPayload(): Payload {
       "\u0633\u062A\u064F\u0646\u0634\u0631 \u0635\u0641\u0642\u0629 \u0645\u062C\u0627\u0646\u064A\u0629 " +
       "\u062C\u062F\u064A\u062F\u0629 \u0642\u0631\u064A\u0628\u064B\u0627.\n\u062A\u062D\u0642\u0642 \u0645\u0646 " +
       "Trade Feed \u0628\u0639\u062F \u0645\u0646\u062A\u0635\u0641 \u0627\u0644\u0644\u064A\u0644.",
-    url: "https://atlastradingapp.vercel.app/trade-feed",
+    url: "https://www.atlastrading.app/trade-feed",
     tag: "daily-teaser",
   };
 }

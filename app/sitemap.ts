@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE = "https://atlastradingapp.vercel.app";
+const BASE = "https://www.atlastrading.app";
 const ROUTES = ["", "/radar", "/analyzer", "/trade-plan", "/journal", "/risk", "/ticker"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
