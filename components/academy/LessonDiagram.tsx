@@ -81,19 +81,21 @@ function useInView<T extends HTMLElement>() {
 }
 
 // ───────────────────────── Legend ─────────────────────────
+// Single column, full diagram width available per row — avoids any risk of
+// longer Arabic phrases overflowing or colliding with a second column.
 function Legend({ items }: { items: { color: string; label: string }[] }) {
+  const dividerY = 238;
+  const rowStart = 262;
+  const rowGap = 22;
   return (
     <g>
-      <line x1="16" y1="246" x2="364" y2="246" stroke="#212a36" strokeWidth="1" />
+      <line x1="16" y1={dividerY} x2="364" y2={dividerY} stroke="#212a36" strokeWidth="1" />
       {items.map((item, i) => {
-        const col = i % 2;
-        const row = Math.floor(i / 2);
-        const x = 20 + col * 185;
-        const y = 268 + row * 24;
+        const y = rowStart + i * rowGap;
         return (
           <g key={item.label}>
-            <circle cx={x} cy={y} r="5" fill={item.color} />
-            <text x={x + 12} y={y + 4} fill={MUTED} fontSize="12" fontFamily="sans-serif">
+            <circle cx="24" cy={y} r="5" fill={item.color} />
+            <text x="38" y={y + 4} fill={MUTED} fontSize="12" fontFamily="sans-serif">
               {item.label}
             </text>
           </g>
@@ -170,14 +172,14 @@ function InvestingVsTradingDiagram() {
       <path className="draw-path" pathLength="1" d="M 20 90 C 80 85, 140 65, 200 50 C 250 38, 300 30, 360 22" fill="none" stroke={TEAL} strokeWidth="2.5" strokeLinecap="round" />
       <circle className="pulse-dot" style={{ "--delay": "1.5s" } as React.CSSProperties} cx="360" cy="22" r="5" fill={TEAL} />
 
-      <text x="190" y="150" fill={BLUE} fontSize="12" fontFamily="sans-serif" textAnchor="middle">تداول نشط</text>
+      <text x="190" y="140" fill={BLUE} fontSize="12" fontFamily="sans-serif" textAnchor="middle">تداول نشط</text>
       <path
         className="draw-path" pathLength="1"
-        d="M 20 220 L 60 185 L 95 235 L 130 170 L 165 225 L 200 160 L 235 220 L 270 175 L 360 195"
+        d="M 20 200 L 60 170 L 95 215 L 130 155 L 165 205 L 200 150 L 235 195 L 270 165 L 360 180"
         fill="none" stroke={BLUE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
       />
       {[60, 130, 200, 270].map((x, i) => (
-        <circle key={x} className="pulse-dot" style={{ "--delay": `${0.5 + i * 0.25}s` } as React.CSSProperties} cx={x} cy={[185, 170, 160, 175][i]} r="4" fill={AMBER} />
+        <circle key={x} className="pulse-dot" style={{ "--delay": `${0.5 + i * 0.25}s` } as React.CSSProperties} cx={x} cy={[170, 155, 150, 165][i]} r="4" fill={AMBER} />
       ))}
       <Legend items={[
         { color: TEAL, label: "استثمار طويل المدى" },
@@ -240,13 +242,13 @@ function TrendDirectionDiagram() {
       <text x="190" y="22" fill={TEAL} fontSize="12" fontFamily="sans-serif" textAnchor="middle">صاعد</text>
       <path className="draw-path" pathLength="1" d="M 20 68 L 55 40 L 42 52 L 100 15 L 85 28 L 150 5" fill="none" stroke={TEAL} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-      <text x="190" y="118" fill={AMBER} fontSize="12" fontFamily="sans-serif" textAnchor="middle">هابط</text>
-      <path className="draw-path" pathLength="1" d="M 20 130 L 55 158 L 42 146 L 100 185 L 85 172 L 150 205" fill="none" stroke={AMBER} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="190" y="98" fill={AMBER} fontSize="12" fontFamily="sans-serif" textAnchor="middle">هابط</text>
+      <path className="draw-path" pathLength="1" d="M 20 110 L 55 128 L 42 120 L 100 146 L 85 138 L 150 150" fill="none" stroke={AMBER} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-      <text x="190" y="218" fill={BLUE} fontSize="12" fontFamily="sans-serif" textAnchor="middle">عرضي</text>
-      <line x1="20" y1="240" x2="360" y2="240" stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
-      <line x1="20" y1="228" x2="360" y2="228" stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
-      <path className="draw-path" pathLength="1" d="M 20 234 L 55 228 L 90 240 L 125 230 L 160 238 L 195 229" fill="none" stroke={BLUE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="190" y="172" fill={BLUE} fontSize="12" fontFamily="sans-serif" textAnchor="middle">عرضي</text>
+      <line x1="20" y1="200" x2="360" y2="200" stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
+      <line x1="20" y1="185" x2="360" y2="185" stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
+      <path className="draw-path" pathLength="1" d="M 20 192 L 55 198 L 90 187 L 125 199 L 160 189 L 195 196" fill="none" stroke={BLUE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
       <Legend items={[
         { color: TEAL, label: "اتجاه صاعد" },
