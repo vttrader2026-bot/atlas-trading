@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
 import { getTicker24h, formatPrice, Ticker24h } from "@/lib/binance";
 import type { PublishedTrade } from "@/lib/tradeFeed";
@@ -107,6 +108,7 @@ function CoinLogo({ pair }: { pair: string }) {
 
 export default function TradeFeedPage() {
   const { t, lang } = useLanguage();
+  const { isLoaded, isSignedIn } = useAuth();
   const [trades, setTrades] = useState<PublishedTrade[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -195,6 +197,24 @@ export default function TradeFeedPage() {
     <main className="max-w-4xl mx-auto px-6 py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("tradeFeed.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("tradeFeed.subtitle")}</p>
+
+      {isLoaded && !isSignedIn && (
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="font-medium">
+              {lang === "ar" ? "انضم إلى Atlas Trading مجانًا" : "Join Atlas Trading for free"}
+            </div>
+            <p className="text-sm text-text-muted leading-relaxed mt-1">
+              {lang === "ar"
+                ? "استفد من خلاصة الصفقات العامة، والمحلل الذكي، والرادار، وخطة الصفقة، وأدوات المخاطر، والسجل."
+                : "Access the public Trade Feed, AI Analyzer, Radar, Trade Plan, Risk tools, and Journal."}
+            </p>
+          </div>
+          <Link href="/sign-up" className="btn-primary shrink-0 whitespace-nowrap">
+            {lang === "ar" ? "أنشئ حسابك المجاني ←" : "Create your free account →"}
+          </Link>
+        </div>
+      )}
 
       <div className="mt-8 space-y-4">
         <div className="rounded-2xl border border-line bg-surface p-5">
