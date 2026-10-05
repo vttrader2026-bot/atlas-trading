@@ -226,7 +226,7 @@ export default function TradeFeedPage() {
               <span className="font-data text-text">{publishedCount}</span>{" "}
               {lang === "ar" ? "\u0635\u0641\u0642\u0629 \u0645\u0646\u0634\u0648\u0631\u0629" : "calls published"}
             </span>
-            <span aria-hidden="true">\u00B7</span>
+            <span aria-hidden="true">{"\u00B7"}</span>
             <span>
               <span className="font-data text-text">{activeCount}</span>{" "}
               {lang === "ar" ? "\u0646\u0634\u0637\u0629 \u062D\u0627\u0644\u064A\u0627\u064B" : "currently active"}
