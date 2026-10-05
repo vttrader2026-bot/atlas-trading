@@ -1,4 +1,5 @@
-﻿import { NextResponse, after } from "next/server";
+import { NextResponse, after } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { Redis } from "@upstash/redis";
 import { timingSafeEqual, randomUUID } from "crypto";
 import type { PublishedTrade } from "@/lib/tradeFeed";
@@ -30,6 +31,10 @@ function clean(value: unknown, max = 500): string {
 }
 
 export async function GET() {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const redis = getRedis();
   if (!redis) {
     console.error("trade-feed: UPSTASH_REDIS_REST_URL / TOKEN are not set");

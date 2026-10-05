@@ -127,6 +127,7 @@ export default function TradeFeedPage() {
   }, []);
 
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
     let cancelled = false;
     fetch("/api/trade-feed", { cache: "no-store" })
       .then((res) => {
@@ -142,7 +143,7 @@ export default function TradeFeedPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
   // Live prices for every unique pair currently shown, mirroring the
   // homepage's BTC card. Failures for any one symbol are swallowed so a bad
@@ -216,23 +217,9 @@ export default function TradeFeedPage() {
         </div>
       )}
 
+      {isSignedIn && (
+        <>
       <div className="mt-8 space-y-4">
-        <div className="rounded-2xl border border-line bg-surface p-5">
-          <div className="font-medium">
-            {lang === "ar"
-              ? "\u269C\uFE0F \u0644\u0627 \u062A\u0643\u062A\u0641\u0650 \u0628\u0645\u0634\u0627\u0647\u062F\u0629 \u0627\u0644\u0635\u0641\u0642\u0629. \u0643\u0646 \u0645\u0633\u062A\u0639\u062F\u064B\u0627 \u0644\u0647\u0627."
-              : "\u269C\uFE0F Don't just watch the trade. Be ready for it."}
-          </div>
-          <p className="text-sm text-text-muted leading-relaxed mt-1.5">
-            {lang === "ar"
-              ? "\u064A\u062D\u0635\u0644 \u0623\u0639\u0636\u0627\u0621 Atlas Elite \u0639\u0644\u0649 \u0625\u0634\u0627\u0631\u0627\u062A \u0633\u0628\u0648\u062A \u062E\u0627\u0635\u0629 \u0642\u0628\u0644 \u063A\u064A\u0631\u0647\u0645\u060C \u0645\u0639 \u0645\u0633\u062A\u0648\u064A\u0627\u062A \u0627\u0644\u062F\u062E\u0648\u0644\u060C \u0648\u0623\u0647\u062F\u0627\u0641 TP1/TP2/TP3\u060C \u0648\u062A\u062D\u062F\u064A\u062B\u0627\u062A \u0648\u0642\u0641 \u0627\u0644\u062E\u0633\u0627\u0631\u0629\u060C \u0648\u0625\u062F\u0627\u0631\u0629 \u0643\u0627\u0645\u0644\u0629 \u0644\u0644\u0635\u0641\u0642\u0629 \u0645\u0639 \u062A\u0637\u0648\u0631 \u0627\u0644\u0625\u0639\u062F\u0627\u062F."
-              : "Atlas Elite members get private spot signals earlier, with entry levels, TP1/TP2/TP3, stop-loss updates, and trade management as the setup develops."}
-          </p>
-          <Link href="/elite" className="btn-primary mt-4 inline-flex">
-            {lang === "ar" ? "\u0627\u0646\u0636\u0645 \u0625\u0644\u0649 Atlas Elite \u2014 14.99$/\u0634\u0647\u0631 = 600 \u0623\u0648\u0642\u064A\u0629" : "Join Atlas Elite \u2014 $14.99/month = 600 MRU"}
-          </Link>
-        </div>
-
         {hasEnoughDataForStats && (
           <div className="flex items-center gap-2 text-sm text-text-muted">
             <span>
@@ -352,6 +339,9 @@ export default function TradeFeedPage() {
           );
         })}
       </div>
+
+        </>
+      )}
 
       {trades && trades.length > 0 && (
         <div className="mt-8 rounded-2xl border border-line bg-surface p-6 text-center shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
