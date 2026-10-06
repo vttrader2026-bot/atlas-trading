@@ -108,7 +108,7 @@ function Legend({ items }: { items: { color: string; label: string }[] }) {
 // ───────────────────────── 1. Support & Resistance (redone) ─────────────────────────
 function SupportResistanceDiagram() {
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       <line x1="16" y1="50" x2="364" y2="50" stroke={AMBER} strokeWidth="1.5" strokeDasharray="4 4" />
       <line x1="16" y1="170" x2="280" y2="170" stroke={TEAL} strokeWidth="1.5" strokeDasharray="4 4" />
       <path
@@ -140,7 +140,7 @@ function SupportResistanceDiagram() {
 function WhatIsCryptoDiagram() {
   const blocks = [60, 140, 220, 300];
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       {blocks.slice(0, -1).map((x, i) => (
         <line key={i} className="draw-path" pathLength="1" x1={x + 26} y1="100" x2={blocks[i + 1] - 26} y2="100" stroke={MUTED} strokeWidth="2" />
       ))}
@@ -167,7 +167,7 @@ function WhatIsCryptoDiagram() {
 // ───────────────────────── 3. Investing vs Trading ─────────────────────────
 function InvestingVsTradingDiagram() {
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       <text x="190" y="30" fill={TEAL} fontSize="12" fontFamily="sans-serif" textAnchor="middle">استثمار طويل المدى</text>
       <path className="draw-path" pathLength="1" d="M 20 90 C 80 85, 140 65, 200 50 C 250 38, 300 30, 360 22" fill="none" stroke={TEAL} strokeWidth="2.5" strokeLinecap="round" />
       <circle className="pulse-dot" style={{ "--delay": "1.5s" } as React.CSSProperties} cx="360" cy="22" r="5" fill={TEAL} />
@@ -199,7 +199,7 @@ function ReadingCandlesticksDiagram() {
   ];
   const mid = candles[1];
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       {candles.map((c, i) => {
         const bodyTop = Math.min(c.open, c.close);
         const bodyBottom = Math.max(c.open, c.close);
@@ -238,7 +238,7 @@ function ReadingCandlesticksDiagram() {
 // ───────────────────────── 5. Trend Direction ─────────────────────────
 function TrendDirectionDiagram() {
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       <text x="190" y="22" fill={TEAL} fontSize="12" fontFamily="sans-serif" textAnchor="middle">صاعد</text>
       <path className="draw-path" pathLength="1" d="M 20 68 L 55 40 L 42 52 L 100 15 L 85 28 L 150 5" fill="none" stroke={TEAL} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
@@ -262,7 +262,7 @@ function TrendDirectionDiagram() {
 // ───────────────────────── 6. Breakout & Retest ─────────────────────────
 function BreakoutRetestDiagram() {
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       <line x1="16" y1="90" x2="364" y2="90" stroke={AMBER} strokeWidth="1.5" strokeDasharray="4 4" />
       <path
         className="draw-path" pathLength="1"
@@ -288,7 +288,7 @@ function BreakoutRetestDiagram() {
 // ───────────────────────── 7. Relative Strength vs BTC ─────────────────────────
 function RelativeStrengthBtcDiagram() {
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       <path className="draw-path" pathLength="1" d="M 16 190 L 110 178 L 200 168 L 290 158 L 364 150" fill="none" stroke={MUTED} strokeWidth="2" strokeDasharray="5 5" />
       <path className="draw-path" pathLength="1" d="M 16 190 L 110 155 L 200 110 L 290 65 L 364 28" fill="none" stroke={BLUE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       <circle className="pulse-dot" style={{ "--delay": "0.3s" } as React.CSSProperties} cx="16" cy="190" r="4" fill={MUTED} />
@@ -308,7 +308,7 @@ function RelativeStrengthBtcDiagram() {
 // ───────────────────────── 8. Risk Percentage ─────────────────────────
 function RiskPercentageDiagram() {
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       <text x="95" y="22" fill={AMBER} fontSize="12" fontFamily="sans-serif" textAnchor="middle">مخاطرة 20%</text>
       <rect x="30" y="35" width="130" height="150" fill="none" stroke="#212a36" strokeWidth="1" />
       <g className="emphasis" style={{ "--delay": "0.3s" } as React.CSSProperties}>
@@ -334,7 +334,7 @@ function RiskPercentageDiagram() {
 // ───────────────────────── 9. Stop-Loss ─────────────────────────
 function StopLossDiagram() {
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       <path className="draw-path" pathLength="1" d="M 16 110 C 60 90, 90 70, 120 55" fill="none" stroke={BLUE} strokeWidth="2.5" strokeLinecap="round" />
       <circle className="pulse-dot" style={{ "--delay": "0.4s" } as React.CSSProperties} cx="120" cy="55" r="5" fill={TEAL} />
       <text x="120" y="38" fill={TEAL} fontSize="11" fontFamily="sans-serif" textAnchor="middle">دخول</text>
@@ -363,7 +363,7 @@ function PositionSizingDiagram() {
     { x: 310, label: "مسافة الوقف" },
   ];
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       {inputs.map((inp, i) => (
         <g key={inp.x}>
           <rect x={inp.x - 55} y="20" width="110" height="46" rx="8" fill="none" stroke={BLUE} strokeWidth="2" />
@@ -388,7 +388,7 @@ function PositionSizingDiagram() {
 function TradePlanChecklistDiagram() {
   const items = ["نقطة الدخول", "الهدف", "وقف الخسارة", "نسبة R:R"];
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       <rect x="60" y="15" width="260" height="215" rx="12" fill="none" stroke="#212a36" strokeWidth="1.5" />
       {items.map((label, i) => {
         const y = 55 + i * 45;
@@ -408,7 +408,7 @@ function TradePlanChecklistDiagram() {
 // ───────────────────────── 12. FOMO ─────────────────────────
 function FomoDiagram() {
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       <path
         className="draw-path" pathLength="1"
         d="M 16 195 C 60 188, 110 165, 150 130 C 185 100, 210 55, 240 25"
@@ -440,7 +440,7 @@ function TradingJournalHabitDiagram() {
     { x: 60, y: 100, label: "تحسين" },
   ];
   return (
-    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 380 320" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg" direction="ltr">
       <circle cx="190" cy="115" r="95" fill="none" stroke="#212a36" strokeWidth="1" strokeDasharray="3 5" />
       {steps.map((s, i) => {
         const next = steps[(i + 1) % steps.length];
