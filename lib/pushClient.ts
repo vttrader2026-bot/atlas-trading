@@ -19,7 +19,7 @@ function keyToBytes(base64Url: string): Uint8Array {
 export type EnableResult = "ok" | "unsupported" | "denied" | "error";
 
 /** Asks permission, subscribes this browser and registers it with the account. */
-export async function enablePush(lang: "en" | "ar"): Promise<EnableResult> {
+export async function enablePush(lang: "en" | "ar" | "fr"): Promise<EnableResult> {
   if (!pushSupported()) return "unsupported";
   const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!key) return "error";

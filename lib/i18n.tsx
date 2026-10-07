@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-export type Lang = "en" | "ar";
+export type Lang = "en" | "ar" | "fr";
 
 type Dict = { [key: string]: string | Dict };
 
@@ -832,7 +832,421 @@ const ar: Dict = {
   },
 };
 
-const dictionaries: Record<Lang, Dict> = { en, ar };
+const fr: Dict = {
+  nav: {
+    radar: "Radar",
+    analyzer: "Analyseur",
+    tradePlan: "Plan de trade",
+    ticker: "Cours",
+    journal: "Journal",
+    risk: "Risque",
+    tradeFeed: "Fil de trades",
+    academy: "Académie",
+    signIn: "Connexion",
+    account: "Compte",
+  },
+  home: {
+    heroTitle: "Lisez le graphique avant de risquer le trade.",
+    heroLine1: "Lisez le marché.",
+    heroLine2: "Planifiez le trade.",
+    heroLine3: "Maîtrisez le risque.",
+    heroBody:
+      "Atlas Trading réunit l'analyse de graphiques par IA, la découverte de marché, la planification de trades, la gestion du risque et le journal de trading dans un seul espace de travail professionnel pour les traders crypto.",
+    openAnalyzer: "Ouvrir l'analyseur",
+    viewMarket: "Voir le marché en direct",
+    liveMarket: "Marché en direct",
+    ctaAnalyze: "Analysez votre graphique",
+    ctaExplore: "Explorer les marchés",
+    exampleLabel: "Exemple",
+    demoSupport: "Support",
+    demoResistance: "Résistance",
+    demoWatch: "Reprise au-dessus de 64 800 $",
+    snapshotTitle: "Aperçu du marché en direct",
+    showcase: {
+      analyzerTitle: "Analyseur de graphique IA",
+      analyzerBody:
+        "Importez une capture d'écran et Atlas lit la structure, la tendance, les niveaux clés et les scénarios — puis en fait un plan, pas une supposition.",
+      step1: "Importer le graphique",
+      step2: "Structure du marché",
+      step3: "Scénarios",
+      step4: "Plan de trade",
+      radarTitle: "Radar du marché",
+      radarBody: "Une liste restreinte de cryptos à surveiller maintenant — pas 500 cryptos à passer en revue vous-même.",
+      radarCta: "Ouvrir le Radar",
+      riskTitle: "Calculateur de risque",
+      riskBody: "Fixez votre risque par trade, laissez la taille de position suivre votre stop — pas l'inverse.",
+      journalTitle: "Journal",
+      journalBody: "Enregistrez chaque trade et voyez, en chiffres réels, pourquoi vous gagnez ou perdez.",
+    },
+    workflow: {
+      title: "La méthode Atlas",
+      discover: "Découvrir",
+      analyze: "Analyser",
+      plan: "Planifier",
+      control: "Contrôler",
+      review: "Revoir",
+      improve: "Améliorer",
+    },
+    plans: {
+      title: "Gratuit vs VIP",
+      subtitle: "Voyez exactement ce que vous obtenez à chaque niveau.",
+      freeLabel: "GRATUIT",
+      vipLabel: "VIP",
+      rows: {
+        alerts: "Alertes de signaux",
+        entryZone: "Zone d'entrée",
+        stopLoss: "Stop-loss",
+        targets: "Objectifs de profit",
+        monitoring: "Suivi de trade en direct",
+        channel: "Accès",
+      },
+      values: {
+        teaser: "Aperçu uniquement",
+        full: "Détails complets",
+        publicGroup: "Groupe public",
+        vipChannel: "Canal VIP",
+      },
+    },
+    spotPromo: {
+      title: "Configurations Spot stratégiques. Coût zéro.",
+      body: "Construisez votre portefeuille avec des signaux spot crypto éprouvés livrés directement dans votre fil. Le timing est essentiel — n'oubliez pas d'activer les notifications pour saisir chaque configuration dès qu'elle est publiée.",
+      cta: "Voir les configurations gratuites",
+      sampleTag: "EXEMPLE D'ÉCHANTILLON",
+      currentPrice: "Prix BTC en direct",
+      disclaimer: "Exemple illustratif — pas une recommandation de trade en direct.",
+    },
+    features: {
+      freeTitle: "Vraiment gratuit",
+      freeBody:
+        "Pas de compte, pas de carte, pas de période d'essai. Les cours, le journal et le calculateur de risque sont gratuits, pour toujours.",
+      liveTitle: "En direct, pas différé",
+      liveBody:
+        "Les prix sont diffusés directement depuis l'API publique de Binance — les mêmes données que celles affichées sur la plateforme elle-même.",
+      deviceTitle: "Sur votre appareil",
+      deviceBody:
+        "Votre journal reste dans votre navigateur par défaut. Aucun compte requis. Si vous vous connectez, il se synchronise avec votre compte pour une utilisation sur d'autres appareils.",
+      aiTitle: "Graphiques lus par IA",
+      aiBody:
+        "Importez une capture d'écran et obtenez une lecture structurée — biais, niveau clé, invalidation, plan — en quelques secondes.",
+      pairsTitle: "Toutes les paires USDT",
+      pairsBody:
+        "Pas seulement BTC et ETH — les cours et l'analyseur fonctionnent sur tout ce que Binance liste.",
+      communityTitle: "Une vraie communauté",
+      communityBody:
+        "Groupe public gratuit pour les discussions, plus une ligne VIP plus proche pour les appels à forte conviction.",
+    },
+    tools: {
+      radarTitle: "Radar du marché",
+      radarBody:
+        "Filtrez chaque paire USDT par volume, cassure, repli et performance face à BTC — une liste restreinte, pas 1000 cryptos.",
+      analyzerTitle: "Analyseur",
+      analyzerBody:
+        "Déposez une capture d'écran de votre graphique et obtenez une lecture en langage clair de la structure, des niveaux et de l'invalidation.",
+      journalTitle: "Journal",
+      journalBody:
+        "Enregistrez les entrées, les stops et les résultats par paire. Stocké sur votre appareil — aucun compte requis pour le niveau gratuit.",
+      riskTitle: "Calculateur de risque",
+      riskBody:
+        "Entrez la taille de votre compte et la distance du stop, obtenez une taille de position qui maintient un risque fixe par trade.",
+    },
+    community: {
+      freeLabel: "Gratuit",
+      freeTitle: "Groupe communautaire",
+      freeBody:
+        "Appels publics, discussions de marché et mises à jour des outils ici — gratuit sur Telegram et WhatsApp. Tout le monde peut rejoindre instantanément.",
+      joinFree: "Rejoindre le groupe gratuit",
+      joinTelegram: "Rejoindre la communauté Telegram",
+      joinWhatsapp: "Rejoindre la communauté WhatsApp →",
+      vipLabel: "ATLAS ELITE",
+      vipTitle: "Signaux privés. Accès anticipé. Gestion complète des trades.",
+      vipBody:
+        "Obtenez des signaux spot privés, un accès anticipé aux configurations sélectionnées, des mises à jour TP1/TP2/TP3, des mises à jour de stop-loss et une gestion continue des trades.",
+      contactVip: "Rejoindre Atlas Elite",
+      joinElite: "Rejoindre Atlas Elite →",
+    },
+    latestTrades: {
+      title: "Dernières configurations de trade",
+      viewAll: "Voir tout",
+    },
+    faq: {
+      heading: "Questions fréquentes",
+      q1: "Est-ce un conseil financier ?",
+      a1: "Non. L'analyseur, le journal et le calculateur de risque sont des outils pour vérifier votre propre raisonnement — rien de tout cela n'est une recommandation d'achat ou de vente.",
+      q2: "Est-ce vraiment gratuit ?",
+      a2: "Oui — les cours, le journal et le calculateur de risque sont sans coût, sans compte et sans période d'essai. L'analyseur fonctionne sur un modèle IA de niveau gratuit, donc il est gratuit dans les limites quotidiennes normales.",
+      q3: "Dois-je créer un compte ?",
+      a3: "Non. Tout fonctionne dans votre navigateur sans compte. Votre journal reste sur votre appareil sauf si vous vous connectez, auquel cas il est également enregistré sur votre compte pour se synchroniser entre vos appareils.",
+      q4: "Quelle est la différence entre le groupe gratuit et VIP ?",
+      a4: "Le groupe gratuit est une discussion ouverte et des mises à jour publiques. VIP offre un accès plus proche et des appels à plus forte conviction — contactez-nous directement sur Telegram pour vous inscrire.",
+    },
+  },
+  footer: {
+    disclaimer:
+      "Pas un conseil financier. Chaque lecture et outil ici sert à vérifier votre propre raisonnement, pas à le remplacer.",
+    joinFree: "Rejoindre le groupe gratuit →",
+    contactVip: "Contacter pour l'accès VIP →",
+  },
+  ticker: {
+    title: "Marché en direct",
+    subtitle: "Toutes les paires USDT sur Binance",
+    symbols: "symboles",
+    refreshes: "actualisé toutes les 15s",
+    searchPlaceholder: "Rechercher une paire, ex. BTC",
+    error: "Impossible d'atteindre Binance pour le moment. Nouvelle tentative sous peu.",
+    pair: "Paire",
+    lastPrice: "Dernier prix",
+    high: "Haut 24h",
+    low: "Bas 24h",
+    change: "Variation 24h",
+    volume: "Volume 24h",
+    loading: "Chargement des données du marché…",
+    showingTop: "Affichage des 100 premiers sur",
+    bySort: "selon le tri actuel.",
+  },
+  risk: {
+    title: "Calculateur de risque",
+    subtitle:
+      "Fixez votre risque par trade, laissez la taille de position suivre votre stop — pas l'inverse.",
+    balance: "Solde du compte (USDT)",
+    riskPct: "Risque par trade (%)",
+    side: "Sens",
+    long: "Long",
+    short: "Short",
+    entry: "Prix d'entrée",
+    stop: "Prix du stop-loss",
+    target: "Prix du take-profit (optionnel)",
+    empty: "Entrez votre solde, le risque %, l'entrée et le stop pour voir la taille de position.",
+    risking: "Risque de",
+    positionSize: "Taille de position",
+    units: "unités",
+    notional: "Valeur notionnelle",
+    rewardRisk: "Gain : risque",
+    addTarget: "— ajouter un objectif",
+    invalid: "Vérifiez vos niveaux — le stop ou l'objectif n'est pas du bon côté de l'entrée pour un",
+  },
+  journal: {
+    title: "Journal",
+    subtitle: "Enregistré sur cet appareil. Connectez-vous pour le synchroniser entre vos appareils. Exportez à tout moment.",
+    exportCsv: "Exporter en CSV",
+    pairPlaceholder: "Paire, ex. BTCUSDT",
+    entryPlaceholder: "Entrée",
+    stopPlaceholder: "Stop",
+    targetPlaceholder: "Objectif",
+    sizePlaceholder: "Taille (unités)",
+    exitPlaceholder: "Sortie (laisser vide si ouvert)",
+    notesPlaceholder: "Notes — configuration, raisonnement, ce qui s'est passé",
+    logTrade: "Enregistrer le trade",
+    date: "Date",
+    pair: "Paire",
+    side: "Sens",
+    entry: "Entrée",
+    stop: "Stop",
+    exit: "Sortie",
+    pnl: "P&L",
+    noTrades: "Aucun trade enregistré pour l'instant.",
+    open: "Ouvert",
+    remove: "Supprimer",
+    insightsTitle: "Vos statistiques de trading",
+    winRate: "Taux de réussite",
+    avgWinner: "Gain moyen",
+    avgLoser: "Perte moyenne",
+    avgRisk: "Risque moyen par trade",
+    bestPair: "Meilleure paire",
+    worstPair: "Pire paire",
+    insightsNote: "Calculé uniquement à partir de vos propres trades clôturés — rien ici n'est estimé ou inventé.",
+    insightsEmpty: "Enregistrez quelques trades clôturés (avec un prix de sortie) pour voir de vraies statistiques ici.",
+  },
+  analyzer: {
+    title: "Analyseur de graphique",
+    subtitle:
+      "Importez une capture d'écran TradingView ou d'une plateforme pour n'importe quelle paire. La précision avant la prédiction — une lecture structurelle pour vérifier votre propre raisonnement, pas un conseil financier.",
+    dragHere: "Glissez une capture d'écran du graphique ici, ou",
+    chooseFile: "Choisir un fichier",
+    readingChart: "Lecture du graphique…",
+    analyzeChart: "Analyser le graphique",
+    pairLabel: "Paire",
+    timeframeLabel: "Intervalle",
+    styleLabel: "Style de trading",
+    autoDetect: "Détection automatique",
+    style: {
+      spotSwing: "Spot swing",
+      dayTrade: "Day trade",
+      scalping: "Scalping",
+      learning: "Apprentissage",
+    },
+    marketStructure: "Structure du marché",
+    trend: "Tendance",
+    momentum: "Momentum",
+    keyLevels: "Niveaux clés",
+    currentCondition: "Condition actuelle",
+    noClearSetup: "Aucune configuration claire",
+    bullishScenario: "🟢 Scénario haussier",
+    bearishScenario: "🔴 Scénario baissier",
+    confirmation: "Confirmation",
+    targets: "Objectifs potentiels",
+    why: "Pourquoi",
+    whatToWatch: "Quoi surveiller",
+    invalidation: "Invalidation",
+    invalidationShort: "Invalidation",
+    tradePlan: "Plan de trade Atlas",
+    direction: "Direction",
+    entryZone: "Zone d'entrée",
+    createTradePlan: "Créer un plan de trade",
+    usesRemainingLabel: "analyses gratuites restantes aujourd'hui",
+    valueProp: "⚡ 2 analyses IA gratuites chaque jour",
+    limitReachedTitle: "Vous n'avez plus d'analyses gratuites pour aujourd'hui",
+    limitReached:
+      "Chaque visiteur obtient 2 lectures de graphique IA gratuites par jour sur cet appareil — les vôtres se réinitialisent automatiquement à minuit. En attendant, Radar, Plan de trade, Risque et Journal restent tous entièrement disponibles.",
+    limitReachedCta: "Vous en voulez plus, plus vite ? Renseignez-vous sur Atlas Elite",
+    flow: {
+      upload: "Importer",
+      structure: "Structure du marché",
+      levels: "Niveaux clés",
+      scenarios: "Scénarios",
+      plan: "Plan de trade",
+    },
+    historyTitle: "Analyses récentes",
+    teachMeToggle: "Explique-moi ce graphique",
+    share: "Partager",
+    shareCopied: "Copié !",
+    shareFooter: "Pas un conseil financier — une lecture structurelle pour vérifier votre propre raisonnement. Analysez votre graphique gratuitement :",
+    waitLabel: "Aucune configuration claire — attendre",
+    precisionNote:
+      "Atlas n'invente jamais de probabilités, d'objectifs garantis ou de valeurs d'indicateurs qu'il ne peut pas voir — seulement des lectures conditionnelles basées sur la structure. Il dira \"attendre\" quand il n'y a pas de configuration claire.",
+    genericError: "Une erreur s'est produite.",
+    connectionError: "Impossible d'atteindre l'analyseur. Vérifiez votre connexion et réessayez.",
+  },
+  tradePlan: {
+    title: "Plan de trade",
+    subtitle:
+      "Le pont entre votre analyse et votre journal — affinez les chiffres, dimensionnez la position, enregistrez-la.",
+    pair: "Paire",
+    direction: "Direction",
+    wait: "Attendre",
+    entryZone: "Zone d'entrée (notes)",
+    invalidationText: "Invalidation (notes)",
+    numbersHeading: "Chiffres clairs pour le dimensionnement",
+    entry: "Entrée",
+    invalidation: "Invalidation",
+    reasoning: "Raisonnement",
+    reasoningPlaceholder: "Pourquoi cette configuration — structure, confirmation, ce que vous surveillez",
+    riskHeading: "Dimensionnement de la position",
+    fillToCalculate: "Renseignez l'entrée, l'invalidation, la taille du compte et le risque % pour voir la taille de position.",
+    saveToJournal: "Enregistrer dans le journal",
+    saved: "Enregistré — ouverture du journal…",
+    clear: "Effacer le plan",
+    publishToFeed: "Publier dans le fil",
+    saveToAccount: "Enregistrer dans le compte",
+    savingToAccount: "Enregistrement...",
+    savedToAccount: "Enregistré dans votre compte.",
+    accountSaveError: "Impossible d'enregistrer dans votre compte. Réessayez.",
+    signInToSave: "Connectez-vous pour enregistrer des plans dans votre compte.",
+    publishing: "Publication...",
+    publishSuccess: "Publié dans le fil.",
+    publishError: "Impossible de publier. Veuillez réessayer.",
+    publishUnauthorized: "Code secret administrateur incorrect. La publication n'a pas été autorisée.",
+    enterAdminSecret: "Entrez le code secret administrateur pour publier",
+    timeframe: "Intervalle",
+    targets: "Objectifs",
+    riskNote: "Note de risque",
+    disclaimer:
+      "Ce plan est construit à partir de vos propres chiffres (ou transféré depuis une lecture de l'Analyseur que vous pouvez modifier) — pas un signal, pas un conseil financier.",
+  },
+  radar: {
+    title: "Radar du marché",
+    subtitle:
+      "Une liste restreinte, pas un tableau de scores — filtre chaque paire USDT sur Binance selon des règles claires et annoncées. Pas de notation cachée.",
+    loading: "Analyse du marché…",
+    error: "Impossible d'atteindre Binance pour le moment. Nouvelle tentative sous peu.",
+    empty: "Aucune paire ne correspond à ce filtre actuellement.",
+    pair: "Paire",
+    price: "Prix",
+    change24h: "Variation 24h",
+    vsBtc: "vs BTC",
+    analyze: "Analyser",
+    volume: "Volume 24h",
+    tags: "Étiquettes",
+    conditionHeader: "Condition du marché",
+    setupHeader: "Configuration",
+    shortlistTitle: "À surveiller maintenant",
+    shortlistNote: "Paires battant la performance 24h de BTC, classées par écart. Pas un score caché.",
+    shortlistEmpty: "Rien ne correspond à suffisamment de signaux actuellement — revenez plus tard ou parcourez la liste complète.",
+    showFullList: "Parcourir la liste complète",
+    hideFullList: "Masquer la liste complète",
+    filterAll: "Tout",
+    filterVolume: "Volume élevé",
+    filterBreakout: "Cassure",
+    filterPullback: "Repli",
+    filterNearHigh: "Proche du haut 24h",
+    filterNearLow: "Proche du bas 24h",
+    filterOutperform: "Bat BTC",
+    tag: {
+      breakout: "Cassure",
+      pullback: "Repli",
+      highVolume: "Volume élevé",
+      nearHigh: "Proche du haut",
+      nearLow: "Proche du bas",
+      outperformBtc: "Bat BTC",
+      underperformBtc: "Sous BTC",
+    },
+    condition: {
+      bullish: "Haussier",
+      bearish: "Baissier",
+      range: "Range",
+    },
+    setup: {
+      breakout: "Cassure",
+      pullback: "Repli",
+      breakoutWatch: "Surveillance de cassure",
+      atSupport: "Au support",
+      relativeStrength: "Force relative",
+      relativeWeakness: "Faiblesse relative",
+      watching: "Surveillance",
+    },
+    disclaimer:
+      "Des règles, pas de la magie : Cassure = à moins de 1% du haut 24h et en hausse. Repli = +3% ou plus sur 24h mais à au moins 3% de ce haut. Volume élevé = top 40 des paires par volume en cote sur 24h. Proche du haut/bas = à moins de 1% du haut/bas 24h. Range = variation 24h dans ±1%. Ceci est un filtre pour affiner votre propre recherche, pas un signal de trading.",
+  },
+  tradeFeed: {
+    title: "Fil de trades",
+    subtitle: "Configurations de trade publiées par Atlas. Pas un conseil financier - utilisez-les pour vérifier votre propre raisonnement.",
+    loading: "Chargement des trades...",
+    empty: "Aucun trade publié pour l'instant.",
+    error: "Impossible de charger le fil. Réessayez sous peu.",
+    slLabel: "SL",
+    remove: "Supprimer",
+    confirmRemove: "Supprimer cette configuration de trade du fil ? Cette action est irréversible.",
+    removeError: "Impossible de supprimer le trade. Réessayez.",
+  },
+  account: {
+    title: "Compte",
+    subtitle: "Vos plans de trade enregistrés, journal synchronisé et préférences de notification.",
+    signInPrompt: "Connectez-vous pour enregistrer des plans de trade, synchroniser votre journal entre vos appareils et gérer les notifications.",
+    signIn: "Connexion",
+    signUp: "Créer un compte",
+    loading: "Chargement...",
+    notificationsTitle: "Notifications",
+    notificationsNote: "Désactivé par défaut. Une fois activé, cet appareil reçoit une notification du navigateur lorsqu'une nouvelle configuration de trade est publiée dans le fil. Vous pouvez le désactiver à tout moment.",
+    notifyEnabled: "Activer les notifications",
+    notifyTradeFeed: "Nouvelles configurations dans le fil",
+    notifyMarket: "Alertes de marché (bientôt disponible)",
+    saved: "Enregistré",
+    saveError: "Impossible d'enregistrer. Réessayez.",
+    plansTitle: "Plans de trade enregistrés",
+    plansEmpty: "Aucun plan enregistré pour l'instant.",
+    plansLoad: "Ouvrir dans Plan de trade",
+    plansDelete: "Supprimer",
+    plansError: "Impossible de charger vos plans enregistrés.",
+    pushDenied: "Les notifications sont bloquées dans ce navigateur. Autorisez-les dans les paramètres de votre navigateur pour ce site, puis réessayez.",
+    pushUnsupported: "Les notifications du navigateur ne sont pas prises en charge ici. Sur iPhone, ajoutez d'abord Atlas à votre écran d'accueil, puis ouvrez-le depuis là.",
+    pushError: "Impossible d'activer les notifications. Réessayez.",
+    pushEnableDevice: "Activer sur cet appareil",
+    pushTest: "Envoyer une notification test",
+    pushTestSent: "Test envoyé. Il devrait arriver dans un instant.",
+    pushTestError: "Impossible d'envoyer le test. Réessayez dans une minute.",
+  },
+};
+
+const dictionaries: Record<Lang, Dict> = { en, ar, fr };
 
 function resolve(dict: Dict, path: string): string {
   const parts = path.split(".");
@@ -845,9 +1259,14 @@ function resolve(dict: Dict, path: string): string {
   return typeof node === "string" ? node : path;
 }
 
+const LANG_ORDER: Lang[] = ["en", "ar", "fr"];
+
 type LanguageContextValue = {
   lang: Lang;
+  /** Cycles en → ar → fr → en. Kept for any existing callers. */
   toggleLang: () => void;
+  /** Sets the language directly — used by the 3-way selector in Nav. */
+  setLang: (lang: Lang) => void;
   t: (path: string) => string;
 };
 
@@ -866,7 +1285,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     // Restoring a persisted preference after mount (client-only) avoids the
     // SSR/client mismatch described above.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (stored === "ar" || stored === "en") setLang(stored);
+    if (stored === "ar" || stored === "en" || stored === "fr") setLang(stored);
   }, []);
 
   useEffect(() => {
@@ -875,11 +1294,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     window.localStorage.setItem(STORAGE_KEY, lang);
   }, [lang]);
 
-  const toggleLang = () => setLang((l) => (l === "en" ? "ar" : "en"));
+  const toggleLang = () => setLang((l) => LANG_ORDER[(LANG_ORDER.indexOf(l) + 1) % LANG_ORDER.length]);
   const t = (path: string) => resolve(dictionaries[lang], path);
 
   return (
-    <LanguageContext.Provider value={{ lang, toggleLang, t }}>
+    <LanguageContext.Provider value={{ lang, toggleLang, setLang, t }}>
       {children}
     </LanguageContext.Provider>
   );

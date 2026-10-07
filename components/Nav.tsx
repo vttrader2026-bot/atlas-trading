@@ -8,9 +8,40 @@ import { useLanguage } from "@/lib/i18n";
 import { useAuth, UserButton } from "@clerk/nextjs";
 import ThemeToggle from "@/components/ThemeToggle";
 
+const LANG_OPTIONS: { code: "en" | "ar" | "fr"; label: string }[] = [
+  { code: "en", label: "EN" },
+  { code: "ar", label: "AR" },
+  { code: "fr", label: "FR" },
+];
+
+function LangSwitcher({
+  lang,
+  setLang,
+}: {
+  lang: "en" | "ar" | "fr";
+  setLang: (l: "en" | "ar" | "fr") => void;
+}) {
+  return (
+    <div className="shrink-0 flex items-center gap-0.5 rounded-md border border-line p-0.5">
+      {LANG_OPTIONS.map((opt) => (
+        <button
+          key={opt.code}
+          type="button"
+          onClick={() => setLang(opt.code)}
+          className={`px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors ${
+            lang === opt.code ? "bg-gold/15 text-gold" : "text-text-muted hover:text-text"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function Nav() {
   const pathname = usePathname();
-  const { lang, toggleLang, t } = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const { isLoaded, isSignedIn } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -51,12 +82,7 @@ export default function Nav() {
         </>
       )}
       <ThemeToggle />
-      <button
-        onClick={toggleLang}
-        className="shrink-0 px-2.5 py-1 rounded-md border border-line text-xs text-text-muted hover:text-text hover:border-text-muted transition-colors"
-      >
-        {lang === "en" ? "العربية" : "English"}
-      </button>
+      <LangSwitcher lang={lang} setLang={setLang} />
     </>
   );
 
@@ -163,12 +189,7 @@ export default function Nav() {
                 <UserButton />
               </>
             )}
-            <button
-              onClick={toggleLang}
-              className="shrink-0 px-2.5 py-1 rounded-md border border-line text-xs text-text-muted hover:text-text hover:border-text-muted transition-colors"
-            >
-              {lang === "en" ? "العربية" : "English"}
-            </button>
+            <LangSwitcher lang={lang} setLang={setLang} />
           </div>
         </div>
       )}
