@@ -498,6 +498,9 @@ function Faq({ q, a }: { q: string; a: string }) {
 
 const RADAR_PREVIEW_SIZE = 5;
 const RADAR_REFRESH_MS = 30000;
+// Thin-volume pairs that spike disproportionately on noise rather than a
+// real setup - excluded from the homepage preview shortlist specifically.
+const PREVIEW_EXCLUDED_SYMBOLS = new Set(["CREAMUSDT", "PNTUSDT", "KDAUSDT"]);
 
 function RadarPreview() {
   const { t, lang } = useLanguage();
@@ -515,7 +518,7 @@ function RadarPreview() {
         const btcChange = parseFloat(btc.priceChangePercent);
         const built = buildRadarRows(tickers, btcChange);
         const shortlist = [...built]
-          .filter((r) => r.tags.includes("outperformBtc"))
+          .filter((r) => r.tags.includes("outperformBtc") && !PREVIEW_EXCLUDED_SYMBOLS.has(r.ticker.symbol))
           .sort((a, b) => b.vsBtcPct - a.vsBtcPct)
           .slice(0, RADAR_PREVIEW_SIZE);
         setRows(shortlist);
