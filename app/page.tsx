@@ -106,66 +106,66 @@ export default function Home() {
         </div>
       </section>
 
-      {/* LIVE MARKET SNAPSHOT */}
+      {/* MARKET PULSE */}
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
-        <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
-          <div className="flex items-center gap-2 px-5 h-10 border-b border-line">
-            <span className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
-            <span className="text-label">{t("home.snapshotTitle")}</span>
+        <div className="text-label text-gold">MARKET PULSE</div>
+        <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-lg">
+          The market, at a glance.
+        </h2>
+
+        <div className="mt-7 border border-line rounded-xl bg-surface overflow-hidden">
+          <div className="flex items-center justify-between px-5 h-10 border-b border-line">
+            <span className="text-label">Live Markets</span>
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-bull font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
+              LIVE
+            </span>
           </div>
+
           <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-line">
-            {HERO_PAIRS.map((symbol) => {
+            {HERO_PAIRS.map((symbol, i) => {
               const tk = tickers[symbol];
               const change = tk ? parseFloat(tk.priceChangePercent) : 0;
               const positive = change >= 0;
+              const base = symbol.replace("USDT", "");
+              const name = PULSE_COIN_NAMES[base] || base;
               return (
-                <div key={symbol} className="flex items-center justify-between px-5 py-4">
-                  <span className="text-base text-text-muted">
-                    {symbol.replace("USDT", " / USDT")}
-                  </span>
-                  <div className="flex items-baseline gap-3">
-                    <span className="font-data text-base font-medium">
-                      {tk ? `$${formatPrice(tk.lastPrice)}` : "…"}
+                <div
+                  key={symbol}
+                  className="radar-row-in group px-5 py-6 hover:bg-surface-raised/40 transition-colors duration-300"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <PulseCoinLogo base={base} />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{name}</div>
+                      <div className="text-xs text-text-muted font-data">{base}/USDT</div>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-end justify-between gap-2">
+                    <span className="font-data text-2xl sm:text-3xl font-bold tracking-tight">
+                      {tk ? `$${formatPrice(tk.lastPrice)}` : "..."}
                     </span>
                     <span
-                      className={`font-data text-xs w-16 text-right ${
+                      className={`font-data text-sm font-medium flex items-center gap-1 ${
                         positive ? "text-bull" : "text-bear"
                       }`}
                     >
-                      {tk ? `${positive ? "+" : ""}${change.toFixed(2)}%` : "—"}
+                      <span aria-hidden>{positive ? "▲" : "▼"}</span>
+                      {tk ? `${positive ? "+" : ""}${change.toFixed(2)}%` : "--"}
                     </span>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      </section>
 
-      {/* ANALYZER - FLAGSHIP */}
-      <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
-        <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
-          <div className="flex items-start gap-4">
-            <span className="w-11 h-11 rounded-xl border border-gold/30 bg-gold/10 flex items-center justify-center text-gold shrink-0">
-              <IconAnalyzer className="w-5 h-5" />
-            </span>
-            <div>
-              <div className="font-heading text-xl sm:text-2xl font-bold tracking-tight">
-                {t("home.showcase.analyzerTitle")}
-              </div>
-              <p className="mt-2.5 text-base sm:text-base text-text-muted leading-relaxed max-w-xl">
-                {t("home.showcase.analyzerBody")}
-              </p>
-            </div>
-          </div>
-          <div className="mt-7 grid sm:grid-cols-4 gap-3">
-            <FlowStep n={1} label={t("home.showcase.step1")} />
-            <FlowStep n={2} label={t("home.showcase.step2")} />
-            <FlowStep n={3} label={t("home.showcase.step3")} />
-            <FlowStep n={4} label={t("home.showcase.step4")} />
-          </div>
-          <Link href="/analyzer" className="btn-primary mt-4">
-            {t("home.ctaAnalyze")}
+          <Link
+            href="/radar"
+            className="flex items-center justify-center gap-1.5 px-5 py-3.5 border-t border-line text-sm text-text-muted hover:text-gold transition-colors"
+          >
+            Open Market Radar
+            <span aria-hidden>{"→"}</span>
           </Link>
         </div>
       </section>
@@ -635,5 +635,31 @@ function RadarPreview() {
         <span aria-hidden>{"\u2192"}</span>
       </Link>
     </div>
+  );
+}
+
+const PULSE_COIN_NAMES: Record<string, string> = { BTC: "Bitcoin", ETH: "Ethereum", SOL: "Solana" };
+const PULSE_BADGE_COLORS: Record<string, string> = { BTC: "#F7931A", ETH: "#627EEA", SOL: "#00D4B4" };
+
+function PulseCoinLogo({ base }: { base: string }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  if (imgFailed) {
+    return (
+      <span
+        className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 font-data"
+        style={{ backgroundColor: PULSE_BADGE_COLORS[base] || "#8A94A6" }}
+      >
+        {base.slice(0, 3)}
+      </span>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://assets.coincap.io/assets/icons/${base.toLowerCase()}@2x.png`}
+      alt={base}
+      className="w-10 h-10 rounded-full shrink-0 bg-white object-contain p-1"
+      onError={() => setImgFailed(true)}
+    />
   );
 }
