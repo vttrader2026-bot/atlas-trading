@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getTicker24h, formatPrice, Ticker24h } from "@/lib/binance";
+import { getTicker24h, getAllTickers24h, formatPrice, Ticker24h } from "@/lib/binance";
+import { buildRadarRows, RadarRow } from "@/lib/radar";
 import { useLanguage } from "@/lib/i18n";
 import { IconRadar, IconAnalyzer, IconJournal, IconRisk } from "@/components/icons";
 import type { PublishedTrade } from "@/lib/tradeFeed";
@@ -171,25 +172,20 @@ export default function Home() {
 
       {/* RADAR PREVIEW */}
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
-        <Link
-          href="/radar"
-          className="flex items-center gap-4 group rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]"
-        >
-          <span className="w-11 h-11 rounded-xl border border-line flex items-center justify-center text-text-muted group-hover:text-gold transition-colors shrink-0">
-            <IconRadar className="w-5 h-5" />
-          </span>
-          <div className="flex-1">
-            <div className="text-base font-medium group-hover:text-gold transition-colors">
-              {t("home.showcase.radarTitle")}
-            </div>
-            <p className="mt-1 text-base text-text-muted leading-relaxed max-w-xl">
-              {t("home.showcase.radarBody")}
-            </p>
-          </div>
-          <span className="text-text-muted group-hover:text-gold transition-colors text-base shrink-0">
-            {t("home.showcase.radarCta")} →
-          </span>
-        </Link>
+        <div className="text-label text-gold">
+          {lang === "ar" ? "رادار السوق" : "MARKET RADAR"}
+        </div>
+        <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-lg">
+          {lang === "ar" ? "اكتشف الفرص التي تستحق المتابعة." : "Find the setups worth watching."}
+        </h2>
+        <p className="mt-3 text-base text-text-muted leading-relaxed max-w-xl">
+          {lang === "ar"
+            ? "يفحص أطلس سوق Binance ويختصر مئات أزواج USDT إلى قائمة مركّزة — ليقضي المتداولون وقتًا أقل في البحث ووقتًا أكثر في التحليل."
+            : "Atlas scans the Binance market and narrows hundreds of USDT pairs into a focused shortlist — so traders spend less time searching and more time analyzing."}
+        </p>
+        <div className="mt-7">
+          <RadarPreview />
+        </div>
       </section>
 
       {/* SPOT SETUPS PROMO */}
@@ -498,3 +494,143 @@ function Faq({ q, a }: { q: string; a: string }) {
 
 
 
+
+
+const RADAR_PREVIEW_SIZE = 5;
+const RADAR_REFRESH_MS = 30000;
+
+function RadarPreview() {
+  const { t, lang } = useLanguage();
+  const [rows, setRows] = useState<RadarRow[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [justRefreshed, setJustRefreshed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let isFirstLoad = true;
+    async function load() {
+      try {
+        const [tickers, btc] = await Promise.all([getAllTickers24h(), getTicker24h("BTCUSDT")]);
+        if (cancelled) return;
+        const btcChange = parseFloat(btc.priceChangePercent);
+        const built = buildRadarRows(tickers, btcChange);
+        const shortlist = [...built]
+          .filter((r) => r.tags.includes("outperformBtc"))
+          .sort((a, b) => b.vsBtcPct - a.vsBtcPct)
+          .slice(0, RADAR_PREVIEW_SIZE);
+        setRows(shortlist);
+        setFailed(false);
+        if (!isFirstLoad) {
+          setJustRefreshed(true);
+          setTimeout(() => setJustRefreshed(false), 400);
+        }
+        isFirstLoad = false;
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    }
+    load();
+    const id = setInterval(load, RADAR_REFRESH_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  const conditionStyle: Record<string, string> = {
+    bullish: "border-bull/40 text-bull",
+    bearish: "border-bear/40 text-bear",
+    range: "border-gold/40 text-gold",
+  };
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="flex items-center justify-between px-5 h-11 border-b border-line">
+        <span className="text-label">
+          {lang === "ar" ? "الأزواج المتفوقة على BTC الآن" : "Outperforming BTC right now"}
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-bull font-medium">
+          <span className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
+          LIVE
+        </span>
+      </div>
+
+      {rows === null && !failed && (
+        <div className="px-5 py-10 text-center text-sm text-text-muted">
+          {lang === "ar" ? "جارٍ تحميل بيانات السوق..." : "Loading market data..."}
+        </div>
+      )}
+      {failed && rows === null && (
+        <div className="px-5 py-10 text-center text-sm text-bear">
+          {lang === "ar" ? "تعذر تحميل البيانات. حاول لاحقًا." : "Couldn't load market data. Try again shortly."}
+        </div>
+      )}
+      {rows !== null && rows.length === 0 && (
+        <div className="px-5 py-10 text-center text-sm text-text-muted">
+          {lang === "ar" ? "لا توجد أزواج متفوقة حاليًا." : "Nothing outperforming BTC right now."}
+        </div>
+      )}
+
+      {rows !== null && rows.length > 0 && (
+        <div
+          className={`overflow-x-auto transition-opacity duration-300 ${justRefreshed ? "opacity-70" : "opacity-100"}`}
+        >
+          <table className="w-full text-sm min-w-[420px]">
+            <thead className="text-text-muted">
+              <tr className="border-b border-line">
+                <th className="text-left px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
+                  {lang === "ar" ? "الزوج" : "Pair"}
+                </th>
+                <th className="text-right px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
+                  {lang === "ar" ? "24 ساعة" : "24H"}
+                </th>
+                <th className="text-left px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
+                  {lang === "ar" ? "الإعداد" : "Setup"}
+                </th>
+                <th className="text-left px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
+                  {lang === "ar" ? "الحالة" : "Status"}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => {
+                const positive = row.change >= 0;
+                return (
+                  <tr
+                    key={row.ticker.symbol}
+                    className="radar-row-in border-t border-line hover:bg-surface-raised/50 transition-colors"
+                    style={{ animationDelay: `${i * 70}ms` }}
+                  >
+                    <td className="px-5 py-3 font-data font-medium">
+                      {row.ticker.symbol.replace("USDT", "/USDT")}
+                    </td>
+                    <td className={`px-5 py-3 text-right font-data ${positive ? "text-bull" : "text-bear"}`}>
+                      {positive ? "+" : ""}
+                      {row.change.toFixed(2)}%
+                    </td>
+                    <td className="px-5 py-3 text-text-muted">{t(`radar.setup.${row.setup}`)}</td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={`text-[11px] px-2 py-0.5 rounded-full border whitespace-nowrap ${conditionStyle[row.condition]}`}
+                      >
+                        {t(`radar.condition.${row.condition}`)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Link
+        href="/radar"
+        className="flex items-center justify-center gap-1.5 px-5 py-3.5 border-t border-line text-sm text-text-muted hover:text-gold transition-colors"
+      >
+        {lang === "ar" ? "عرض رادار السوق الكامل" : "View Market Radar"}
+        <span aria-hidden>{"\u2192"}</span>
+      </Link>
+    </div>
+  );
+}

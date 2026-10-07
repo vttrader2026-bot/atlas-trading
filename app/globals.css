@@ -239,3 +239,21 @@ html.light {
   --bear: #d64545;
   --gold: #b8842f;
 }
+
+/* Market Radar homepage preview - staggered row entrance */
+@keyframes radarRowIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.radar-row-in {
+  opacity: 0;
+  animation: radarRowIn 0.45s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .radar-row-in {
+    animation: none;
+    opacity: 1;
+  }
+}
