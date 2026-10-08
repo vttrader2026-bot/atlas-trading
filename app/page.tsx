@@ -273,123 +273,140 @@ export default function Home() {
         </section>
       )}
 
-      {/* FREE VS VIP */}
-      <section className="max-w-6xl mx-auto px-6 pb-20">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center">
-          {t("home.plans.title")}
+      {/* TRADING WORKSPACE */}
+      <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
+        <div className="text-label text-gold">TRADING WORKSPACE</div>
+        <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-lg">
+          Trade with structure.
         </h2>
-        <p className="mt-3 text-text-muted text-center max-w-xl mx-auto">
-          {t("home.plans.subtitle")}
+        <p className="mt-3 text-base text-text-muted leading-relaxed max-w-xl">
+          From analysis to execution, Atlas gives traders the tools to plan, manage, and review every trade.
         </p>
 
-        <div className="grid sm:grid-cols-2 gap-4 mt-10">
-          <div className="card p-6">
-            <div className="text-label">🆓 {lang === "ar" ? "مجاني" : "FREE"}</div>
-            <ul className="mt-4 text-sm sm:text-base text-text-muted space-y-2.5 list-disc list-inside">
-              <li>{lang === "ar" ? "خلاصة الصفقات العامة" : "Public Trade Feed"}</li>
-              <li>{lang === "ar" ? "مجموعة تيليجرام العامة" : "Public Telegram Group"}</li>
-              <li>{lang === "ar" ? "مجموعة واتساب العامة" : "Public WhatsApp Group"}</li>
-              <li>{lang === "ar" ? "رادار السوق" : "Market Radar"}</li>
-              <li>{lang === "ar" ? "المحلل بالذكاء الاصطناعي — 2 تحليل/يوم" : "AI Analyzer — 2 analyses/day"}</li>
-              <li>{lang === "ar" ? "خطة الصفقة" : "Trade Plan"}</li>
-              <li>{lang === "ar" ? "حاسبة المخاطر" : "Risk Calculator"}</li>
-              <li>{lang === "ar" ? "سجل التداول" : "Trading Journal"}</li>
-              <li>{lang === "ar" ? "محتوى تعليمي" : "Educational content"}</li>
-            </ul>
-            <a
-              href="https://t.me/atlastradingcrypto"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary mt-6 w-full"
-            >
-              {t("home.community.joinFree")}
-            </a>
-          </div>
-
-          <div className="card card-accent p-6">
-            <div className="text-label text-gold">
-              ⚜️ {lang === "ar" ? "أطلس إيليت" : "ATLAS ELITE"} — $14.99{lang === "ar" ? "/شهريًا" : "/month"}
+        <div className="mt-8 grid sm:grid-cols-3 gap-4">
+          <WorkspaceToolPreview icon={<IconRisk className="w-5 h-5" />} title="Risk Calculator" href="/risk">
+            <div className="space-y-2.5">
+              <WorkspaceField label="Account balance" />
+              <WorkspaceField label="Risk per trade" suffix="%" />
+              <div className="pt-2 border-t border-line flex items-center justify-between">
+                <span className="text-[11px] text-text-muted uppercase tracking-wide">Position size</span>
+                <span className="font-data text-xs text-text-muted">--</span>
+              </div>
             </div>
-            <ul className="mt-4 text-sm sm:text-base text-text-muted space-y-2.5 list-disc list-inside marker:text-gold">
-              <li>{lang === "ar" ? "كل ما في المجاني" : "Everything in Free"}</li>
-              <li>{lang === "ar" ? "المحلل بالذكاء الاصطناعي — 20 تحليل/يوم" : "AI Analyzer — 20 analyses/day"}</li>
-              <li>{lang === "ar" ? "إشارات سبوت خاصة" : "Private Spot Signals"}</li>
-              <li>{lang === "ar" ? "وصول مبكر للإشارات" : "Earlier Signal Access"}</li>
-              <li>{lang === "ar" ? "تحديثات TP1 / TP2 / TP3" : "TP1 / TP2 / TP3 Updates"}</li>
-              <li>{lang === "ar" ? "تحديثات وقف الخسارة" : "Stop-Loss Updates"}</li>
-              <li>{lang === "ar" ? "إدارة كاملة للصفقات" : "Full Trade Management"}</li>
-              <li>{lang === "ar" ? "مجموعة تيليجرام خاصة" : "Private Telegram Group"}</li>
-              <li>{lang === "ar" ? "تنبيهات Atlas Bot" : "Atlas Bot Alerts"}</li>
-              <li>{lang === "ar" ? "تحديثات السوق للنخبة" : "Elite Market Updates"}</li>
-            </ul>
-            <Link href="/elite" className="btn-primary mt-6 w-full">
-              {t("home.community.contactVip")}
-            </Link>
-          </div>
-        </div>
-      </section>
+          </WorkspaceToolPreview>
 
-      {/* RISK + JOURNAL */}
-      <section className="max-w-6xl mx-auto px-6 pb-20">
-        <div className="grid sm:grid-cols-2 gap-4">
-          <ToolCard
-            icon={<IconRisk className="w-5 h-5" />}
-            title={t("home.showcase.riskTitle")}
-            body={t("home.showcase.riskBody")}
-            href="/risk"
-          />
-          <ToolCard
-            icon={<IconJournal className="w-5 h-5" />}
-            title={t("home.showcase.journalTitle")}
-            body={t("home.showcase.journalBody")}
-            href="/journal"
-          />
+          <WorkspaceToolPreview icon={<IconJournal className="w-5 h-5" />} title="Trading Journal" href="/journal">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-data text-text-muted">BTC/USDT</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-line text-text-muted">Long</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-data text-text-muted">ETH/USDT</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-line text-text-muted">Short</span>
+              </div>
+              <div className="pt-2 border-t border-line text-[11px] text-text-muted">
+                Log every trade. Review the real numbers.
+              </div>
+            </div>
+          </WorkspaceToolPreview>
+
+          <WorkspaceToolPreview icon={<IconTradeFeed className="w-5 h-5" />} title="Trade Feed" href="/trade-feed">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-data">BTC/USDT</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-bull/40 text-bull">Long</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-data">SOL/USDT</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-bear/40 text-bear">Short</span>
+              </div>
+              <div className="pt-2 border-t border-line text-[11px] text-text-muted">
+                Entry, targets, and stop-loss for every published setup.
+              </div>
+            </div>
+          </WorkspaceToolPreview>
         </div>
       </section>
 
       {/* COMMUNITY */}
-      <section className="max-w-6xl mx-auto px-6 pb-24">
-        <div className="grid sm:grid-cols-2 gap-5">
-          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
-            <div className="text-label">{t("home.community.freeLabel")}</div>
-            <div className="mt-2 text-lg font-semibold">{t("home.community.freeTitle")}</div>
-            <p className="mt-2 text-base text-text-muted leading-relaxed">
-              {t("home.community.freeBody")}
+      <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
+        <div className="text-label text-gold">THE ATLAS COMMUNITY</div>
+        <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-lg">
+          Trade smarter together.
+        </h2>
+        <p className="mt-3 text-base text-text-muted leading-relaxed max-w-xl">
+          Market discussions, educational content, trade updates, and Atlas news - free to join.
+        </p>
+
+        <div className="mt-8 grid sm:grid-cols-2 gap-4">
+          <div className="group border border-line rounded-xl bg-surface p-6 hover:border-[#26A5E4]/50 transition-colors duration-300">
+            <IconTelegram className="w-11 h-11" />
+            <div className="mt-4 text-base font-medium">Telegram</div>
+            <p className="mt-1.5 text-sm text-text-muted leading-relaxed">
+              Live discussion, public calls, and platform updates.
             </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <a
-                href="https://t.me/atlastradingcrypto"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary"
-              >
-                {t("home.community.joinTelegram")}
-              </a>
-              <a
-                href="https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary"
-              >
-                {t("home.community.joinWhatsapp")}
-              </a>
-            </div>
+            <a
+              href="https://t.me/atlastradingcrypto"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary mt-5 inline-flex items-center gap-1.5"
+            >
+              Join Telegram Community
+              <span aria-hidden>{"→"}</span>
+            </a>
           </div>
 
-          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
-            <div className="text-label text-gold">{t("home.community.vipLabel")}</div>
-            <div className="mt-2 text-lg font-semibold">{t("home.community.vipTitle")}</div>
-            <p className="mt-2 text-base text-text-muted leading-relaxed">
-              {t("home.community.vipBody")}
+          <div className="group border border-line rounded-xl bg-surface p-6 hover:border-[#25D366]/50 transition-colors duration-300">
+            <IconWhatsapp className="w-11 h-11" />
+            <div className="mt-4 text-base font-medium">WhatsApp</div>
+            <p className="mt-1.5 text-sm text-text-muted leading-relaxed">
+              Join the community group for updates on the go.
             </p>
-            <div className="mt-3 text-xl font-bold">
-              $14.99<span className="text-sm text-text-muted font-normal">{lang === "ar" ? "/شهريًا" : "/month"}</span>
-            </div>
-            <Link
-              href="/elite"
-              className="btn-secondary mt-6 hover:border-gold! hover:text-gold!"
+            <a
+              href="https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary mt-5 inline-flex items-center gap-1.5"
             >
-              {t("home.community.joinElite")}
+              Join WhatsApp Community
+              <span aria-hidden>{"→"}</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ATLAS ELITE */}
+      <section className="max-w-6xl mx-auto px-6 pb-20">
+        <div className="card card-accent p-7 sm:p-10">
+          <div className="text-label text-gold">ATLAS ELITE</div>
+          <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-xl">
+            Trade with Atlas. Stay ahead of the setup.
+          </h2>
+          <p className="mt-3 text-base text-text-muted leading-relaxed max-w-xl">
+            Private spot signals, earlier access, and full trade management for traders who want more than the
+            public feed.
+          </p>
+
+          <div className="mt-7 grid sm:grid-cols-2 gap-x-8 gap-y-2.5">
+            <EliteFeature>Private Spot Signals</EliteFeature>
+            <EliteFeature>Earlier Signal Access</EliteFeature>
+            <EliteFeature>AI Analyzer - 20 analyses/day</EliteFeature>
+            <EliteFeature>TP1 / TP2 / TP3 Updates</EliteFeature>
+            <EliteFeature>Stop-Loss Updates</EliteFeature>
+            <EliteFeature>Full Trade Management</EliteFeature>
+            <EliteFeature>Private Telegram Group</EliteFeature>
+            <EliteFeature>Atlas Bot Alerts</EliteFeature>
+            <EliteFeature>Elite Market Updates</EliteFeature>
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center gap-5">
+            <div className="text-2xl font-bold">
+              $14.99<span className="text-sm text-text-muted font-normal">/month</span>
+            </div>
+            <Link href="/elite" className="btn-primary inline-flex items-center gap-1.5">
+              Join Atlas Elite
+              <span aria-hidden>{"→"}</span>
             </Link>
           </div>
         </div>
@@ -661,5 +678,92 @@ function PulseCoinLogo({ base }: { base: string }) {
       className="w-10 h-10 rounded-full shrink-0 bg-white object-contain p-1"
       onError={() => setImgFailed(true)}
     />
+  );
+}
+
+function WorkspaceField({ label, suffix }: { label: string; suffix?: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-[11px] text-text-muted">{label}</span>
+      <span className="font-data text-xs text-text-muted border border-line rounded px-2 py-1 bg-surface-raised/40">
+        --{suffix ? ` ${suffix}` : ""}
+      </span>
+    </div>
+  );
+}
+
+function WorkspaceToolPreview({
+  icon,
+  title,
+  href,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group border border-line rounded-xl bg-surface overflow-hidden hover:border-gold/40 transition-colors duration-300"
+    >
+      <div className="flex items-center gap-2.5 px-5 h-11 border-b border-line">
+        <span className="text-text-muted group-hover:text-gold transition-colors">{icon}</span>
+        <span className="text-sm font-medium">{title}</span>
+      </div>
+      <div className="p-5">{children}</div>
+      <div className="px-5 py-3 border-t border-line text-xs text-text-muted group-hover:text-gold transition-colors flex items-center gap-1">
+        Open {title}
+        <span aria-hidden>{"→"}</span>
+      </div>
+    </Link>
+  );
+}
+
+function IconTradeFeed({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 3v4M12 17v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="9" y="7" width="6" height="10" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M5 10v4M19 8v8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="3" y="9" width="4" height="6" rx="1" stroke="currentColor" strokeWidth="1.6" opacity="0.5" />
+      <rect x="17" y="6" width="4" height="12" rx="1" stroke="currentColor" strokeWidth="1.6" opacity="0.5" />
+    </svg>
+  );
+}
+
+function IconTelegram({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="24" r="24" fill="#26A5E4" />
+      <path
+        fill="#fff"
+        d="M35.5 14.3 10.9 23.8c-1.7.7-1.7 1.6-.3 2l6.3 2 2.4 7.4c.3.8.5 1.1 1 1.1.5 0 .8-.2 1.1-.5l3.1-3 6.4 4.7c1.2.7 2 .3 2.3-1.1l4.2-19.8c.4-1.8-.6-2.6-2-2.3zM18.9 25.5l12.7-8c.6-.4 1.2-.2.7.2L21.6 27.1l-.4 4.1-1.9-5.4z"
+      />
+    </svg>
+  );
+}
+
+function IconWhatsapp({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="24" r="24" fill="#25D366" />
+      <path
+        fill="#fff"
+        d="M24 10.5c-7.5 0-13.5 6-13.5 13.5 0 2.4.6 4.6 1.8 6.6L10 37.5l7.1-2.3c1.9 1 4.1 1.6 6.4 1.6h.1c7.5 0 13.5-6 13.5-13.5S31.5 10.5 24 10.5zm7.9 19.1c-.3.9-1.7 1.7-2.4 1.8-.6.1-1.4.1-2.3-.1-.5-.2-1.2-.4-2-.7-3.6-1.6-6-5.2-6.2-5.5-.2-.3-1.5-1.9-1.5-3.7 0-1.8.9-2.6 1.3-3 .3-.3.7-.5 1-.5h.7c.2 0 .5 0 .8.6.3.7 1 2.5 1.1 2.7.1.2.2.4 0 .7-.1.3-.2.4-.4.6-.2.2-.4.5-.6.7-.2.2-.4.5-.2.8.2.4 1 1.6 2.1 2.6 1.4 1.3 2.6 1.7 3 1.9.4.2.6.1.8-.1.2-.3.9-1 1.2-1.4.3-.4.5-.3.8-.2.3.1 2.1 1 2.5 1.2.4.2.6.3.7.5.1.2.1 1-.2 1.9z"
+      />
+    </svg>
+  );
+}
+
+function EliteFeature({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 text-sm text-text-muted">
+      <span className="text-gold" aria-hidden>
+        {"✓"}
+      </span>
+      {children}
+    </div>
   );
 }
