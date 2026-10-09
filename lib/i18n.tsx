@@ -413,6 +413,9 @@ const en: Dict = {
     filterNearHigh: "Near 24h high",
     filterNearLow: "Near 24h low",
     filterOutperform: "Beating BTC",
+    filterAtSupport: "At Support",
+    filterRelativeStrength: "Relative Strength",
+    filterRelativeWeakness: "Relative Weakness",
     tag: {
       breakout: "Breakout",
       pullback: "Pullback",
@@ -884,6 +887,9 @@ const ar: Dict = {
     filterNearHigh: "قرب أعلى 24 ساعة",
     filterNearLow: "قرب أدنى 24 ساعة",
     filterOutperform: "يتفوق على BTC",
+    filterAtSupport: "عند الدعم",
+    filterRelativeStrength: "قوة نسبية",
+    filterRelativeWeakness: "ضعف نسبي",
     tag: {
       breakout: "اختراق",
       pullback: "ارتداد",
@@ -1357,6 +1363,9 @@ const fr: Dict = {
     filterNearHigh: "Proche du haut 24h",
     filterNearLow: "Proche du bas 24h",
     filterOutperform: "Bat BTC",
+    filterAtSupport: "Au support",
+    filterRelativeStrength: "Force relative",
+    filterRelativeWeakness: "Faiblesse relative",
     tag: {
       breakout: "Cassure",
       pullback: "Repli",
