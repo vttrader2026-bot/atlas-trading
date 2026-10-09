@@ -24,6 +24,8 @@ const GEMINI_TIMEOUT_MS = 25_000;
 function serviceUnavailableMessage(lang: string): string {
   return lang === "ar"
     ? "المحلل غير متاح مؤقتًا — نشهد إقبالاً كبيرًا حاليًا. يرجى المحاولة مرة أخرى بعد لحظات."
+    : lang === "fr"
+    ? "Analyseur temporairement indisponible — nous connaissons une forte demande. Veuillez réessayer dans un instant."
     : "Analyzer temporarily unavailable — we're experiencing high demand. Please try again in a moment.";
 }
 
@@ -43,6 +45,13 @@ function buildPrompt(lang: string, context: TraderContext): string {
 - Technical abbreviations and symbols may remain standard when appropriate: BTC, ETH, USDT, RSI, MACD, MA, BOS, CHoCH, FVG, 15M, 1H, 4H, 1D, 1W.
 - Price numbers, ticker symbols, and pair names must remain unchanged.
 - Do not mix Arabic and English sentences. The final analysis should read naturally in Arabic.`
+      : lang === "fr"
+      ? `LANGUAGE REQUIREMENT — VERY IMPORTANT:
+- The user selected French. Write EVERY human-readable value in the JSON in French (natural, professional French).
+- Do NOT write English words or labels in the analysis text. This includes market structure, trend, strength, conditions, scenario explanations, confirmations, targets descriptions, what-to-watch items, invalidation explanations, trade plan text, risk notes, and Teach Me explanations.
+- Technical abbreviations and symbols may remain standard when appropriate: BTC, ETH, USDT, RSI, MACD, MA, BOS, CHoCH, FVG, 15M, 1H, 4H, 1D, 1W.
+- Price numbers, ticker symbols, and pair names must remain unchanged.
+- Do not mix French and English sentences. The final analysis should read naturally in French.`
       : "Respond with all human-readable text values written in English.";
 
   const contextLines = [

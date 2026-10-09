@@ -106,19 +106,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* MARKET PULSE */}
+      {/* {t("pulseSection.eyebrow")} */}
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
-        <div className="text-label text-gold">MARKET PULSE</div>
+        <div className="text-label text-gold">{t("pulseSection.eyebrow")}</div>
         <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-lg">
-          The market, at a glance.
+          {t("pulseSection.heading")}
         </h2>
 
         <div className="mt-7 border border-line rounded-xl bg-surface overflow-hidden">
           <div className="flex items-center justify-between px-5 h-10 border-b border-line">
-            <span className="text-label">Live Markets</span>
+            <span className="text-label">{t("pulseSection.liveMarkets")}</span>
             <span className="inline-flex items-center gap-1.5 text-[11px] text-bull font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
-              LIVE
+              {t("pulseSection.live")}
             </span>
           </div>
 
@@ -164,7 +164,7 @@ export default function Home() {
             href="/radar"
             className="flex items-center justify-center gap-1.5 px-5 py-3.5 border-t border-line text-sm text-text-muted hover:text-gold transition-colors"
           >
-            Open Market Radar
+            {t("pulseSection.openRadar")}
             <span aria-hidden>{"→"}</span>
           </Link>
         </div>
@@ -273,29 +273,29 @@ export default function Home() {
         </section>
       )}
 
-      {/* TRADING WORKSPACE */}
+      {/* {t("workspaceSection.eyebrow")} */}
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
-        <div className="text-label text-gold">TRADING WORKSPACE</div>
+        <div className="text-label text-gold">{t("workspaceSection.eyebrow")}</div>
         <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-lg">
-          Trade with structure.
+          {t("workspaceSection.heading")}
         </h2>
         <p className="mt-3 text-base text-text-muted leading-relaxed max-w-xl">
-          From analysis to execution, Atlas gives traders the tools to plan, manage, and review every trade.
+          {t("workspaceSection.subtitle")}
         </p>
 
         <div className="mt-8 grid sm:grid-cols-3 gap-4">
-          <WorkspaceToolPreview icon={<IconRisk className="w-5 h-5" />} title="Risk Calculator" href="/risk">
+          <WorkspaceToolPreview icon={<IconRisk className="w-5 h-5" />} title={t("workspaceSection.riskTitle")} href="/risk">
             <div className="space-y-2.5">
-              <WorkspaceField label="Account balance" />
-              <WorkspaceField label="Risk per trade" suffix="%" />
+              <WorkspaceField label={t("workspaceSection.accountBalance")} />
+              <WorkspaceField label={t("workspaceSection.riskPerTrade")} suffix="%" />
               <div className="pt-2 border-t border-line flex items-center justify-between">
-                <span className="text-[11px] text-text-muted uppercase tracking-wide">Position size</span>
+                <span className="text-[11px] text-text-muted uppercase tracking-wide">{t("workspaceSection.positionSize")}</span>
                 <span className="font-data text-xs text-text-muted">--</span>
               </div>
             </div>
           </WorkspaceToolPreview>
 
-          <WorkspaceToolPreview icon={<IconJournal className="w-5 h-5" />} title="Trading Journal" href="/journal">
+          <WorkspaceToolPreview icon={<IconJournal className="w-5 h-5" />} title={t("workspaceSection.journalTitle")} href="/journal">
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-data text-text-muted">BTC/USDT</span>
@@ -306,12 +306,12 @@ export default function Home() {
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-line text-text-muted">Short</span>
               </div>
               <div className="pt-2 border-t border-line text-[11px] text-text-muted">
-                Log every trade. Review the real numbers.
+                {t("workspaceSection.journalNote")}
               </div>
             </div>
           </WorkspaceToolPreview>
 
-          <WorkspaceToolPreview icon={<IconTradeFeed className="w-5 h-5" />} title="Trade Feed" href="/trade-feed">
+          <WorkspaceToolPreview icon={<IconTradeFeed className="w-5 h-5" />} title={t("workspaceSection.tradeFeedTitle")} href="/trade-feed">
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-data">BTC/USDT</span>
@@ -322,7 +322,7 @@ export default function Home() {
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-bear/40 text-bear">Short</span>
               </div>
               <div className="pt-2 border-t border-line text-[11px] text-text-muted">
-                Entry, targets, and stop-loss for every published setup.
+                {t("workspaceSection.tradeFeedNote")}
               </div>
             </div>
           </WorkspaceToolPreview>
@@ -331,20 +331,20 @@ export default function Home() {
 
       {/* COMMUNITY */}
       <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
-        <div className="text-label text-gold">THE ATLAS COMMUNITY</div>
+        <div className="text-label text-gold">{t("communitySection.eyebrow")}</div>
         <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-lg">
-          Trade smarter together.
+          {t("communitySection.heading")}
         </h2>
         <p className="mt-3 text-base text-text-muted leading-relaxed max-w-xl">
-          Market discussions, educational content, trade updates, and Atlas news - free to join.
+          {t("communitySection.subtitle")}
         </p>
 
         <div className="mt-8 grid sm:grid-cols-2 gap-4">
           <div className="group border border-line rounded-xl bg-surface p-6 hover:border-[#26A5E4]/50 transition-colors duration-300">
             <IconTelegram className="w-11 h-11" />
-            <div className="mt-4 text-base font-medium">Telegram</div>
+            <div className="mt-4 text-base font-medium">{t("communitySection.telegram")}</div>
             <p className="mt-1.5 text-sm text-text-muted leading-relaxed">
-              Live discussion, public calls, and platform updates.
+              {t("communitySection.telegramBody")}
             </p>
             <a
               href="https://t.me/atlastradingcrypto"
@@ -352,16 +352,16 @@ export default function Home() {
               rel="noopener noreferrer"
               className="btn-primary mt-5 inline-flex items-center gap-1.5"
             >
-              Join Telegram Community
+              {t("communitySection.telegramCta")}
               <span aria-hidden>{"→"}</span>
             </a>
           </div>
 
           <div className="group border border-line rounded-xl bg-surface p-6 hover:border-[#25D366]/50 transition-colors duration-300">
             <IconWhatsapp className="w-11 h-11" />
-            <div className="mt-4 text-base font-medium">WhatsApp</div>
+            <div className="mt-4 text-base font-medium">{t("communitySection.whatsapp")}</div>
             <p className="mt-1.5 text-sm text-text-muted leading-relaxed">
-              Join the community group for updates on the go.
+              {t("communitySection.whatsappBody")}
             </p>
             <a
               href="https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t"
@@ -369,43 +369,42 @@ export default function Home() {
               rel="noopener noreferrer"
               className="btn-primary mt-5 inline-flex items-center gap-1.5"
             >
-              Join WhatsApp Community
+              {t("communitySection.whatsappCta")}
               <span aria-hidden>{"→"}</span>
             </a>
           </div>
         </div>
       </section>
 
-      {/* ATLAS ELITE */}
+      {/* {t("eliteSection.eyebrow")} */}
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <div className="card card-accent p-7 sm:p-10">
-          <div className="text-label text-gold">ATLAS ELITE</div>
+          <div className="text-label text-gold">{t("eliteSection.eyebrow")}</div>
           <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-xl">
-            Trade with Atlas. Stay ahead of the setup.
+            {t("eliteSection.heading")}
           </h2>
           <p className="mt-3 text-base text-text-muted leading-relaxed max-w-xl">
-            Private spot signals, earlier access, and full trade management for traders who want more than the
-            public feed.
+            {t("eliteSection.subtitle")}
           </p>
 
           <div className="mt-7 grid sm:grid-cols-2 gap-x-8 gap-y-2.5">
-            <EliteFeature>Private Spot Signals</EliteFeature>
-            <EliteFeature>Earlier Signal Access</EliteFeature>
-            <EliteFeature>AI Analyzer - 20 analyses/day</EliteFeature>
-            <EliteFeature>TP1 / TP2 / TP3 Updates</EliteFeature>
-            <EliteFeature>Stop-Loss Updates</EliteFeature>
-            <EliteFeature>Full Trade Management</EliteFeature>
-            <EliteFeature>Private Telegram Group</EliteFeature>
-            <EliteFeature>Atlas Bot Alerts</EliteFeature>
-            <EliteFeature>Elite Market Updates</EliteFeature>
+            <EliteFeature>{t("eliteSection.f1")}</EliteFeature>
+            <EliteFeature>{t("eliteSection.f2")}</EliteFeature>
+            <EliteFeature>{t("eliteSection.f3")}</EliteFeature>
+            <EliteFeature>{t("eliteSection.f4")}</EliteFeature>
+            <EliteFeature>{t("eliteSection.f5")}</EliteFeature>
+            <EliteFeature>{t("eliteSection.f6")}</EliteFeature>
+            <EliteFeature>{t("eliteSection.f7")}</EliteFeature>
+            <EliteFeature>{t("eliteSection.f8")}</EliteFeature>
+            <EliteFeature>{t("eliteSection.f9")}</EliteFeature>
           </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-5">
             <div className="text-2xl font-bold">
-              $14.99<span className="text-sm text-text-muted font-normal">/month</span>
+              $14.99<span className="text-sm text-text-muted font-normal">{t("eliteSection.perMonth")}</span>
             </div>
             <Link href="/elite" className="btn-primary inline-flex items-center gap-1.5">
-              Join Atlas Elite
+              {t("eliteSection.cta")}
               <span aria-hidden>{"→"}</span>
             </Link>
           </div>
@@ -571,7 +570,7 @@ function RadarPreview() {
         </span>
         <span className="inline-flex items-center gap-1.5 text-[11px] text-bull font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
-          LIVE
+          {t("pulseSection.live")}
         </span>
       </div>
 
@@ -703,6 +702,7 @@ function WorkspaceToolPreview({
   href: string;
   children: React.ReactNode;
 }) {
+  const { t } = useLanguage();
   return (
     <Link
       href={href}
@@ -714,7 +714,7 @@ function WorkspaceToolPreview({
       </div>
       <div className="p-5">{children}</div>
       <div className="px-5 py-3 border-t border-line text-xs text-text-muted group-hover:text-gold transition-colors flex items-center gap-1">
-        Open {title}
+        {t("workspaceSection.openPrefix")} {title}
         <span aria-hidden>{"→"}</span>
       </div>
     </Link>
