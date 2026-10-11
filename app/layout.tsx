@@ -25,9 +25,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const SITE_URL = "https://www.atlastrading.app";
-const SITE_TITLE = "Atlas Trading — AI crypto chart analyzer, journal & risk tools";
+const SITE_TITLE = "Atlas Trading — Read the Chart. Plan the Trade.";
 const SITE_DESCRIPTION =
-  "Read a chart, size a position, log the trade. Free AI chart analysis, market radar, trade planning, and risk tools for every USDT pair on Binance.";
+  "Free AI chart analysis, market radar and risk tools for every Binance USDT pair. No account needed.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -51,9 +51,9 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/brand/icon-512.png",
-        width: 512,
-        height: 512,
+        url: "/brand/og-200.png",
+        width: 200,
+        height: 200,
         alt: "Atlas Trading",
       },
     ],
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/brand/icon-512.png"],
+    images: ["/brand/og-200.png"],
   },
   robots: {
     index: true,
