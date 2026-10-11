@@ -16,7 +16,7 @@ const FILTERS: { key: RadarTag | "all"; labelKey: string }[] = [
   { key: "underperformBtc", labelKey: "radar.filterRelativeWeakness" },
 ];
 
-// Only filters with a genuinely matching Academy lesson get an info icon â€”
+// Only filters with a genuinely matching Academy lesson get an info icon —
 // no icon is better than a forced, misleading link.
 const FILTER_LESSON_SLUGS: Partial<Record<RadarTag, string>> = {
   breakout: "breakout-retest",
@@ -117,9 +117,9 @@ export default function RadarPage() {
                       <Link
                         href={`/academy/${lessonSlug}`}
                         className="text-text-muted hover:text-gold transition-colors text-xs"
-                        title="ØªØ¹Ù„Ù‘Ù… Ø§Ù„Ù…Ø²ÙŠØ¯"
+                        title={"تعلّم المزيد"}
                       >
-                        â“˜
+                        {"ⓘ"}
                       </Link>
                     )}
                   </div>
@@ -160,40 +160,40 @@ export default function RadarPage() {
                           <td className="px-4 py-3">
                             <Link
                               href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
-                            className="flex items-center gap-2.5 group-hover:text-gold transition-colors"
+                              className="flex items-center gap-2.5 group-hover:text-gold transition-colors"
+                            >
+                              <RadarLogo base={base} />
+                              <span className="font-data font-medium">{row.ticker.symbol.replace("USDT", "/USDT")}</span>
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 font-data text-right">
+                            ${formatPrice(row.ticker.lastPrice)}
+                          </td>
+                          <td
+                            className={`px-4 py-3 font-data text-right ${
+                              positive ? "text-bull" : "text-bear"
+                            }`}
                           >
-                            <RadarLogo base={base} />
-                            <span className="font-data font-medium">{row.ticker.symbol.replace("USDT", "/USDT")}</span>
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 font-data text-right">
-                          ${formatPrice(row.ticker.lastPrice)}
-                        </td>
-                        <td
-                          className={`px-4 py-3 font-data text-right ${
-                            positive ? "text-bull" : "text-bear"
-                          }`}
-                        >
-                          {positive ? "+" : ""}
-                          {row.change.toFixed(2)}%
-                        </td>
-                        <td className="px-4 py-3 font-data text-right text-text-muted">
-                          ${formatCompact(row.volume)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
-                        </td>
-                        <td className="px-4 py-3 text-text-muted">{t(`radar.setup.${row.setup}`)}</td>
-                        <td className="px-3 py-3 text-right">
-                          <span
-                            className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"
-                            aria-hidden="true"
-                          >
-                            {"→"}
-                          </span>
-                        </td>
-                      </tr>
-                     );
+                            {positive ? "+" : ""}
+                            {row.change.toFixed(2)}%
+                          </td>
+                          <td className="px-4 py-3 font-data text-right text-text-muted">
+                            ${formatCompact(row.volume)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
+                          </td>
+                          <td className="px-4 py-3 text-text-muted">{t(`radar.setup.${row.setup}`)}</td>
+                          <td className="px-3 py-3 text-right">
+                            <span
+                              className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-hidden="true"
+                            >
+                              {"→"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
                     })}
                   </tbody>
                 </table>
