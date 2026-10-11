@@ -1,36 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getAllTickers24h, formatPrice, Ticker24h } from "@/lib/binance";
+import { useMemo } from "react";
+import { formatPrice } from "@/lib/binance";
+import { useLiveTickers } from "@/lib/useLiveTickers";
 
 export default function TickerStrip() {
-  const [tickers, setTickers] = useState<Ticker24h[]>([]);
+  const tickers = useLiveTickers();
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const all = await getAllTickers24h();
-        if (cancelled) return;
-        const top = [...all]
-          .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-          .slice(0, 14);
-        setTickers(top);
-      } catch {
-        // strip stays empty until the next tick; ticker page shows the real error state
-      }
-    }
-    load();
-    const id = setInterval(load, 20000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
+  const top = useMemo(() => {
+    return Object.values(tickers)
+      .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+      .slice(0, 14);
+  }, [tickers]);
 
-  if (tickers.length === 0) return <div className="h-9 border-b border-line" />;
+  if (top.length === 0) return <div className="h-9 border-b border-line" />;
 
-  const items = [...tickers, ...tickers];
+  const items = [...top, ...top];
 
   return (
     <div className="marquee-wrap h-9 border-b border-line bg-surface overflow-hidden">

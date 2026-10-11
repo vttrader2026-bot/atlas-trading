@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { getAllTickers24h, getTicker24h, formatPrice, formatCompact } from "@/lib/binance";
+import { formatPrice, formatCompact } from "@/lib/binance";
+import { useLiveTickers } from "@/lib/useLiveTickers";
 import { buildRadarRows, RadarRow, RadarTag, MarketCondition } from "@/lib/radar";
 import { useLanguage } from "@/lib/i18n";
 
@@ -15,7 +16,7 @@ const FILTERS: { key: RadarTag | "all"; labelKey: string }[] = [
   { key: "underperformBtc", labelKey: "radar.filterRelativeWeakness" },
 ];
 
-// Only filters with a genuinely matching Academy lesson get an info icon —
+// Only filters with a genuinely matching Academy lesson get an info icon â€”
 // no icon is better than a forced, misleading link.
 const FILTER_LESSON_SLUGS: Partial<Record<RadarTag, string>> = {
   breakout: "breakout-retest",
@@ -26,30 +27,30 @@ const SHORTLIST_SIZE = 8;
 
 export default function RadarPage() {
   const { t } = useLanguage();
-  const [rows, setRows] = useState<RadarRow[] | null>(null);
+  const tickers = useLiveTickers();
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<RadarTag | "all">("all");
 
+  // The live WebSocket feed (lib/binanceStream) bootstraps itself via REST
+  // and keeps reconnecting on its own, so the only failure mode worth
+  // surfacing here is "still nothing after a while" (e.g. the stream is
+  // blocked by the network).
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const [tickers, btc] = await Promise.all([getAllTickers24h(), getTicker24h("BTCUSDT")]);
-        if (cancelled) return;
-        const btcChange = parseFloat(btc.priceChangePercent);
-        setRows(buildRadarRows(tickers, btcChange));
-        setError(false);
-      } catch {
-        if (!cancelled) setError(true);
-      }
+    if (Object.keys(tickers).length > 0) {
+      setError(false);
+      return;
     }
-    load();
-    const id = setInterval(load, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
+    const timer = setTimeout(() => setError(true), 15000);
+    return () => clearTimeout(timer);
+  }, [tickers]);
+
+  const rows = useMemo<RadarRow[] | null>(() => {
+    const list = Object.values(tickers);
+    if (list.length === 0) return null;
+    const btc = tickers["BTCUSDT"];
+    const btcChange = btc ? parseFloat(btc.priceChangePercent) : 0;
+    return buildRadarRows(list, btcChange);
+  }, [tickers]);
 
   const shortlist = useMemo(() => {
     if (!rows) return [];
@@ -116,9 +117,9 @@ export default function RadarPage() {
                       <Link
                         href={`/academy/${lessonSlug}`}
                         className="text-text-muted hover:text-gold transition-colors text-xs"
-                        title="تعلّم المزيد"
+                        title="ØªØ¹Ù„Ù‘Ù… Ø§Ù„Ù…Ø²ÙŠØ¯"
                       >
-                        ⓘ
+                        â“˜
                       </Link>
                     )}
                   </div>
@@ -159,40 +160,40 @@ export default function RadarPage() {
                           <td className="px-4 py-3">
                             <Link
                               href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
-                              className="flex items-center gap-2.5 group-hover:text-gold transition-colors"
-                            >
-                              <RadarLogo base={base} />
-                              <span className="font-data font-medium">{row.ticker.symbol.replace("USDT", "/USDT")}</span>
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 font-data text-right">
-                            ${formatPrice(row.ticker.lastPrice)}
-                          </td>
-                          <td
-                            className={`px-4 py-3 font-data text-right ${
-                              positive ? "text-bull" : "text-bear"
-                            }`}
+                            className="flex items-center gap-2.5 group-hover:text-gold transition-colors"
                           >
-                            {positive ? "+" : ""}
-                            {row.change.toFixed(2)}%
-                          </td>
-                          <td className="px-4 py-3 font-data text-right text-text-muted">
-                            ${formatCompact(row.volume)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
-                          </td>
-                          <td className="px-4 py-3 text-text-muted">{t(`radar.setup.${row.setup}`)}</td>
-                          <td className="px-3 py-3 text-right">
-                            <span
-                              className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"
-                              aria-hidden="true"
-                            >
-                              {"\u2192"}
-                            </span>
-                          </td>
-                        </tr>
-                      );
+                            <RadarLogo base={base} />
+                            <span className="font-data font-medium">{row.ticker.symbol.replace("USDT", "/USDT")}</span>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 font-data text-right">
+                          ${formatPrice(row.ticker.lastPrice)}
+                        </td>
+                        <td
+                          className={`px-4 py-3 font-data text-right ${
+                            positive ? "text-bull" : "text-bear"
+                          }`}
+                        >
+                          {positive ? "+" : ""}
+                          {row.change.toFixed(2)}%
+                        </td>
+                        <td className="px-4 py-3 font-data text-right text-text-muted">
+                          ${formatCompact(row.volume)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
+                        </td>
+                        <td className="px-4 py-3 text-text-muted">{t(`radar.setup.${row.setup}`)}</td>
+                        <td className="px-3 py-3 text-right">
+                          <span
+                            className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-hidden="true"
+                          >
+                            {"→"}
+                          </span>
+                        </td>
+                      </tr>
+                     );
                     })}
                   </tbody>
                 </table>
