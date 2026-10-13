@@ -57,7 +57,7 @@ export default function AnalyzerPage() {
 function AnalyzerPageInner() {
   const { t, lang } = useLanguage();
   const searchParams = useSearchParams();
-  const { isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
 
   const queryPair = searchParams.get("pair");
   const initialPair = queryPair || "auto";
@@ -136,7 +136,7 @@ function AnalyzerPageInner() {
       const res = await fetch("/api/analyze", { method: "POST", body: formData });
       const data = await res.json();
       // Only a genuinely successful, well-formed analysis consumes one of
-      // the 2 free attempts — never a 429/503/network/validation failure.
+      // the 3 free attempts — never a 429/503/network/validation failure.
       const isValidAnalysis =
         res.ok && data && typeof data === "object" && data.marketStructure && data.tradePlan;
       if (!isValidAnalysis) {
@@ -165,6 +165,26 @@ function AnalyzerPageInner() {
         {t("analyzer.valueProp")}
       </span>
 
+      {isLoaded && !isSignedIn && (
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="font-medium">
+              {lang === "ar" ? "انضم إلى Atlas Trading مجانًا" : "Join Atlas Trading for free"}
+            </div>
+            <p className="text-sm text-text-muted leading-relaxed mt-1">
+              {lang === "ar"
+                ? "استفد من خلاصة الصفقات العامة، والمحلل الذكي، والرادار، وخطة الصفقة، وأدوات المخاطر، والسجل."
+                : "Access the public Trade Feed, AI Analyzer, Radar, Trade Plan, Risk tools, and Journal."}
+            </p>
+          </div>
+          <Link href="/sign-up" className="btn-primary shrink-0 whitespace-nowrap">
+            {lang === "ar" ? "أنشئ حسابك المجاني ←" : "Create your free account →"}
+          </Link>
+        </div>
+      )}
+
+      {isSignedIn && (
+        <>
       <div className="mt-6 grid sm:grid-cols-3 gap-3">
         <Select label={t("analyzer.pairLabel")} value={pair} onChange={setPair}>
           {pairOptions.map((p) => (
@@ -266,6 +286,8 @@ function AnalyzerPageInner() {
         <p className="mt-8 text-xs text-text-muted leading-relaxed max-w-xl">
           {t("analyzer.precisionNote")}
         </p>
+      )}
+        </>
       )}
 
     </main>

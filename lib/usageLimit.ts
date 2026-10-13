@@ -1,5 +1,5 @@
 const STORAGE_KEY = "atlas-trading.analyzeUsage.v1";
-export const DAILY_ANALYZE_LIMIT = 2;
+export const DAILY_ANALYZE_LIMIT = 3;
 
 type UsageRecord = { date: string; count: number };
 

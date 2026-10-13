@@ -7,7 +7,7 @@ export type Plan = "free" | "elite";
 // Single source of truth for what each plan includes. Change limits here,
 // not in scattered checks elsewhere in the app.
 const DAILY_ANALYZE_LIMIT: Record<Plan, number> = {
-  free: 2,
+  free: 3,
   elite: 20,
 };
 

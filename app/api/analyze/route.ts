@@ -187,6 +187,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Please sign in to use the Analyzer." },
+      { status: 401 }
+    );
+  }
   let usageInfo: { plan: string; remaining: number; limit: number } | null = null;
   if (userId) {
     // Read-only check — do NOT consume a use yet. We only spend one of the
@@ -198,7 +204,7 @@ export async function POST(req: NextRequest) {
           error:
             usage.plan === "elite"
               ? "You've used all 20 Elite analyses for today. This resets at midnight UTC."
-              : "You've used both free analyses for today. This resets at midnight UTC, or upgrade to Atlas Elite for 20 a day.",
+              : "You've used all 3 free analyses for today. This resets at midnight UTC, or upgrade to Atlas Elite for 20 a day.",
         },
         { status: 429 }
       );
