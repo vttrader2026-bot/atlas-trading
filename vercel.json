@@ -1,6 +1,9 @@
 {
   "crons": [
     { "path": "/api/cron/analyzer-reset", "schedule": "0 0 * * *" },
-    { "path": "/api/cron/daily-teaser", "schedule": "1 0 * * *" }
+    { "path": "/api/cron/daily-teaser", "schedule": "1 0 * * *" },
+    { "path": "/api/cron/radar-alerts", "schedule": "15 0 * * *" },
+    { "path": "/api/cron/educational", "schedule": "0 15 * * 1,3,5" },
+    { "path": "/api/cron/elite-promo", "schedule": "0 16 * * 4" }
   ]
 }

@@ -77,7 +77,7 @@ export default function AccountPage() {
       cancelled = true;
     };
   }, [isSignedIn]);
-  
+
   async function toggleMaster(on: boolean) {
     setPrefsMsg(null);
     if (on) {
@@ -101,7 +101,7 @@ export default function AccountPage() {
     }
     await updatePref({ enabled: on });
   }
-  
+
   async function sendTest() {
     setPrefsMsg(null);
     try {
@@ -206,6 +206,18 @@ export default function AccountPage() {
                   checked={prefs.market}
                   disabled={!prefs.enabled}
                   onChange={(v) => updatePref({ market: v })}
+                />
+                <Toggle
+                  label={t("account.notifyEducational")}
+                  checked={prefs.educational}
+                  disabled={!prefs.enabled}
+                  onChange={(v) => updatePref({ educational: v })}
+                />
+                <Toggle
+                  label={t("account.notifyPromo")}
+                  checked={prefs.promotional}
+                  disabled={!prefs.enabled}
+                  onChange={(v) => updatePref({ promotional: v })}
                 />
               </div>
             </div>

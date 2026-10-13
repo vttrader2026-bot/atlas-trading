@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { Redis } from "@upstash/redis";
 import { timingSafeEqual, randomUUID } from "crypto";
 import type { PublishedTrade } from "@/lib/tradeFeed";
-import { notifyTradeSubscribers, notifyTpSlSubscribers } from "@/lib/push";
+import { notifyTradeSubscribers, notifyTpSlSubscribers, notifyTradeClosedSubscribers } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +143,7 @@ export async function PATCH(req: Request) {
     if (index === -1) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+    const previousStatus = trades[index].status;
     const previousLevels = trades[index].hitLevels ?? [];
     const updated: PublishedTrade = {
       ...trades[index],
@@ -151,11 +152,21 @@ export async function PATCH(req: Request) {
     };
     await redis.lset(FEED_KEY, index, updated);
 
+    let closedViaLevel = false;
     if (hitLevels) {
       const newlyHit = hitLevels.filter((level) => !previousLevels.includes(level));
+      closedViaLevel = newlyHit.length > 0;
       for (const level of newlyHit) {
         after(() => notifyTpSlSubscribers(updated, level));
       }
+    }
+
+    // A trade can close two ways: hitting a TP/SL level (notified above) or
+    // being manually closed/cancelled with no new level hit. Only the latter
+    // gets its own notification, so the two never double-fire for one trade.
+    const justClosed = status === "closed" && previousStatus !== "closed";
+    if (justClosed && !closedViaLevel) {
+      after(() => notifyTradeClosedSubscribers(updated));
     }
 
     return NextResponse.json({ ok: true, trade: updated });
