@@ -10,7 +10,7 @@ export type Ticker24h = {
   quoteVolume: string;
 };
 
-const BASE = "https://api.binance.com/api/v3";
+const BASE = "https://data-api.binance.vision/api/v3";
 
 /** All USDT-quoted symbols, e.g. ["BTCUSDT", "ETHUSDT", ...] */
 export async function getUsdtSymbols(): Promise<string[]> {
