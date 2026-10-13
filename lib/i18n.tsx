@@ -326,10 +326,10 @@ const en: Dict = {
     entryZone: "Entry zone",
     createTradePlan: "Create trade plan",
     usesRemainingLabel: "free analyses left today",
-    valueProp: "⚡ 2 free AI analyses every day",
+    valueProp: "⚡ 3 free AI analyses every day",
     limitReachedTitle: "You're out of free analyses for today",
     limitReached:
-      "Every visitor gets 2 free AI chart reads per day on this device — yours reset automatically at midnight. In the meantime, Radar, Trade Plan, Risk, and Journal are all still fully available.",
+      "Every visitor gets 3 free AI chart reads per day on this device — yours reset automatically at midnight. In the meantime, Radar, Trade Plan, Risk, and Journal are all still fully available.",
     limitReachedCta: "Want more, sooner? Ask about Atlas Elite",
     flow: {
       upload: "Upload",
@@ -803,10 +803,10 @@ const ar: Dict = {
     entryZone: "منطقة الدخول",
     createTradePlan: "أنشئ خطة صفقة",
     usesRemainingLabel: "تحليلات مجانية متبقية اليوم",
-    valueProp: "⚡ تحليلان مجانيان بالذكاء الاصطناعي كل يوم",
+    valueProp: "⚡ 3 تحليلات مجانية بالذكاء الاصطناعي كل يوم",
     limitReachedTitle: "لقد استنفدت تحليلات اليوم المجانية",
     limitReached:
-      "كل زائر يحصل على تحليلين مجانيين بالذكاء الاصطناعي يوميًا على هذا الجهاز — تُتاح مجددًا تلقائيًا عند منتصف الليل. في هذه الأثناء، الرادار وخطة الصفقة وحاسبة المخاطر والسجل كلها متاحة بالكامل.",
+      "كل زائر يحصل على 3 تحليلات مجانية بالذكاء الاصطناعي يوميًا على هذا الجهاز — تُتاح مجددًا تلقائيًا عند منتصف الليل. في هذه الأثناء، الرادار وخطة الصفقة وحاسبة المخاطر والسجل كلها متاحة بالكامل.",
     limitReachedCta: "تريد المزيد، أسرع؟ اسأل عن Atlas Elite",
     flow: {
       upload: "ارفع",
@@ -1280,10 +1280,10 @@ const fr: Dict = {
     entryZone: "Zone d'entrée",
     createTradePlan: "Créer un plan de trade",
     usesRemainingLabel: "analyses gratuites restantes aujourd'hui",
-    valueProp: "⚡ 2 analyses IA gratuites chaque jour",
+    valueProp: "⚡ 3 analyses IA gratuites chaque jour",
     limitReachedTitle: "Vous n'avez plus d'analyses gratuites pour aujourd'hui",
     limitReached:
-      "Chaque visiteur obtient 2 lectures de graphique IA gratuites par jour sur cet appareil — les vôtres se réinitialisent automatiquement à minuit. En attendant, Radar, Plan de trade, Risque et Journal restent tous entièrement disponibles.",
+      "Chaque visiteur obtient 3 lectures de graphique IA gratuites par jour sur cet appareil — les vôtres se réinitialisent automatiquement à minuit. En attendant, Radar, Plan de trade, Risque et Journal restent tous entièrement disponibles.",
     limitReachedCta: "Vous en voulez plus, plus vite ? Renseignez-vous sur Atlas Elite",
     flow: {
       upload: "Importer",
