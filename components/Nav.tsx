@@ -76,8 +76,12 @@ export default function Nav() {
     setOpen(false);
   }, [pathname]);
 
+  const marketIntelLabel =
+    lang === "ar" ? "ذكاء السوق" : lang === "fr" ? "Intelligence Marché" : "Market Intel";
+
   const PRIMARY_LINKS = [
     { href: "/radar", label: t("nav.radar") },
+    { href: "/market-intelligence", label: marketIntelLabel },
     { href: "/analyzer", label: t("nav.analyzer") },
     { href: "/trade-feed", label: t("nav.tradeFeed") },
     { href: "/trade-plan", label: t("nav.tradePlan") },
@@ -94,6 +98,7 @@ export default function Nav() {
       label: "MARKETS",
       links: [
         { href: "/radar", label: t("nav.radar") },
+        { href: "/market-intelligence", label: marketIntelLabel },
         { href: "/trade-feed", label: t("nav.tradeFeed") },
       ],
     },
@@ -112,7 +117,7 @@ export default function Nav() {
     },
   ];
 
-  const eliteLabel = lang === "ar" ? "\u0625\u064A\u0644\u064A\u062A" : "Elite";
+  const eliteLabel = lang === "ar" ? "إيليت" : "Elite";
   const eliteActive = pathname === "/elite";
   const elitePillClass = `shrink-0 whitespace-nowrap rounded-full border text-xs font-semibold transition-colors ${
     eliteActive
@@ -168,7 +173,7 @@ export default function Nav() {
             />
           ))}
           <Link href="/elite" className={`${elitePillClass} ms-2 px-3 py-1`}>
-            {"\u269C "}
+            {"⚜ "}
             {eliteLabel}
           </Link>
         </nav>
@@ -225,8 +230,8 @@ export default function Nav() {
 
           <div className="max-w-6xl mx-auto px-4 py-3 border-t border-line">
             <Link href="/elite" className={`${elitePillClass} inline-flex items-center gap-1.5 px-3 py-1.5 text-sm`}>
-              {"\u269C "}
-              {lang === "ar" ? "\u0623\u0637\u0644\u0633 " : "Atlas "}
+              {"⚜ "}
+              {lang === "ar" ? "أطلس " : "Atlas "}
               {eliteLabel}
             </Link>
           </div>
