@@ -112,7 +112,7 @@ function NavDropdown({
         )}
       </Link>
       {isOpen && (
-        <div className="absolute left-0 top-full pt-1 z-50">
+        <div className="absolute left-0 top-full pt-2 z-50">
           <div className="min-w-[170px] rounded-md border border-line bg-surface shadow-lg py-1">
             {items.map((item) => (
               <Link
@@ -162,9 +162,8 @@ export default function Nav() {
         { href: "/journal", label: t("nav.journal") },
       ],
     },
+    { href: "/academy", label: t("nav.academy") },
   ];
-
-  const SECONDARY_LINKS: NavItem[] = [{ href: "/academy", label: t("nav.academy") }];
 
   const MOBILE_GROUPS: { label: string; links: NavItem[] }[] = [
     {
@@ -231,7 +230,7 @@ export default function Nav() {
           <Logo />
         </Link>
 
-        <nav className="hidden sm:flex flex-1 min-w-0 items-center justify-end gap-0.5 overflow-x-auto scrollbar-none">
+        <nav className="hidden sm:flex flex-1 min-w-0 items-center justify-end gap-0.5 overflow-x-auto overflow-y-visible scrollbar-none">
           {PRIMARY_LINKS.map((link) =>
             link.children ? (
               <NavDropdown
@@ -249,16 +248,6 @@ export default function Nav() {
               <NavLink key={link.href} href={link.href} label={link.label} active={pathname === link.href} />
             ),
           )}
-          <span className="w-px h-4 bg-line mx-1.5 shrink-0" aria-hidden="true" />
-          {SECONDARY_LINKS.map((link) => (
-            <NavLink
-              key={link.href}
-              href={link.href}
-              label={link.label}
-              active={pathname === link.href}
-              muted
-            />
-          ))}
           <Link href="/elite" className={`${elitePillClass} ms-2 px-3 py-1`}>
             {"⚜ "}
             {eliteLabel}
