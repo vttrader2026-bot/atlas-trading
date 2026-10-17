@@ -8,6 +8,18 @@ export type Ticker24h = {
   highPrice: string;
   lowPrice: string;
   quoteVolume: string;
+  closeTime?: number;
+};
+
+export type Kline = {
+  openTime: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  closeTime: number;
+  quoteVolume: number;
 };
 
 const BASE = "https://data-api.binance.vision/api/v3";
@@ -36,6 +48,29 @@ export async function getTicker24h(symbol: string): Promise<Ticker24h> {
   const res = await fetch(`${BASE}/ticker/24hr?symbol=${symbol}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load ${symbol}`);
   return res.json();
+}
+
+/**
+ * Daily (or other interval) candles for a symbol, oldest first, most recent
+ * (possibly still-forming) candle last. Used for real historical performance
+ * and volatility math — never estimated visually or guessed.
+ */
+export async function getKlines(symbol: string, interval: string, limit: number): Promise<Kline[]> {
+  const res = await fetch(`${BASE}/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to load klines for ${symbol}`);
+  const raw = (await res.json()) as unknown[];
+  return (raw as Array<Array<string | number>>).map((k) => ({
+    openTime: Number(k[0]),
+    open: parseFloat(String(k[1])),
+    high: parseFloat(String(k[2])),
+    low: parseFloat(String(k[3])),
+    close: parseFloat(String(k[4])),
+    volume: parseFloat(String(k[5])),
+    closeTime: Number(k[6]),
+    quoteVolume: parseFloat(String(k[7])),
+  }));
 }
 
 export function formatPrice(value: string | number, digits = 2): string {

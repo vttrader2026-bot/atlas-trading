@@ -4,6 +4,7 @@
     { "path": "/api/cron/daily-teaser", "schedule": "1 0 * * *" },
     { "path": "/api/cron/radar-alerts", "schedule": "15 0 * * *" },
     { "path": "/api/cron/educational", "schedule": "0 15 * * 1,3,5" },
-    { "path": "/api/cron/elite-promo", "schedule": "0 16 * * 4" }
+    { "path": "/api/cron/elite-promo", "schedule": "0 16 * * 4" },
+    { "path": "/api/cron/market-intel-snapshot", "schedule": "30 0 * * *" }
   ]
 }
