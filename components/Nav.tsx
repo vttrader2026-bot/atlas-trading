@@ -65,107 +65,35 @@ function NavLink({
   );
 }
 
-type NavItem = { href: string; label: string };
-
-function NavDropdown({
-  href,
-  label,
-  active,
-  childActive,
-  items,
-  isOpen,
-  onOpen,
-  onClose,
-}: {
-  href: string;
-  label: string;
-  active: boolean;
-  childActive: boolean;
-  items: NavItem[];
-  isOpen: boolean;
-  onOpen: () => void;
-  onClose: () => void;
-}) {
-  const highlighted = active || childActive;
-  return (
-    <div className="relative shrink-0" onMouseEnter={onOpen} onMouseLeave={onClose}>
-      <Link
-        href={href}
-        className={`relative flex items-center gap-1 whitespace-nowrap px-2.5 sm:px-3 py-1.5 text-sm transition-colors ${
-          highlighted ? "text-text" : "text-text-muted hover:text-text"
-        }`}
-      >
-        {label}
-        <svg
-          width="10"
-          height="10"
-          viewBox="0 0 10 10"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
-        >
-          <path d="M2 3.5l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        {highlighted && (
-          <span className="absolute left-2.5 right-2.5 sm:left-3 sm:right-3 -bottom-[1px] h-[1.5px] bg-gold" />
-        )}
-      </Link>
-      {isOpen && (
-        <div className="absolute left-0 top-full pt-2 z-50">
-          <div className="min-w-[170px] rounded-md border border-line bg-surface shadow-lg py-1">
-            {items.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block px-3 py-1.5 text-sm text-text-muted hover:text-text hover:bg-surface-raised transition-colors whitespace-nowrap"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function Nav() {
   const pathname = usePathname();
   const { lang, setLang, t } = useLanguage();
   const { isLoaded, isSignedIn } = useAuth();
   const [open, setOpen] = useState(false);
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-  // Close the mobile menu + any open dropdown whenever the route changes.
+  // Close the mobile menu whenever the route changes.
   useEffect(() => {
     setOpen(false);
-    setOpenMenu(null);
   }, [pathname]);
 
   const marketIntelLabel =
     lang === "ar" ? "ذكاء السوق" : lang === "fr" ? "Intelligence Marché" : "Market Intel";
 
-  const PRIMARY_LINKS: (NavItem & { children?: NavItem[] })[] = [
-    {
-      href: "/radar",
-      label: t("nav.radar"),
-      children: [{ href: "/market-intelligence", label: marketIntelLabel }],
-    },
+  const PRIMARY_LINKS = [
+    { href: "/radar", label: t("nav.radar") },
     { href: "/analyzer", label: t("nav.analyzer") },
     { href: "/trade-feed", label: t("nav.tradeFeed") },
-    {
-      href: "/trade-plan",
-      label: t("nav.tradePlan"),
-      children: [
-        { href: "/risk", label: t("nav.risk") },
-        { href: "/journal", label: t("nav.journal") },
-      ],
-    },
+    { href: "/trade-plan", label: t("nav.tradePlan") },
+  ];
+
+  const SECONDARY_LINKS = [
+    { href: "/market-intelligence", label: marketIntelLabel },
+    { href: "/risk", label: t("nav.risk") },
+    { href: "/journal", label: t("nav.journal") },
     { href: "/academy", label: t("nav.academy") },
   ];
 
-  const MOBILE_GROUPS: { label: string; links: NavItem[] }[] = [
+  const MOBILE_GROUPS: { label: string; links: { href: string; label: string }[] }[] = [
     {
       label: "MARKETS",
       links: [
@@ -230,24 +158,20 @@ export default function Nav() {
           <Logo />
         </Link>
 
-        <nav className="hidden sm:flex flex-1 min-w-0 items-center justify-end gap-0.5 overflow-x-auto overflow-y-visible scrollbar-none">
-          {PRIMARY_LINKS.map((link) =>
-            link.children ? (
-              <NavDropdown
-                key={link.href}
-                href={link.href}
-                label={link.label}
-                active={pathname === link.href}
-                childActive={link.children.some((c) => c.href === pathname)}
-                items={link.children}
-                isOpen={openMenu === link.href}
-                onOpen={() => setOpenMenu(link.href)}
-                onClose={() => setOpenMenu(null)}
-              />
-            ) : (
-              <NavLink key={link.href} href={link.href} label={link.label} active={pathname === link.href} />
-            ),
-          )}
+        <nav className="hidden sm:flex flex-1 min-w-0 items-center justify-end gap-0.5 overflow-x-auto scrollbar-none">
+          {PRIMARY_LINKS.map((link) => (
+            <NavLink key={link.href} href={link.href} label={link.label} active={pathname === link.href} />
+          ))}
+          <span className="w-px h-4 bg-line mx-1.5 shrink-0" aria-hidden="true" />
+          {SECONDARY_LINKS.map((link) => (
+            <NavLink
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              active={pathname === link.href}
+              muted
+            />
+          ))}
           <Link href="/elite" className={`${elitePillClass} ms-2 px-3 py-1`}>
             {"⚜ "}
             {eliteLabel}
