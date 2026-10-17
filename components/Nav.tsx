@@ -81,13 +81,13 @@ export default function Nav() {
 
   const PRIMARY_LINKS = [
     { href: "/radar", label: t("nav.radar") },
-    { href: "/market-intelligence", label: marketIntelLabel },
     { href: "/analyzer", label: t("nav.analyzer") },
     { href: "/trade-feed", label: t("nav.tradeFeed") },
     { href: "/trade-plan", label: t("nav.tradePlan") },
   ];
 
   const SECONDARY_LINKS = [
+    { href: "/market-intelligence", label: marketIntelLabel },
     { href: "/risk", label: t("nav.risk") },
     { href: "/journal", label: t("nav.journal") },
     { href: "/academy", label: t("nav.academy") },
