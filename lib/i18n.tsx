@@ -14,6 +14,13 @@ const en: Dict = {
     live: "LIVE",
     openRadar: "Open Market Radar",
   },
+  intelSection: {
+    eyebrow: "INSTITUTIONAL CRYPTO RESEARCH",
+    heading: "ATLAS MARKET INTELLIGENCE",
+    body: "Discover digital assets through institutional fund portfolios, index constituents, and disclosed holdings. Research the sources behind the assets and make more informed decisions.",
+    sourcesLabel: "Tracked sources",
+    cta: "Explore Market Intelligence",
+  },
   workspaceSection: {
     eyebrow: "TRADING WORKSPACE",
     heading: "Trade with structure.",
@@ -492,6 +499,13 @@ const ar: Dict = {
     live: "مباشر",
     openRadar: "افتح رادار السوق",
   },
+  intelSection: {
+    eyebrow: "أبحاث العملات المشفرة المؤسسية",
+    heading: "ATLAS MARKET INTELLIGENCE",
+    body: "اكتشف الأصول الرقمية من خلال محافظ الصناديق المؤسسية، ومكونات المؤشرات، والحيازات المُفصح عنها. ابحث في مصادر الأصول واتخذ قرارات أكثر استنارة.",
+    sourcesLabel: "المصادر المتتبعة",
+    cta: "استكشف Market Intelligence",
+  },
   workspaceSection: {
     eyebrow: "مساحة عمل التداول",
     heading: "تداول ببنية واضحة.",
@@ -961,6 +975,13 @@ const ar: Dict = {
 };
 
 const fr: Dict = {
+  intelSection: {
+    eyebrow: "RECHERCHE CRYPTO INSTITUTIONNELLE",
+    heading: "ATLAS MARKET INTELLIGENCE",
+    body: "Découvrez les actifs numériques à travers les portefeuilles de fonds institutionnels, les composants d'indices et les avoirs divulgués. Analysez les sources derrière les actifs pour prendre des décisions plus éclairées.",
+    sourcesLabel: "Sources suivies",
+    cta: "Explorer Market Intelligence",
+  },
   pulseSection: {
     eyebrow: "POULS DU MARCHÉ",
     heading: "Le marché, en un coup d'œil.",

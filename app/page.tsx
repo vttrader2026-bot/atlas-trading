@@ -7,6 +7,7 @@ import { buildRadarRows, RadarRow } from "@/lib/radar";
 import { useLanguage } from "@/lib/i18n";
 import { IconRadar, IconAnalyzer, IconJournal, IconRisk } from "@/components/icons";
 import type { PublishedTrade } from "@/lib/tradeFeed";
+import type { RankedAsset } from "@/lib/marketIntelCompute";
 
 const HERO_PAIRS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
 
@@ -185,6 +186,31 @@ export default function Home() {
         </p>
         <div className="mt-7">
           <RadarPreview />
+        </div>
+      </section>
+
+      {/* ATLAS MARKET INTELLIGENCE */}
+      <section className="max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
+        <div className="text-label text-gold">{t("intelSection.eyebrow")}</div>
+        <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-lg">
+          {t("intelSection.heading")}
+        </h2>
+        <p className="mt-3 text-base text-text-muted leading-relaxed max-w-xl">
+          {t("intelSection.body")}
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-[10px] uppercase tracking-wide text-text-muted">
+            {t("intelSection.sourcesLabel")}
+          </span>
+          {["Grayscale", "Coinbase 50", "World Liberty Financial", "Made in USA"].map((name, i, arr) => (
+            <span key={name} className="text-xs text-text-muted">
+              {name}
+              {i < arr.length - 1 && <span className="mx-1.5 opacity-50" aria-hidden>·</span>}
+            </span>
+          ))}
+        </div>
+        <div className="mt-7">
+          <IntelPreview />
         </div>
       </section>
 
@@ -649,6 +675,136 @@ function RadarPreview() {
       >
         {lang === "ar" ? "عرض رادار السوق الكامل" : "View Market Radar"}
         <span aria-hidden>{"\u2192"}</span>
+      </Link>
+    </div>
+  );
+}
+
+const INTEL_PREVIEW_SIZE = 4;
+
+const INTEL_CATEGORY_SHORT_EN: Record<string, string> = {
+  grayscale: "Grayscale",
+  coinbase50: "COIN50",
+  madeInUsa: "Made in USA",
+  worldLiberty: "WLFI",
+};
+const INTEL_CATEGORY_SHORT_AR: Record<string, string> = {
+  grayscale: "جرايسكيل",
+  coinbase50: "COIN50",
+  madeInUsa: "صنع أمريكي",
+  worldLiberty: "WLFI",
+};
+
+function IntelPreview() {
+  const { t, lang } = useLanguage();
+  const [assets, setAssets] = useState<RankedAsset[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        // Reuses the same cached Market Intelligence data endpoint the
+        // dedicated page uses - no separate fetching/ranking logic here.
+        const res = await fetch("/api/market-intel/data", { cache: "no-store" });
+        const json = await res.json();
+        if (cancelled) return;
+        if (!res.ok || json.error || !Array.isArray(json.assets)) {
+          setFailed(true);
+          return;
+        }
+        const top = [...(json.assets as RankedAsset[])]
+          .sort((a, b) => a.rank - b.rank)
+          .slice(0, INTEL_PREVIEW_SIZE);
+        setAssets(top);
+        setFailed(false);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const categoryShort = lang === "ar" ? INTEL_CATEGORY_SHORT_AR : INTEL_CATEGORY_SHORT_EN;
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="flex items-center justify-between px-5 h-11 border-b border-line">
+        <span className="text-label">
+          {lang === "ar" ? "أبرز الأصول المصنّفة" : "Top ranked assets"}
+        </span>
+      </div>
+
+      {assets === null && !failed && (
+        <div className="px-5 py-10 text-center text-sm text-text-muted">
+          {lang === "ar" ? "جارٍ تحميل البيانات..." : "Loading market data..."}
+        </div>
+      )}
+
+      {/* No fabricated numbers if the live data isn't available - a clean
+          static intro instead, per the data-integrity requirement. */}
+      {failed && (
+        <div className="px-5 py-10 text-center text-sm text-text-muted max-w-sm mx-auto">
+          {lang === "ar"
+            ? "استكشف فئات الأصول المؤسسية التي يتتبعها أطلس."
+            : "Explore the institutional asset categories Atlas tracks."}
+        </div>
+      )}
+
+      {assets !== null && assets.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[420px]">
+            <thead className="text-text-muted">
+              <tr className="border-b border-line">
+                <th className="text-left px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
+                  {lang === "ar" ? "الأصل" : "Asset"}
+                </th>
+                <th className="text-left px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
+                  {lang === "ar" ? "المصدر" : "Source"}
+                </th>
+                <th className="text-right px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
+                  7D
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {assets.map((a, i) => {
+                const perf = a.perf7dPct;
+                const positive = (perf ?? 0) >= 0;
+                return (
+                  <tr
+                    key={a.symbol}
+                    className="radar-row-in border-t border-line hover:bg-surface-raised/50 transition-colors"
+                    style={{ animationDelay: `${i * 70}ms` }}
+                  >
+                    <td className="px-5 py-3 font-data font-medium">{a.symbol}</td>
+                    <td className="px-5 py-3 text-text-muted text-xs">
+                      {a.categories.map((c) => categoryShort[c] || c).join(" · ")}
+                    </td>
+                    <td
+                      className={`px-5 py-3 text-right font-data ${
+                        perf === null ? "text-text-muted" : positive ? "text-bull" : "text-bear"
+                      }`}
+                    >
+                      {perf === null ? "--" : `${positive ? "+" : ""}${perf.toFixed(1)}%`}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Link
+        href="/market-intelligence"
+        className="flex items-center justify-center gap-1.5 px-5 py-3.5 border-t border-line text-sm text-text-muted hover:text-gold transition-colors"
+      >
+        {t("intelSection.cta")}
+        <span aria-hidden>{"→"}</span>
       </Link>
     </div>
   );
