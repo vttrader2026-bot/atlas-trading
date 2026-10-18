@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useAuth } from "@clerk/nextjs";
 import { formatCompact, formatPrice } from "@/lib/binance";
 import { useLanguage } from "@/lib/i18n";
 import { miT, type MiLang } from "@/lib/marketIntelI18n";
@@ -46,6 +48,7 @@ const REFRESH_MS = 5 * 60 * 1000;
 export default function MarketIntelligencePage() {
   const { lang } = useLanguage() as { lang: MiLang };
   const tr = (key: string) => miT(lang, key);
+  const { isLoaded, isSignedIn } = useAuth();
 
   const [data, setData] = useState<ApiResponse | null>(null);
   const [error, setError] = useState(false);
@@ -54,6 +57,9 @@ export default function MarketIntelligencePage() {
   const [sortKey, setSortKey] = useState<SortKey>("rank");
 
   useEffect(() => {
+    // Only signed-in accounts can see this tool, so there's no reason to
+    // call the data API (or keep polling it) for a logged-out visitor.
+    if (!isSignedIn) return;
     let cancelled = false;
     async function load() {
       try {
@@ -76,7 +82,7 @@ export default function MarketIntelligencePage() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [isSignedIn]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -130,6 +136,28 @@ export default function MarketIntelligencePage() {
       <p className="text-text-muted text-sm mt-2 max-w-2xl leading-relaxed">{tr("subtitle")}</p>
       <p className="text-text-muted text-xs mt-3 max-w-2xl leading-relaxed italic">{tr("disclaimer")}</p>
 
+      {isLoaded && !isSignedIn && (
+        <div className="mt-8 rounded-2xl border border-line bg-surface p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="font-medium">{tr("authGate.title")}</div>
+            <p className="text-sm text-text-muted leading-relaxed mt-1 max-w-md">{tr("authGate.body")}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/sign-in"
+              className="px-3 py-1.5 rounded-md border border-line text-sm text-text-muted hover:text-text hover:border-text-muted transition-colors whitespace-nowrap"
+            >
+              {tr("authGate.signIn")}
+            </Link>
+            <Link href="/sign-up" className="btn-primary whitespace-nowrap">
+              {tr("authGate.signUp")}
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {isSignedIn && (
+        <>
       <div className="mt-8 flex flex-wrap gap-2">
         {CATEGORY_FILTERS.map((key) => (
           <button
@@ -303,6 +331,8 @@ export default function MarketIntelligencePage() {
 
             <p className="mt-6 text-xs text-text-muted leading-relaxed max-w-2xl">{tr("history.disclaimer")}</p>
           </section>
+        </>
+      )}
         </>
       )}
     </main>

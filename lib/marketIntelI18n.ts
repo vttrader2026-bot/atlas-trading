@@ -87,6 +87,12 @@ const en: Dict = {
     disclaimer:
       "This tracked universe is a research reference, not an executable portfolio. These figures are not actual trading results and do not represent profits or losses from real positions.",
   },
+  authGate: {
+    title: "Join Atlas Trading for free",
+    body: "Sign in to view Atlas Market Intelligence — strength rankings, historical performance, and more.",
+    signIn: "Sign In",
+    signUp: "Create your free account →",
+  },
 };
 
 const ar: Dict = {
@@ -145,7 +151,7 @@ const ar: Dict = {
     wVolume: "تغير الحجم (آخر 7 أيام مقابل السابقة) — 10%",
     wLiquidity: "السيولة (حجم التداول خلال 24 ساعة) — 10%",
     wVolatility: "التقلب (الأقل يحصل درجة أعلى) — 5%",
-    disclaimer: "هذا الترتيب تحليل سوقي وصفي, وليس تنبؤًa. لا يدعي أن أي أصل سيرتفع, وليس نصيحة استثمارية.",
+    disclaimer: "هذا الترتيب تحليل سوقي وصفي، وليس تنبؤًا. لا يدعي أن أي أصل سيرتفع، وليس نصيحة استثمارية.",
   },
   history: {
     title: "الأداء التاريخي منذ خط الأساس",
@@ -159,6 +165,12 @@ const ar: Dict = {
     universeChanges: "تغييرات قائمة الأصول المتابعة",
     disclaimer:
       "هذه المجموعة المتابعة مرجع بحثي فقط، وليست محفظة قابلة للتنفيذ. هذه الأرقام ليست نتائج تداول فعلية ولا تمثل أرباحًا أو خسائر من صفقات حقيقية.",
+  },
+  authGate: {
+    title: "انضم إلى Atlas Trading مجانًا",
+    body: "سجّل الدخول لعرض ذكاء السوق أطلس — تصنيف القوة، الأداء التاريخي، والمزيد.",
+    signIn: "تسجيل الدخول",
+    signUp: "أنشئ حسابك المجاني ←",
   },
 };
 
@@ -232,6 +244,12 @@ const fr: Dict = {
     universeChanges: "Changements de la liste d'actifs suivis",
     disclaimer:
       "Cet univers suivi est une référence de recherche, pas un portefeuille exécutable. Ces chiffres ne sont pas des résultats de trading réels et ne représentent pas de profits ou pertes sur des positions réelles.",
+  },
+  authGate: {
+    title: "Rejoignez Atlas Trading gratuitement",
+    body: "Connectez-vous pour voir Atlas Market Intelligence — classement de force, performance historique, et plus.",
+    signIn: "Se connecter",
+    signUp: "Créez votre compte gratuit →",
   },
 };
 
