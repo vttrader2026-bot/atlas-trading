@@ -244,7 +244,9 @@ export async function notifyFreeUsersAnalyzerReset(): Promise<{ sent: number; re
       await Promise.allSettled(
         userIds.slice(i, i + 20).map(async (userId) => {
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
-          if (!prefs.enabled) return;
+          // Its own toggle, not just the master switch - not everyone wants a
+          // midnight ping, so this stays strictly opt-in.
+          if (!prefs.enabled || !prefs.analyzerReset) return;
           const plan = await getUserPlan(userId);
           if (plan !== "free") return;
           const delivered = await sendToUser(userId, () => analyzerResetPayload());
@@ -258,13 +260,22 @@ export async function notifyFreeUsersAnalyzerReset(): Promise<{ sent: number; re
   return { sent, reason: "ok" };
 }
 
-export function dailyTeaserPayload(): Payload {
+export function dailyTeaserPayload(lang: Lang): Payload {
+  if (lang === "ar") {
+    return {
+      title: "⚜️ Atlas Trading — اقتراب إعداد اليوم",
+      body:
+        "الشمعة اليومية تقترب من الإغلاق. راجع السوق واستعد " +
+        "لإعداد سبوت محتمل الليلة على Atlas Trading.",
+      url: "https://www.atlastrading.app/trade-feed",
+      tag: "daily-teaser",
+    };
+  }
   return {
-    title: "⚡ Atlas Trading — كن مستعدًا",
+    title: "⚜️ Atlas Trading — Daily Setup Approaching",
     body:
-      "ستُنشر صفقة مجانية " +
-      "جديدة قريبًا.\nتحقق من " +
-      "Trade Feed بعد منتصف الليل.",
+      "The daily candle is approaching its close. Review the market and " +
+      "get ready for tonight's potential spot setup on Atlas Trading.",
     url: "https://www.atlastrading.app/trade-feed",
     tag: "daily-teaser",
   };
@@ -289,7 +300,7 @@ export async function notifyDailyTeaser(): Promise<{ sent: number; reason: strin
         userIds.slice(i, i + 20).map(async (userId) => {
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           if (!prefs.enabled || !prefs.tradeFeed) return;
-          const delivered = await sendToUser(userId, () => dailyTeaserPayload());
+          const delivered = await sendToUser(userId, (lang) => dailyTeaserPayload(lang));
           if (delivered > 0) sent++;
         }),
       );
@@ -300,37 +311,43 @@ export async function notifyDailyTeaser(): Promise<{ sent: number; reason: strin
   return { sent, reason: "ok" };
 }
 
-const RADAR_ALERT_COOLDOWN_SEC = 6 * 60 * 60; // don't re-alert the same symbol+setup for 6h
-const RADAR_ALERT_MAX_PER_RUN = 5; // cap fan-out per cron run
+const RADAR_ALERT_COOLDOWN_SEC = 20 * 60 * 60; // don't re-alert the same symbol+setup for ~a day
+const RADAR_ALERT_MAX_PER_RUN = 5; // cap how many symbols count toward "genuinely useful" per run
+
+// These kept showing up as "breakout" / "relative strength" every single day -
+// thin, low-liquidity pairs trivially satisfy those thresholds on ordinary
+// daily noise (a barely-moving 24h range makes "near high" meaningless, and
+// small caps routinely swing >2pp vs BTC without it meaning anything). Belt
+// and suspenders: block them by name, and require real liquidity below.
+const RADAR_ALERT_EXCLUDED_SYMBOLS = new Set(["STGUSDT", "LSKUSDT", "ERAUSDT", "PNTUSDT"]);
 
 function radarAlertEligible(row: RadarRow): boolean {
+  if (RADAR_ALERT_EXCLUDED_SYMBOLS.has(row.ticker.symbol)) return false;
+  // Root-cause fix: only count a setup if the pair is also genuinely liquid
+  // (top 40 by quote volume). Thin pairs were the whole reason this fired
+  // every day regardless of whether anything real was happening.
+  if (!row.tags.includes("highVolume")) return false;
   return row.setup === "breakout" || row.setup === "relativeStrength";
 }
 
-export function radarAlertPayload(row: RadarRow, lang: Lang): Payload {
-  const symbol = row.ticker.symbol.replace(/USDT$/, "");
-  const sign = row.change >= 0 ? "+" : "";
-  const changeStr = sign + row.change.toFixed(1) + "%";
+export function radarDigestPayload(lang: Lang): Payload {
   if (lang === "ar") {
-    const label =
-      row.setup === "breakout"
-        ? "اختراق"
-        : "قوة نسبية";
     return {
-      title: symbol + " — " + label,
+      title: "رادار أطلس — نشاط السوق يتصاعد",
       body:
-        symbol + " " + changeStr + " خلال 24 ساعة. " +
-        "شاهده في الرادار.",
+        "تحقق من السوق بحثًا عن اختراقات وارتدادات وإعدادات قوة نسبية " +
+        "مؤهلة قبل بداية جلسة التداول الأمريكية الرئيسية.",
       url: "/radar",
-      tag: "radar-" + row.ticker.symbol + "-" + row.setup,
+      tag: "radar-digest",
     };
   }
-  const label = row.setup === "breakout" ? "Breakout" : "Relative Strength";
   return {
-    title: symbol + " — " + label,
-    body: symbol + " " + changeStr + " over 24h. See it on Radar.",
+    title: "Atlas Radar — Market Activity Is Building",
+    body:
+      "Check the market for qualifying breakouts, pullbacks, and " +
+      "relative-strength setups before the main US trading session.",
     url: "/radar",
-    tag: "radar-" + row.ticker.symbol + "-" + row.setup,
+    tag: "radar-digest",
   };
 }
 
@@ -358,8 +375,12 @@ export async function notifyRadarAlerts(): Promise<{ sent: number; reason: strin
     const firstTimeThisWindow = await redis.set(guardKey, "1", { nx: true, ex: RADAR_ALERT_COOLDOWN_SEC });
     if (firstTimeThisWindow) eligibleRows.push(row);
   }
+  // Nothing genuinely new/liquid today - stay silent rather than notify out
+  // of habit. This is the fix for "it always sends every day."
   if (eligibleRows.length === 0) return { sent: 0, reason: "no-new-setups" };
 
+  // One consolidated "go check Radar" ping, not a per-symbol flood - the
+  // eligibility check above already did the filtering.
   let sent = 0;
   try {
     const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
@@ -368,10 +389,8 @@ export async function notifyRadarAlerts(): Promise<{ sent: number; reason: strin
         userIds.slice(i, i + 20).map(async (userId) => {
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           if (!prefs.enabled || !prefs.market) return;
-          for (const row of eligibleRows) {
-            const delivered = await sendToUser(userId, (lang) => radarAlertPayload(row, lang));
-            if (delivered > 0) sent++;
-          }
+          const delivered = await sendToUser(userId, (lang) => radarDigestPayload(lang));
+          if (delivered > 0) sent++;
         }),
       );
     }

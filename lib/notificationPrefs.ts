@@ -4,6 +4,7 @@ export type NotificationPrefs = {
   market: boolean;
   educational: boolean;
   promotional: boolean;
+  analyzerReset: boolean;
 };
 
 export const defaultPrefs: NotificationPrefs = {
@@ -12,6 +13,7 @@ export const defaultPrefs: NotificationPrefs = {
   market: false,
   educational: false,
   promotional: false,
+  analyzerReset: false,
 };
 
 export function normalizePrefs(input: unknown): NotificationPrefs {
@@ -22,5 +24,6 @@ export function normalizePrefs(input: unknown): NotificationPrefs {
     market: o.market === true,
     educational: o.educational === true,
     promotional: o.promotional === true,
+    analyzerReset: o.analyzerReset === true,
   };
 }
