@@ -219,6 +219,16 @@ export default function AccountPage() {
                   disabled={!prefs.enabled}
                   onChange={(v) => updatePref({ promotional: v })}
                 />
+                <Toggle
+                  label={
+                    lang === "ar"
+                      ? "تنبيه منتصف الليل بتجديد التحليلات المجانية"
+                      : "Midnight free-analyses reset reminder"
+                  }
+                  checked={prefs.analyzerReset}
+                  disabled={!prefs.enabled}
+                  onChange={(v) => updatePref({ analyzerReset: v })}
+                />
               </div>
             </div>
             {prefs.enabled && deviceOn === false && (
