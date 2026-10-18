@@ -177,9 +177,17 @@ function AnalyzerPageInner() {
                 : "Access the public Trade Feed, AI Analyzer, Radar, Trade Plan, Risk tools, and Journal."}
             </p>
           </div>
-          <Link href="/sign-up" className="btn-primary shrink-0 whitespace-nowrap">
-            {lang === "ar" ? "أنشئ حسابك المجاني ←" : "Create your free account →"}
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/sign-in"
+              className="px-3 py-1.5 rounded-md border border-line text-sm text-text-muted hover:text-text hover:border-text-muted transition-colors whitespace-nowrap"
+            >
+              {lang === "ar" ? "تسجيل الدخول" : "Sign In"}
+            </Link>
+            <Link href="/sign-up" className="btn-primary whitespace-nowrap">
+              {lang === "ar" ? "أنشئ حسابك المجاني ←" : "Create your free account →"}
+            </Link>
+          </div>
         </div>
       )}
 
