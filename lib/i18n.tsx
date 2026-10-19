@@ -95,8 +95,11 @@ const en: Dict = {
   },
 
   nav: {
+    overview: "Overview",
     radar: "Radar",
     analyzer: "Analyzer",
+    marketIntel: "Market Intel",
+    coinExplorer: "Coin Explorer",
     tradePlan: "Trade Plan",
     ticker: "Ticker",
     journal: "Journal",
@@ -611,8 +614,11 @@ const ar: Dict = {
   },
 
   nav: {
+    overview: "نظرة عامة",
     radar: "الرادار",
     analyzer: "المحلل",
+    marketIntel: "ذكاء السوق",
+    coinExplorer: "مستكشف العملات",
     tradePlan: "خطة الصفقة",
     ticker: "الأسعار",
     journal: "السجل",
@@ -1125,8 +1131,11 @@ const fr: Dict = {
   },
 
   nav: {
+    overview: "Aperçu",
     radar: "Radar",
     analyzer: "Analyseur",
+    marketIntel: "Intelligence Marché",
+    coinExplorer: "Explorateur de cours",
     tradePlan: "Plan de trade",
     ticker: "Cours",
     journal: "Journal",

@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import { useLanguage } from "@/lib/i18n";
 import { useAuth, UserButton } from "@clerk/nextjs";
 import ThemeToggle from "@/components/ThemeToggle";
+import {
+  IconOverview,
+  IconRadar,
+  IconMarketIntel,
+  IconCoinExplorer,
+  IconTradeFeed,
+} from "@/components/icons";
 
 const LANG_OPTIONS: { code: "en" | "ar" | "fr"; label: string }[] = [
   { code: "en", label: "EN" },
@@ -39,27 +47,41 @@ function LangSwitcher({
   );
 }
 
-function NavLink({
+// Desktop "command bar" nav item: compact icon + label, with a restrained
+// active indicator (filled pill + gold underline) rather than a loud tab.
+function CommandNavLink({
   href,
+  icon,
   label,
   active,
-  muted,
 }: {
   href: string;
+  icon: ReactNode;
   label: string;
   active: boolean;
-  muted?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className={`relative shrink-0 whitespace-nowrap px-2.5 sm:px-3 py-1.5 transition-colors ${
-        muted ? "text-xs" : "text-sm"
-      } ${active ? "text-text" : "text-text-muted hover:text-text"}`}
+      aria-current={active ? "page" : undefined}
+      title={label}
+      className={`group relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors duration-150 ${
+        active ? "bg-gold/10 text-text" : "text-text-muted hover:bg-surface-raised/70 hover:text-text"
+      }`}
     >
-      {label}
+      <span
+        className={`flex shrink-0 items-center transition-colors duration-150 ${
+          active ? "text-gold" : "text-text-muted group-hover:text-text"
+        }`}
+      >
+        {icon}
+      </span>
+      <span className="hidden lg:inline">{label}</span>
       {active && (
-        <span className="absolute left-2.5 right-2.5 sm:left-3 sm:right-3 -bottom-[1px] h-[1.5px] bg-gold" />
+        <span
+          className="pointer-events-none absolute inset-x-2 -bottom-[5px] h-[1.5px] rounded-full bg-gold"
+          aria-hidden="true"
+        />
       )}
     </Link>
   );
@@ -76,23 +98,35 @@ export default function Nav() {
     setOpen(false);
   }, [pathname]);
 
-  const marketIntelLabel =
-    lang === "ar" ? "ذكاء السوق" : lang === "fr" ? "Intelligence Marché" : "Market Intel";
+  const marketIntelLabel = t("nav.marketIntel");
 
-  const PRIMARY_LINKS = [
-    { href: "/radar", label: t("nav.radar") },
-    { href: "/analyzer", label: t("nav.analyzer") },
-    { href: "/trade-feed", label: t("nav.tradeFeed") },
-    { href: "/trade-plan", label: t("nav.tradePlan") },
+  // Desktop "ATLAS Command Bar" — the five primary market-intelligence
+  // destinations. Trade Plan, Risk, and Journal are intentionally not
+  // listed here (hidden from navigation per the redesign), but their
+  // routes, pages, and data are untouched and still reachable directly,
+  // from the footer, and from the mobile menu below.
+  const COMMAND_LINKS = [
+    { href: "/", icon: <IconOverview className="w-[18px] h-[18px]" />, label: t("nav.overview") },
+    { href: "/radar", icon: <IconRadar className="w-[18px] h-[18px]" />, label: t("nav.radar") },
+    {
+      href: "/market-intelligence",
+      icon: <IconMarketIntel className="w-[18px] h-[18px]" />,
+      label: marketIntelLabel,
+    },
+    {
+      href: "/ticker",
+      icon: <IconCoinExplorer className="w-[18px] h-[18px]" />,
+      label: t("nav.coinExplorer"),
+    },
+    {
+      href: "/trade-feed",
+      icon: <IconTradeFeed className="w-[18px] h-[18px]" />,
+      label: t("nav.tradeFeed"),
+    },
   ];
 
-  const SECONDARY_LINKS = [
-    { href: "/market-intelligence", label: marketIntelLabel },
-    { href: "/risk", label: t("nav.risk") },
-    { href: "/journal", label: t("nav.journal") },
-    { href: "/academy", label: t("nav.academy") },
-  ];
-
+  // Mobile menu is unchanged by this redesign: all tools, including Trade
+  // Plan, Risk, and Journal, remain exactly where they were.
   const MOBILE_GROUPS: { label: string; links: { href: string; label: string }[] }[] = [
     {
       label: "MARKETS",
@@ -158,21 +192,22 @@ export default function Nav() {
           <Logo />
         </Link>
 
-        <nav className="hidden sm:flex flex-1 min-w-0 items-center justify-end gap-0.5 overflow-x-auto scrollbar-none">
-          {PRIMARY_LINKS.map((link) => (
-            <NavLink key={link.href} href={link.href} label={link.label} active={pathname === link.href} />
-          ))}
-          <span className="w-px h-4 bg-line mx-1.5 shrink-0" aria-hidden="true" />
-          {SECONDARY_LINKS.map((link) => (
-            <NavLink
-              key={link.href}
-              href={link.href}
-              label={link.label}
-              active={pathname === link.href}
-              muted
-            />
-          ))}
-          <Link href="/elite" className={`${elitePillClass} ms-2 px-3 py-1`}>
+        <nav
+          aria-label="Primary"
+          className="hidden sm:flex flex-1 min-w-0 items-center justify-end sm:justify-center"
+        >
+          <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-none rounded-lg border border-line/70 bg-surface/50 p-1">
+            {COMMAND_LINKS.map((link) => (
+              <CommandNavLink
+                key={link.href}
+                href={link.href}
+                icon={link.icon}
+                label={link.label}
+                active={pathname === link.href}
+              />
+            ))}
+          </div>
+          <Link href="/elite" className={`${elitePillClass} ms-2 px-3 py-1.5`}>
             {"⚜ "}
             {eliteLabel}
           </Link>
