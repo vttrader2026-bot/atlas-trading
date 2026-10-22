@@ -114,7 +114,7 @@ export default function Nav() {
       label: marketIntelLabel,
     },
     {
-      href: "/ticker",
+      href: "/coins",
       icon: <IconCoinExplorer className="w-[18px] h-[18px]" />,
       label: t("nav.coinExplorer"),
     },
@@ -203,7 +203,7 @@ export default function Nav() {
                 href={link.href}
                 icon={link.icon}
                 label={link.label}
-                active={pathname === link.href}
+                active={pathname === link.href || pathname.startsWith(`${link.href}/`)}
               />
             ))}
           </div>
