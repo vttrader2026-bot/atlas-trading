@@ -370,7 +370,7 @@ function AssetRow({ asset, tr }: { asset: ApiAsset; tr: (k: string) => string })
     <tr className="group border-t border-line hover:bg-surface-raised/40 transition-colors">
       <td className="px-4 py-3 text-text-muted font-data">#{asset.rank}</td>
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2.5">
+        <Link href={`/coins/${asset.symbol}`} className="flex items-center gap-2.5 group-hover:text-gold transition-colors">
           <AssetLogo base={asset.symbol} />
           <span className="font-data font-medium">{asset.symbol}/USDT</span>
           {asset.insufficientHistory && (
@@ -381,7 +381,7 @@ function AssetRow({ asset, tr }: { asset: ApiAsset; tr: (k: string) => string })
               !
             </span>
           )}
-        </div>
+        </Link>
       </td>
       <td className="px-4 py-3 font-data text-right">${formatPrice(asset.price)}</td>
       <td className={`px-4 py-3 font-data text-right ${positive24h ? "text-bull" : "text-bear"}`}>
@@ -402,7 +402,7 @@ function AssetRow({ asset, tr }: { asset: ApiAsset; tr: (k: string) => string })
 function AssetCardMobile({ asset, tr }: { asset: ApiAsset; tr: (k: string) => string }) {
   const positive24h = asset.change24hPct >= 0;
   return (
-    <div className="flex items-start gap-3 px-4 py-3">
+    <Link href={`/coins/${asset.symbol}`} className="flex items-start gap-3 px-4 py-3 active:bg-surface-raised/40 transition-colors">
       <AssetLogo base={asset.symbol} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
@@ -426,7 +426,7 @@ function AssetCardMobile({ asset, tr }: { asset: ApiAsset; tr: (k: string) => st
           <span className="text-gold">{tr("col.score")}: {asset.strengthScore.toFixed(0)}</span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

@@ -159,7 +159,7 @@ export default function RadarPage() {
                         >
                           <td className="px-4 py-3">
                             <Link
-                              href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
+                              href={`/coins/${base}`}
                               className="flex items-center gap-2.5 group-hover:text-gold transition-colors"
                             >
                               <RadarLogo base={base} />
@@ -185,12 +185,14 @@ export default function RadarPage() {
                           </td>
                           <td className="px-4 py-3 text-text-muted">{t(`radar.setup.${row.setup}`)}</td>
                           <td className="px-3 py-3 text-right">
-                            <span
-                              className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"
-                              aria-hidden="true"
+                            <Link
+                              href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
+                              title={t("radar.analyze")}
+                              className="inline-flex items-center gap-1 text-xs text-text-muted opacity-0 group-hover:opacity-100 hover:text-gold transition-all whitespace-nowrap"
                             >
-                              {"→"}
-                            </span>
+                              {t("radar.analyze")}
+                              <span aria-hidden="true">{"→"}</span>
+                            </Link>
                           </td>
                         </tr>
                       );
@@ -208,33 +210,41 @@ export default function RadarPage() {
                   const positive = row.change >= 0;
                   const base = row.ticker.symbol.replace("USDT", "");
                   return (
-                    <Link
+                    <div
                       key={row.ticker.symbol}
-                      href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
                       className="flex items-center gap-3 px-4 py-3 active:bg-surface-raised/40 transition-colors"
                     >
-                      <RadarLogo base={base} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-data text-sm font-medium truncate">
-                            {row.ticker.symbol.replace("USDT", "/USDT")}
-                          </span>
-                          <span className="font-data text-sm">${formatPrice(row.ticker.lastPrice)}</span>
-                        </div>
-                        <div className="mt-1 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
-                            <span className="text-[11px] text-text-muted truncate">{t(`radar.setup.${row.setup}`)}</span>
+                      <Link href={`/coins/${base}`} className="flex items-center gap-3 min-w-0 flex-1">
+                        <RadarLogo base={base} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-data text-sm font-medium truncate">
+                              {row.ticker.symbol.replace("USDT", "/USDT")}
+                            </span>
+                            <span className="font-data text-sm">${formatPrice(row.ticker.lastPrice)}</span>
                           </div>
-                          <span
-                            className={`font-data text-xs shrink-0 ${positive ? "text-bull" : "text-bear"}`}
-                          >
-                            {positive ? "+" : ""}
-                            {row.change.toFixed(2)}%
-                          </span>
+                          <div className="mt-1 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
+                              <span className="text-[11px] text-text-muted truncate">{t(`radar.setup.${row.setup}`)}</span>
+                            </div>
+                            <span
+                              className={`font-data text-xs shrink-0 ${positive ? "text-bull" : "text-bear"}`}
+                            >
+                              {positive ? "+" : ""}
+                              {row.change.toFixed(2)}%
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
+                      </Link>
+                      <Link
+                        href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
+                        title={t("radar.analyze")}
+                        className="shrink-0 px-2 py-1 rounded border border-line text-[11px] text-text-muted active:text-gold active:border-gold/40 transition-colors"
+                      >
+                        {t("radar.analyze")}
+                      </Link>
+                    </div>
                   );
                 })}
               </div>
@@ -252,19 +262,22 @@ export default function RadarPage() {
 
 function ShortlistCard({ row, t }: { row: RadarRow; t: (key: string) => string }) {
   const positive = row.change >= 0;
+  const base = row.ticker.symbol.replace("USDT", "");
   return (
     <div className="card card-hover p-4">
-      <div className="flex items-center justify-between">
-        <span className="font-data text-sm">{row.ticker.symbol.replace("USDT", "/USDT")}</span>
-        <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
-      </div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <span className="font-data text-lg">${formatPrice(row.ticker.lastPrice)}</span>
-        <span className={`font-data text-xs ${positive ? "text-bull" : "text-bear"}`}>
-          {positive ? "+" : ""}
-          {row.change.toFixed(2)}%
-        </span>
-      </div>
+      <Link href={`/coins/${base}`} className="block hover:text-gold transition-colors">
+        <div className="flex items-center justify-between">
+          <span className="font-data text-sm">{row.ticker.symbol.replace("USDT", "/USDT")}</span>
+          <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
+        </div>
+        <div className="mt-2 flex items-baseline gap-2">
+          <span className="font-data text-lg">${formatPrice(row.ticker.lastPrice)}</span>
+          <span className={`font-data text-xs ${positive ? "text-bull" : "text-bear"}`}>
+            {positive ? "+" : ""}
+            {row.change.toFixed(2)}%
+          </span>
+        </div>
+      </Link>
       <div className="mt-2 text-xs text-gold font-data">
         +{row.vsBtcPct.toFixed(2)}pp {t("radar.vsBtc")}
       </div>
@@ -272,7 +285,7 @@ function ShortlistCard({ row, t }: { row: RadarRow; t: (key: string) => string }
         href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
         className="mt-3 block text-center text-xs btn-secondary"
       >
-        {"Analyze"}
+        {t("radar.analyze")}
       </Link>
     </div>
   );
