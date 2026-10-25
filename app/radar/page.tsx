@@ -297,9 +297,12 @@ function ShortlistCard({
       <div className="mt-2 text-xs text-gold font-data">
         +{row.vsBtcPct.toFixed(2)}pp {t("radar.vsBtc")}
       </div>
+      <button onClick={() => onViewChart(base)} className="mt-3 block w-full text-center text-xs btn-primary">
+        {t("radar.viewChart")}
+      </button>
       <Link
         href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
-        className="mt-3 block text-center text-xs btn-secondary"
+        className="mt-2 block text-center text-xs btn-secondary"
       >
         {t("radar.analyze")}
       </Link>
@@ -339,3 +342,4 @@ function RadarLogo({ base }: { base: string }) {
     />
   );
 }
+// RADAR-VIEWCHART-2205
