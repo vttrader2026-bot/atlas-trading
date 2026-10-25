@@ -12,7 +12,6 @@ import {
   IconOverview,
   IconRadar,
   IconMarketIntel,
-  IconCoinExplorer,
   IconTradeFeed,
 } from "@/components/icons";
 
@@ -112,11 +111,6 @@ export default function Nav() {
       href: "/market-intelligence",
       icon: <IconMarketIntel className="w-[18px] h-[18px]" />,
       label: marketIntelLabel,
-    },
-    {
-      href: "/coins",
-      icon: <IconCoinExplorer className="w-[18px] h-[18px]" />,
-      label: t("nav.coinExplorer"),
     },
     {
       href: "/trade-feed",

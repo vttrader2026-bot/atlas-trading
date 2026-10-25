@@ -7,6 +7,7 @@ import { formatCompact, formatPrice } from "@/lib/binance";
 import { useLanguage } from "@/lib/i18n";
 import { miT, type MiLang } from "@/lib/marketIntelI18n";
 import type { AssetCategory } from "@/lib/marketIntelAssets";
+import AnalysisPanel from "@/components/charts/AnalysisPanel";
 
 type ApiAsset = {
   symbol: string;
@@ -55,6 +56,7 @@ export default function MarketIntelligencePage() {
   const [category, setCategory] = useState<AssetCategory | "all">("all");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("rank");
+  const [chartSymbol, setChartSymbol] = useState<string | null>(null);
 
   useEffect(() => {
     // Only signed-in accounts can see this tool, so there's no reason to
@@ -228,7 +230,7 @@ export default function MarketIntelligencePage() {
                     </tr>
                   )}
                   {filtered.map((asset) => (
-                    <AssetRow key={asset.symbol} asset={asset} tr={tr} />
+                    <AssetRow key={asset.symbol} asset={asset} tr={tr} onViewChart={setChartSymbol} />
                   ))}
                 </tbody>
               </table>
@@ -237,7 +239,7 @@ export default function MarketIntelligencePage() {
             <div className="sm:hidden divide-y divide-line">
               {filtered.length === 0 && <div className="text-center py-10 text-sm text-text-muted">{tr("empty")}</div>}
               {filtered.map((asset) => (
-                <AssetCardMobile key={asset.symbol} asset={asset} tr={tr} />
+                <AssetCardMobile key={asset.symbol} asset={asset} tr={tr} onViewChart={setChartSymbol} />
               ))}
             </div>
           </div>
@@ -335,6 +337,8 @@ export default function MarketIntelligencePage() {
       )}
         </>
       )}
+
+      {chartSymbol && <AnalysisPanel baseAsset={chartSymbol} onClose={() => setChartSymbol(null)} />}
     </main>
   );
 }
@@ -364,13 +368,24 @@ function CategoryBadges({ categories, tr }: { categories: AssetCategory[]; tr: (
   );
 }
 
-function AssetRow({ asset, tr }: { asset: ApiAsset; tr: (k: string) => string }) {
+function AssetRow({
+  asset,
+  tr,
+  onViewChart,
+}: {
+  asset: ApiAsset;
+  tr: (k: string) => string;
+  onViewChart: (symbol: string) => void;
+}) {
   const positive24h = asset.change24hPct >= 0;
   return (
     <tr className="group border-t border-line hover:bg-surface-raised/40 transition-colors">
       <td className="px-4 py-3 text-text-muted font-data">#{asset.rank}</td>
       <td className="px-4 py-3">
-        <Link href={`/coins/${asset.symbol}`} className="flex items-center gap-2.5 group-hover:text-gold transition-colors">
+        <button
+          onClick={() => onViewChart(asset.symbol)}
+          className="flex items-center gap-2.5 group-hover:text-gold transition-colors text-left"
+        >
           <AssetLogo base={asset.symbol} />
           <span className="font-data font-medium">{asset.symbol}/USDT</span>
           {asset.insufficientHistory && (
@@ -381,7 +396,7 @@ function AssetRow({ asset, tr }: { asset: ApiAsset; tr: (k: string) => string })
               !
             </span>
           )}
-        </Link>
+        </button>
       </td>
       <td className="px-4 py-3 font-data text-right">${formatPrice(asset.price)}</td>
       <td className={`px-4 py-3 font-data text-right ${positive24h ? "text-bull" : "text-bear"}`}>
@@ -399,10 +414,21 @@ function AssetRow({ asset, tr }: { asset: ApiAsset; tr: (k: string) => string })
   );
 }
 
-function AssetCardMobile({ asset, tr }: { asset: ApiAsset; tr: (k: string) => string }) {
+function AssetCardMobile({
+  asset,
+  tr,
+  onViewChart,
+}: {
+  asset: ApiAsset;
+  tr: (k: string) => string;
+  onViewChart: (symbol: string) => void;
+}) {
   const positive24h = asset.change24hPct >= 0;
   return (
-    <Link href={`/coins/${asset.symbol}`} className="flex items-start gap-3 px-4 py-3 active:bg-surface-raised/40 transition-colors">
+    <button
+      onClick={() => onViewChart(asset.symbol)}
+      className="flex items-start gap-3 px-4 py-3 active:bg-surface-raised/40 transition-colors w-full text-left"
+    >
       <AssetLogo base={asset.symbol} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
@@ -426,7 +452,7 @@ function AssetCardMobile({ asset, tr }: { asset: ApiAsset; tr: (k: string) => st
           <span className="text-gold">{tr("col.score")}: {asset.strengthScore.toFixed(0)}</span>
         </div>
       </div>
-    </Link>
+    </button>
   );
 }
 

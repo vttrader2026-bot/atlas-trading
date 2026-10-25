@@ -6,6 +6,7 @@ import { formatPrice, formatCompact } from "@/lib/binance";
 import { useLiveTickers } from "@/lib/useLiveTickers";
 import { buildRadarRows, RadarRow, RadarTag, MarketCondition } from "@/lib/radar";
 import { useLanguage } from "@/lib/i18n";
+import AnalysisPanel from "@/components/charts/AnalysisPanel";
 
 const FILTERS: { key: RadarTag | "all"; labelKey: string }[] = [
   { key: "all", labelKey: "radar.filterAll" },
@@ -30,6 +31,7 @@ export default function RadarPage() {
   const tickers = useLiveTickers();
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<RadarTag | "all">("all");
+  const [chartSymbol, setChartSymbol] = useState<string | null>(null);
 
   // The live WebSocket feed (lib/binanceStream) bootstraps itself via REST
   // and keeps reconnecting on its own, so the only failure mode worth
@@ -91,7 +93,7 @@ export default function RadarPage() {
             ) : (
               <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {shortlist.map((row) => (
-                  <ShortlistCard key={row.ticker.symbol} row={row} t={t} />
+                  <ShortlistCard key={row.ticker.symbol} row={row} t={t} onViewChart={setChartSymbol} />
                 ))}
               </div>
             )}
@@ -158,13 +160,14 @@ export default function RadarPage() {
                           className="group border-t border-line hover:bg-surface-raised/40 transition-colors"
                         >
                           <td className="px-4 py-3">
-                            <Link
-                              href={`/coins/${base}`}
-                              className="flex items-center gap-2.5 group-hover:text-gold transition-colors"
+                            <button
+                              onClick={() => setChartSymbol(base)}
+                              title={t("radar.viewChart")}
+                              className="flex items-center gap-2.5 group-hover:text-gold transition-colors text-left"
                             >
                               <RadarLogo base={base} />
                               <span className="font-data font-medium">{row.ticker.symbol.replace("USDT", "/USDT")}</span>
-                            </Link>
+                            </button>
                           </td>
                           <td className="px-4 py-3 font-data text-right">
                             ${formatPrice(row.ticker.lastPrice)}
@@ -214,7 +217,10 @@ export default function RadarPage() {
                       key={row.ticker.symbol}
                       className="flex items-center gap-3 px-4 py-3 active:bg-surface-raised/40 transition-colors"
                     >
-                      <Link href={`/coins/${base}`} className="flex items-center gap-3 min-w-0 flex-1">
+                      <button
+                        onClick={() => setChartSymbol(base)}
+                        className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                      >
                         <RadarLogo base={base} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
@@ -236,7 +242,7 @@ export default function RadarPage() {
                             </span>
                           </div>
                         </div>
-                      </Link>
+                      </button>
                       <Link
                         href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
                         title={t("radar.analyze")}
@@ -256,16 +262,26 @@ export default function RadarPage() {
       <p className="mt-6 text-xs text-text-muted leading-relaxed max-w-2xl">
         {t("radar.disclaimer")}
       </p>
+
+      {chartSymbol && <AnalysisPanel baseAsset={chartSymbol} onClose={() => setChartSymbol(null)} />}
     </main>
   );
 }
 
-function ShortlistCard({ row, t }: { row: RadarRow; t: (key: string) => string }) {
+function ShortlistCard({
+  row,
+  t,
+  onViewChart,
+}: {
+  row: RadarRow;
+  t: (key: string) => string;
+  onViewChart: (base: string) => void;
+}) {
   const positive = row.change >= 0;
   const base = row.ticker.symbol.replace("USDT", "");
   return (
     <div className="card card-hover p-4">
-      <Link href={`/coins/${base}`} className="block hover:text-gold transition-colors">
+      <button onClick={() => onViewChart(base)} className="block w-full text-left hover:text-gold transition-colors">
         <div className="flex items-center justify-between">
           <span className="font-data text-sm">{row.ticker.symbol.replace("USDT", "/USDT")}</span>
           <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
@@ -277,7 +293,7 @@ function ShortlistCard({ row, t }: { row: RadarRow; t: (key: string) => string }
             {row.change.toFixed(2)}%
           </span>
         </div>
-      </Link>
+      </button>
       <div className="mt-2 text-xs text-gold font-data">
         +{row.vsBtcPct.toFixed(2)}pp {t("radar.vsBtc")}
       </div>

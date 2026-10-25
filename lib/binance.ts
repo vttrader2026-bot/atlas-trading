@@ -75,7 +75,12 @@ export async function getKlines(symbol: string, interval: string, limit: number)
 
 export function formatPrice(value: string | number, digits = 2): string {
   const n = typeof value === "string" ? parseFloat(value) : value;
-  if (Number.isNaN(n)) return "—";
+  // A genuine $0 price on a live USDT pair never happens — a literal 0 here
+  // always means missing/invalid upstream data (a transient empty ticker
+  // field, a reconnect gap, a delisted symbol still momentarily present),
+  // never a real price. Show the same "unavailable" marker as NaN rather
+  // than a misleading "$0.00".
+  if (Number.isNaN(n) || n <= 0) return "—";
   const decimals = n < 1 ? 6 : n < 100 ? 4 : digits;
   return n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
