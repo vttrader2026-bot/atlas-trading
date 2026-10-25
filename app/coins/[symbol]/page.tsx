@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { auth } from "@clerk/nextjs/server";
 import { getCandles, tryValidatePair, MarketDataError } from "@/lib/marketData";
 import CoinProfileView from "@/components/coins/CoinProfileView";
 
@@ -19,6 +20,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CoinProfilePage({ params }: Props) {
   const { symbol } = await params;
   const baseAsset = symbol.toUpperCase();
+
+  // Sign-in required, same as Analyzer/Trade Feed/Market Intelligence.
+  // Checked first, before any Binance call, so a logged-out visitor never
+  // triggers exchange-info/candle fetches for a page they can't see.
+  const { userId } = await auth();
+  if (!userId) {
+    return <CoinProfileView status="signedOut" baseAsset={baseAsset} />;
+  }
 
   // Validate up front, server-side, against live Binance Spot exchange info
   // — never assume the URL's symbol is a real, tradable pair. An unsupported

@@ -9,6 +9,7 @@ import { SUPPORTED_INTERVALS, type Candle, type CanonicalPair, type Interval } f
 import CoinChart from "@/components/coins/CoinChart";
 
 type Props =
+  | { status: "signedOut"; baseAsset: string }
   | { status: "unsupported"; baseAsset: string }
   | {
       status: "unavailable";
@@ -30,6 +31,30 @@ type KlinesResponse = { pair: CanonicalPair; interval: Interval; candles: Candle
 export default function CoinProfileView(props: Props) {
   const { t } = useLanguage();
   const tickers = useLiveTickers();
+
+  if (props.status === "signedOut") {
+    return (
+      <main className="max-w-3xl mx-auto px-6 py-16">
+        <div className="rounded-2xl border border-line bg-surface p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="font-medium">{t("coins.authGate.title")}</div>
+            <p className="text-sm text-text-muted leading-relaxed mt-1 max-w-md">{t("coins.authGate.body")}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/sign-in"
+              className="px-3 py-1.5 rounded-md border border-line text-sm text-text-muted hover:text-text hover:border-text-muted transition-colors whitespace-nowrap"
+            >
+              {t("coins.authGate.signIn")}
+            </Link>
+            <Link href="/sign-up" className="btn-primary whitespace-nowrap">
+              {t("coins.authGate.signUp")}
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (props.status === "unsupported") {
     return (

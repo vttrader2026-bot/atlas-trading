@@ -291,6 +291,12 @@ const en: Dict = {
     loading: "Loading coins…",
     showingTop: "Showing top 150 of",
     bySort: "by current sort.",
+    authGate: {
+      title: "Join Atlas Trading for free",
+      body: "Sign in to browse the Coin Explorer — live charts, every tradable pair, and more.",
+      signIn: "Sign In",
+      signUp: "Create your free account →",
+    },
   },
   coinProfile: {
     unsupported: "This asset doesn't have an active Binance Spot USDT pair, so there's no chart to show.",
@@ -842,6 +848,12 @@ const ar: Dict = {
     loading: "جارٍ تحميل العملات…",
     showingTop: "عرض أفضل 150 من",
     bySort: "حسب الترتيب الحالي.",
+    authGate: {
+      title: "انضم إلى Atlas Trading مجانًا",
+      body: "سجّل الدخول لاستكشاف مستكشف العملات — رسوم بيانية مباشرة، وكل الأزواج القابلة للتداول، والمزيد.",
+      signIn: "تسجيل الدخول",
+      signUp: "أنشئ حسابك المجاني ←",
+    },
   },
   coinProfile: {
     unsupported: "هذا الأصل لا يملك زوج USDT نشطًا على Binance Spot، لذا لا توجد رسوم بيانية لعرضها.",
@@ -1391,6 +1403,12 @@ const fr: Dict = {
     loading: "Chargement des cours…",
     showingTop: "Affichage des 150 premiers sur",
     bySort: "selon le tri actuel.",
+    authGate: {
+      title: "Rejoignez Atlas Trading gratuitement",
+      body: "Connectez-vous pour parcourir l'explorateur de cours — graphiques en direct, toutes les paires négociables, et plus.",
+      signIn: "Se connecter",
+      signUp: "Créez votre compte gratuit →",
+    },
   },
   coinProfile: {
     unsupported: "Cet actif n'a pas de paire USDT active sur Binance Spot, il n'y a donc pas de graphique à afficher.",

@@ -3,7 +3,7 @@
 // asset is checked against a live (or recently cached) snapshot of
 // Binance's actual tradable spot symbols before anything downstream uses it.
 
-import { getRedis } from "@/lib/userStore";
+import { getRedis } from "@/lib/redis";
 import { CanonicalPair, ExchangeInfoSnapshot, MarketDataError } from "@/lib/marketDataTypes";
 
 const BASE = "https://data-api.binance.vision/api/v3";

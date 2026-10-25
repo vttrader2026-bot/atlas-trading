@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { Redis } from "@upstash/redis";
+import { getRedis } from "@/lib/redis";
 
-export function getRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
+// Re-exported for backward compatibility — every existing caller that does
+// `import { getRedis } from "@/lib/userStore"` keeps working unchanged.
+// The real implementation lives in lib/redis.ts, which has no Clerk
+// dependency (see that file for why).
+export { getRedis };
 
 export type UserContext = { userId: string; redis: Redis };
 

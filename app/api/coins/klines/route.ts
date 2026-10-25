@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { getCandles, isSupportedInterval, MarketDataError, SUPPORTED_INTERVALS } from "@/lib/marketData";
 
 export const maxDuration = 15;
@@ -34,8 +35,16 @@ function statusForCode(code: MarketDataError["code"]): number {
  * lib/marketData and is shared with any future server-side caller (e.g. a
  * later AI analysis feature). On failure this returns a structured
  * { error: <code> } with an accurate HTTP status, never fabricated candles.
+ *
+ * Sign-in required, same as the Analyzer/Trade Feed/Market Intelligence
+ * APIs — enforced here server-side, not just on the client page.
  */
 export async function GET(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const symbol = searchParams.get("symbol")?.trim();
   const quote = searchParams.get("quote")?.trim() || "USDT";

@@ -17,5 +17,10 @@ export default defineConfig({
     environment: "node",
     include: ["lib/__tests__/**/*.test.ts"],
     exclude: ["lib/__tests__/**/*.live.test.ts", "node_modules/**"],
+    // Defensive headroom above Vitest's 5000ms default: a cold module
+    // import (e.g. first-time transform of a large dependency) can edge
+    // past 5s on a slower machine even though no test here ever touches
+    // the network. 15s gives real margin without masking a genuine hang.
+    testTimeout: 15000,
   },
 });

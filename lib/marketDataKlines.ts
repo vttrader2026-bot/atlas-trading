@@ -3,7 +3,7 @@
 // validation before returning them — never patches, fabricates, or
 // interpolates candles to make a result look complete.
 
-import { getRedis } from "@/lib/userStore";
+import { getRedis } from "@/lib/redis";
 import { parseRawKline, validateCandles } from "@/lib/marketDataValidation";
 import {
   Candle,
