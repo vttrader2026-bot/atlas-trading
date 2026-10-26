@@ -188,14 +188,14 @@ export default function RadarPage() {
                           </td>
                           <td className="px-4 py-3 text-text-muted">{t(`radar.setup.${row.setup}`)}</td>
                           <td className="px-3 py-3 text-right">
-                            <Link
-                              href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
-                              title={t("radar.analyze")}
+                            <button
+                              onClick={() => setChartSymbol(base)}
+                              title={t("radar.viewChart")}
                               className="inline-flex items-center gap-1 text-xs text-text-muted opacity-0 group-hover:opacity-100 hover:text-gold transition-all whitespace-nowrap"
                             >
-                              {t("radar.analyze")}
+                              {t("radar.viewChart")}
                               <span aria-hidden="true">{"→"}</span>
-                            </Link>
+                            </button>
                           </td>
                         </tr>
                       );
@@ -243,13 +243,6 @@ export default function RadarPage() {
                           </div>
                         </div>
                       </button>
-                      <Link
-                        href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
-                        title={t("radar.analyze")}
-                        className="shrink-0 px-2 py-1 rounded border border-line text-[11px] text-text-muted active:text-gold active:border-gold/40 transition-colors"
-                      >
-                        {t("radar.analyze")}
-                      </Link>
                     </div>
                   );
                 })}
@@ -300,12 +293,6 @@ function ShortlistCard({
       <button onClick={() => onViewChart(base)} className="mt-3 block w-full text-center text-xs btn-primary">
         {t("radar.viewChart")}
       </button>
-      <Link
-        href={`/analyzer?pair=${encodeURIComponent(row.ticker.symbol.replace("USDT", "/USDT"))}`}
-        className="mt-2 block text-center text-xs btn-secondary"
-      >
-        {t("radar.analyze")}
-      </Link>
     </div>
   );
 }
@@ -343,3 +330,4 @@ function RadarLogo({ base }: { base: string }) {
   );
 }
 // RADAR-VIEWCHART-2205
+// RADAR-NOANALYZE-0217
