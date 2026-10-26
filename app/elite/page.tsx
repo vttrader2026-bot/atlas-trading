@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
@@ -119,13 +120,22 @@ function CopyButton({ value, isAr }: { value: string; isAr: boolean }) {
 }
 
 export default function ElitePage() {
+  return (
+    <Suspense fallback={null}>
+      <ElitePageInner />
+    </Suspense>
+  );
+}
+
+function ElitePageInner() {
+  const searchParams = useSearchParams();
   const { lang } = useLanguage();
   const isAr = lang === "ar";
   /** Inline (en, ar) pair helper — this page isn't wired into lib/i18n.tsx yet, so strings live here for now. */
   const s = (en: string, ar: string) => (isAr ? ar : en);
   const { isSignedIn, isLoaded } = useUser();
 
-  const [plan, setPlan] = useState<PlanChoice>("elite");
+  const [plan, setPlan] = useState<PlanChoice>(searchParams.get("plan") === "analyzer" ? "analyzer" : "elite");
   const [method, setMethod] = useState<Method>("usdt");
   const [amount, setAmount] = useState("");
   const [telegramUsername, setTelegramUsername] = useState("");

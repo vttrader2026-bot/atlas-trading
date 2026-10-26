@@ -80,6 +80,8 @@ function AnalyzerPageInner() {
   const [result, setResult] = useState<Analysis | null>(null);
   const [remaining, setRemaining] = useState(DAILY_ANALYZE_LIMIT);
   const [limit, setLimit] = useState(DAILY_ANALYZE_LIMIT);
+  // "free" until the server says otherwise (anonymous visitors are free too).
+  const [plan, setPlan] = useState<string>("free");
   const analyzingRef = useRef(false);
 
   useEffect(() => {
@@ -99,6 +101,7 @@ function AnalyzerPageInner() {
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("bad status"))))
       .then((data) => {
         if (cancelled) return;
+        if (typeof data.plan === "string") setPlan(data.plan);
         if (typeof data.limit === "number") setLimit(data.limit);
         if (typeof data.remaining === "number") setRemaining(data.remaining);
       })
@@ -270,15 +273,41 @@ function AnalyzerPageInner() {
             {remaining} / {limit} {t("analyzer.usesRemainingLabel")}
           </span>
         </div>
+      ) : plan === "free" ? (
+        <div className="mt-6 border border-gold/30 bg-gold/5 rounded-xl p-6">
+          <div className="text-sm text-gold">{t("analyzer.proTitle")}</div>
+          <p className="mt-2 text-sm text-text-muted leading-relaxed">{t("analyzer.proBody")}</p>
+          <div className="mt-4 flex flex-wrap items-end gap-x-6 gap-y-2">
+            <div>
+              <div className="text-2xl font-bold">
+                {t("analyzer.proPrice")}
+                <span className="text-sm text-text-muted font-normal">{t("analyzer.proPerMonth")}</span>
+              </div>
+              <div className="text-xs text-text-muted">{t("analyzer.proMru")}</div>
+            </div>
+            <div className="text-sm text-gold">{"✓ "}{t("analyzer.proPerks")}</div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+            <Link href="/elite?plan=analyzer" className="btn-primary inline-flex">
+              {t("analyzer.proCta")}
+            </Link>
+            <Link href="/elite" className="text-xs text-text-muted underline">
+              {t("analyzer.proEliteLink")}
+            </Link>
+          </div>
+          <p className="mt-3 text-xs text-text-muted leading-relaxed">{t("analyzer.limitReached")}</p>
+        </div>
       ) : (
         <div className="mt-6 border border-gold/30 bg-gold/5 rounded-xl p-6">
           <div className="text-sm text-gold">{t("analyzer.limitReachedTitle")}</div>
           <p className="mt-2 text-sm text-text-muted leading-relaxed">
             {t("analyzer.limitReached")}
           </p>
-          <Link href="/elite" className="btn-primary mt-3 inline-flex">
-            {t("analyzer.limitReachedCta")}
-          </Link>
+          {plan !== "elite" && (
+            <Link href="/elite" className="btn-primary mt-3 inline-flex">
+              {t("analyzer.limitReachedCta")}
+            </Link>
+          )}
         </div>
       )}
 

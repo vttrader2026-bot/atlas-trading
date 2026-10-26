@@ -419,7 +419,36 @@ export default function Home() {
 
       {/* {t("eliteSection.eyebrow")} */}
       <section className="max-w-6xl mx-auto px-6 pb-20">
-        <div className="card card-accent p-7 sm:p-10">
+        <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+        <div className="card p-7 sm:p-10 flex flex-col">
+          <div className="text-label text-gold">{t("proSection.eyebrow")}</div>
+          <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-xl">
+            {t("proSection.heading")}
+          </h2>
+          <p className="mt-3 text-base text-text-muted leading-relaxed max-w-xl">
+            {t("proSection.subtitle")}
+          </p>
+          <div className="mt-7 grid gap-y-2.5">
+            <EliteFeature>{t("proSection.f1")}</EliteFeature>
+            <EliteFeature>{t("proSection.f2")}</EliteFeature>
+            <EliteFeature>{t("proSection.f3")}</EliteFeature>
+            <EliteFeature>{t("proSection.f4")}</EliteFeature>
+          </div>
+          <div className="mt-auto pt-8 flex flex-wrap items-center gap-5">
+            <div>
+              <div className="text-2xl font-bold">
+                {t("proSection.price")}<span className="text-sm text-text-muted font-normal">{t("proSection.perMonth")}</span>
+              </div>
+              <div className="text-xs text-text-muted">{t("proSection.mru")}</div>
+            </div>
+            <Link href="/elite?plan=analyzer" className="btn-primary inline-flex items-center gap-1.5">
+              {t("proSection.cta")}
+              <span aria-hidden>{"→"}</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="card card-accent p-7 sm:p-10 flex flex-col">
           <div className="text-label text-gold">{t("eliteSection.eyebrow")}</div>
           <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight max-w-xl">
             {t("eliteSection.heading")}
@@ -428,7 +457,7 @@ export default function Home() {
             {t("eliteSection.subtitle")}
           </p>
 
-          <div className="mt-7 grid sm:grid-cols-2 gap-x-8 gap-y-2.5">
+          <div className="mt-7 grid sm:grid-cols-2 lg:grid-cols-1 gap-x-8 gap-y-2.5">
             <EliteFeature>{t("eliteSection.f1")}</EliteFeature>
             <EliteFeature>{t("eliteSection.f2")}</EliteFeature>
             <EliteFeature>{t("eliteSection.f3")}</EliteFeature>
@@ -440,7 +469,7 @@ export default function Home() {
             <EliteFeature>{t("eliteSection.f9")}</EliteFeature>
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center gap-5">
+          <div className="mt-auto pt-8 flex flex-wrap items-center gap-5">
             <div className="text-2xl font-bold">
               $14.99<span className="text-sm text-text-muted font-normal">{t("eliteSection.perMonth")}</span>
             </div>
@@ -449,6 +478,7 @@ export default function Home() {
               <span aria-hidden>{"→"}</span>
             </Link>
           </div>
+        </div>
         </div>
       </section>
 
@@ -1172,3 +1202,4 @@ function EliteFeature({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+// ANALYZER-UPSELL-0002
