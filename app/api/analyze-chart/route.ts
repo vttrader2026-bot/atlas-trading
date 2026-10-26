@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
 import { getCandles, MarketDataError, type Interval } from "@/lib/marketData";
-import { calcEMA, calcMACD, calcRSI, latest } from "@/lib/indicators";
+import { buildPrompt, computeFacts, HIGHER_TF, LOWER_TF, type Facts } from "@/lib/analyzerPrompt";
+import { enforceSpotPlan } from "@/lib/spotPlan";
 
 // Same models, same retry policy, same per-attempt timeout as the
 // screenshot-based Analyzer (app/api/analyze/route.ts) — this route is a
@@ -17,96 +18,6 @@ function serviceUnavailableMessage(lang: string): string {
     : lang === "fr"
     ? "Analyseur temporairement indisponible — nous connaissons une forte demande. Veuillez réessayer dans un instant."
     : "Analyzer temporarily unavailable — we're experiencing high demand. Please try again in a moment.";
-}
-
-function languageLine(lang: string): string {
-  return lang === "ar"
-    ? `LANGUAGE REQUIREMENT — VERY IMPORTANT:
-- The user selected Arabic. Write EVERY human-readable value in the JSON in Modern Standard Arabic.
-- Do NOT write English words or labels in the analysis text.
-- Technical abbreviations and symbols may remain standard: BTC, ETH, USDT, RSI, MACD, EMA, 15M, 1H, 4H, 1D, 1W.
-- Price numbers, ticker symbols, and pair names must remain unchanged.
-- Do not mix Arabic and English sentences.`
-    : lang === "fr"
-    ? `LANGUAGE REQUIREMENT — VERY IMPORTANT:
-- The user selected French. Write EVERY human-readable value in the JSON in natural, professional French.
-- Technical abbreviations and symbols may remain standard: BTC, ETH, USDT, RSI, MACD, EMA, 15M, 1H, 4H, 1D, 1W.
-- Price numbers, ticker symbols, and pair names must remain unchanged.
-- Do not mix French and English sentences.`
-    : "Respond with all human-readable text values written in English.";
-}
-
-// Identical response contract to the screenshot Analyzer (app/api/analyze/route.ts)
-// so the frontend can render either result with the same UI.
-const RESPONSE_SHAPE = `{
-  "pair": "the pair given",
-  "timeframe": "the timeframe given",
-  "marketStructure": { "state": "Bullish" | "Bearish" | "Ranging" | "Unclear", "explanation": "1-2 sentences citing the actual supplied data" },
-  "trend": { "direction": "Bullish" | "Bearish" | "Neutral", "strength": "Weak" | "Moderate" | "Strong", "explanation": "1 sentence on why" },
-  "momentum": "notes on RSI/MACD/EMA values actually supplied below — cite the real numbers, never invent different ones",
-  "keyLevels": [ { "label": "Resistance 1 | Resistance 2 | Current Price | Support 1 | Support 2 | etc", "price": "approximate price from the supplied candle data" } ],
-  "currentCondition": { "label": "short label, e.g. 'Bullish Pullback', 'Potential Breakout', 'Bearish Breakdown', 'Range', 'Trend Continuation', 'Reversal Attempt', 'No Clear Setup'", "explanation": "2-4 sentences" },
-  "bullishScenario": { "confirmation": "specific condition", "targets": ["target 1", "target 2", "target 3"], "why": "1-2 sentences" },
-  "bearishScenario": { "confirmation": "specific condition", "targets": ["target 1", "target 2", "target 3"], "why": "1-2 sentences" },
-  "whatToWatch": ["2-4 short items"],
-  "noClearSetup": "reason, or null",
-  "invalidation": { "level": "specific price/condition", "explanation": "1 sentence" },
-  "tradePlan": { "direction": "Long" | "Short" | "Wait — no clear setup", "entryZone": "zone or N/A", "invalidation": "same as invalidation.level, or N/A", "targets": ["target 1", "target 2", "target 3"], "riskNote": "1 short sentence reminding the trader this is structural analysis, not financial advice" },
-  "teachMe": {
-    "structure": "2-3 sentences, beginner-friendly",
-    "trend": "1-2 sentences, beginner-friendly",
-    "keyLevels": "2-3 sentences, beginner-friendly",
-    "confirmation": "1-2 sentences, beginner-friendly",
-    "invalidation": "1-2 sentences, beginner-friendly"
-  }
-}`;
-
-function buildPrompt(args: {
-  lang: string;
-  pair: string;
-  interval: Interval;
-  candleCount: number;
-  lastClose: number;
-  high: number;
-  low: number;
-  ema20: number | null;
-  ema50: number | null;
-  ema200: number | null;
-  rsi14: number | null;
-  macd: number | null;
-  macdSignal: number | null;
-  macdHist: number | null;
-}): string {
-  return `You are Atlas, a precision-over-prediction crypto chart analyst. You are given REAL, server-fetched Binance Spot OHLCV data and real, server-computed indicator values for ${args.pair} on the ${args.interval} timeframe — not a screenshot. Use ONLY the numbers below; never invent a price or indicator value that isn't listed here.
-
-REAL MARKET DATA (authoritative):
-- Pair: ${args.pair}
-- Timeframe: ${args.interval}
-- Candles analyzed: ${args.candleCount} most recent ${args.interval} candles
-- Current/last close price: ${args.lastClose}
-- Recent range high: ${args.high}
-- Recent range low: ${args.low}
-- EMA 20: ${args.ema20 ?? "not enough history yet"}
-- EMA 50: ${args.ema50 ?? "not enough history yet"}
-- EMA 200: ${args.ema200 ?? "not enough history yet"}
-- RSI (14): ${args.rsi14 ?? "not enough history yet"}
-- MACD line: ${args.macd ?? "not enough history yet"}
-- MACD signal line: ${args.macdSignal ?? "not enough history yet"}
-- MACD histogram: ${args.macdHist ?? "not enough history yet"}
-
-CORE RULES — these matter more than anything else:
-1. Never invent probabilities, confidence percentages, or guaranteed outcomes. Use conditional language only.
-2. Only cite an indicator value from the REAL MARKET DATA block above. If one is "not enough history yet", say so plainly instead of guessing a number.
-3. Only name levels, patterns, or structure concepts that are genuinely supportable from the supplied range/price data.
-4. It is expected to conclude there is no clean setup and the trader should wait, when that's what the data shows.
-5. Always provide exactly 3 targets per scenario (and in tradePlan.targets) when direction is Long or Short, built from the real high/low/EMA levels above — never fabricated false precision. Only use fewer than 3 (or "N/A") when direction is "Wait — no clear setup".
-
-Respond with ONLY a JSON object, no other text, matching exactly this shape:
-${RESPONSE_SHAPE}
-
-${languageLine(args.lang)}
-
-Before returning JSON, silently check every human-readable string and remove any unnecessary English when a different language is selected.`;
 }
 
 async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Promise<Response> {
@@ -135,6 +46,7 @@ async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Pro
   if (!lastRes) throw new Error("All retry attempts failed with no response");
   return lastRes;
 }
+
 
 export const maxDuration = 30;
 
@@ -191,36 +103,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "baseAsset and interval are required." }, { status: 400 });
   }
 
-  let candleCount = 250;
+  const candleCount = 250;
   let pairSymbol: string;
-  let lastClose: number, high: number, low: number;
-  let ema20: number | null, ema50: number | null, ema200: number | null;
-  let rsi14: number | null;
-  let macd: number | null, macdSignal: number | null, macdHist: number | null;
+  let primary: Facts;
+  let higher: Facts | null = null;
+  let lower: Facts | null = null;
+  const higherName = HIGHER_TF[interval] ?? null;
+  const lowerName = LOWER_TF[interval] ?? null;
 
   try {
-    const result = await getCandles(baseAsset, interval, { limit: candleCount, quoteAsset });
-    const candles = result.candles;
-    candleCount = candles.length;
+    const [main, hi, lo] = await Promise.allSettled([
+      getCandles(baseAsset, interval, { limit: candleCount, quoteAsset }),
+      higherName ? getCandles(baseAsset, higherName, { limit: candleCount, quoteAsset }) : Promise.reject(new Error("none")),
+      lowerName ? getCandles(baseAsset, lowerName, { limit: candleCount, quoteAsset }) : Promise.reject(new Error("none")),
+    ]);
+    // The primary timeframe is mandatory; context timeframes degrade
+    // gracefully to "unavailable" rather than being guessed.
+    if (main.status === "rejected") throw main.reason;
+    const result = main.value;
     pairSymbol = result.pair.symbol;
-
-    if (candles.length === 0) {
+    if (result.candles.length === 0) {
       return NextResponse.json({ error: "No candle data available for this pair/timeframe." }, { status: 502 });
     }
-
-    const last = candles[candles.length - 1];
-    lastClose = last.close;
-    high = Math.max(...candles.map((c) => c.high));
-    low = Math.min(...candles.map((c) => c.low));
-
-    ema20 = latest(calcEMA(candles, 20));
-    ema50 = latest(calcEMA(candles, 50));
-    ema200 = latest(calcEMA(candles, 200));
-    rsi14 = latest(calcRSI(candles, 14));
-    const m = calcMACD(candles);
-    macd = latest(m.macd);
-    macdSignal = latest(m.signal);
-    macdHist = latest(m.histogram);
+    primary = computeFacts(interval, result.candles);
+    if (hi.status === "fulfilled" && higherName && hi.value.candles.length > 0) higher = computeFacts(higherName, hi.value.candles);
+    if (lo.status === "fulfilled" && lowerName && lo.value.candles.length > 0) lower = computeFacts(lowerName, lo.value.candles);
   } catch (err) {
     if (err instanceof MarketDataError) {
       return NextResponse.json({ error: err.code, message: err.message }, { status: 502 });
@@ -233,18 +140,11 @@ export async function POST(req: NextRequest) {
   const prompt = buildPrompt({
     lang,
     pair: pairLabel,
-    interval,
-    candleCount,
-    lastClose,
-    high,
-    low,
-    ema20,
-    ema50,
-    ema200,
-    rsi14,
-    macd,
-    macdSignal,
-    macdHist,
+    primary,
+    higher,
+    lower,
+    higherName: higher ? higherName : null,
+    lowerName: lower ? lowerName : null,
   });
 
   function callGemini(model: string) {
@@ -297,6 +197,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const parsed = JSON.parse(text);
+    enforceSpotPlan(parsed, primary.lastClose);
     const consumed = await consumeAnalyzeUsage(userId);
     return NextResponse.json({
       ...parsed,

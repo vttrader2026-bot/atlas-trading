@@ -128,7 +128,7 @@ const en: Dict = {
     showcase: {
       analyzerTitle: "AI chart analyzer",
       analyzerBody:
-        "Upload a screenshot and Atlas reads structure, trend, key levels, and scenarios — then turns it into a plan, not a guess.",
+        "Classic technical analysis plus market structure: Atlas reads swings, support and resistance, trend, momentum and volume — then builds a spot plan only when the chart justifies one.",
       step1: "Upload chart",
       step2: "Market structure",
       step3: "Scenarios",
@@ -281,6 +281,9 @@ const en: Dict = {
     unavailable: "This chart is temporarily unavailable. Please try again shortly.",
     staleWarning: "Showing the last available candles — Binance was unreachable for a fresh fetch.",
     expand: "Expand",
+    confirmed: "Confirmed",
+    uncertain: "Uncertain",
+    riskReward: "Risk / reward",
     close: "Close",
     analyzeWithAi: "Analyze with Atlas AI",
     analyzing: "Analyzing…",
@@ -348,7 +351,7 @@ const en: Dict = {
   analyzer: {
     title: "Chart analyzer",
     subtitle:
-      "Upload a TradingView or exchange screenshot for any pair. Precision over prediction — a structural read to check your own thinking against, not financial advice.",
+      "Classic technical analysis + market structure for spot trading. Upload a TradingView or exchange screenshot for any pair — a structural read to check your own thinking against, not financial advice.",
     dragHere: "Drag a chart screenshot here, or",
     chooseFile: "Choose file",
     readingChart: "Reading chart…",
@@ -663,7 +666,7 @@ const ar: Dict = {
     showcase: {
       analyzerTitle: "محلل الشارت بالذكاء الاصطناعي",
       analyzerBody:
-        "ارفع صورة ويقرأ أطلس البنية والاتجاه والمستويات الرئيسية والسيناريوهات — ثم يحوّلها إلى خطة، لا تخمين.",
+        "تحليل فني كلاسيكي مع هيكل السوق: يقرأ أطلس القمم والقيعان والدعم والمقاومة والاتجاه والزخم والحجم — ثم يبني خطة شراء فوري فقط عندما يبرّرها الشارت.",
       step1: "ارفع الشارت",
       step2: "بنية السوق",
       step3: "السيناريوهات",
@@ -816,6 +819,9 @@ const ar: Dict = {
     unavailable: "هذه الرسوم البيانية غير متاحة مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل.",
     staleWarning: "عرض آخر شموع متاحة — تعذر الوصول إلى Binance لجلب بيانات حديثة.",
     expand: "توسيع",
+    confirmed: "مؤكد",
+    uncertain: "غير مؤكد",
+    riskReward: "المخاطرة / العائد",
     close: "إغلاق",
     analyzeWithAi: "حلّل باستخدام Atlas AI",
     analyzing: "جارٍ التحليل…",
@@ -882,7 +888,7 @@ const ar: Dict = {
   analyzer: {
     title: "محلل الشارت",
     subtitle:
-      "ارفع صورة من TradingView أو المنصة لأي زوج. الدقة قبل التنبؤ — قراءة بنيوية لمراجعة تفكيرك الخاص، وليست نصيحة مالية.",
+      "التحليل الفني الكلاسيكي + هيكل السوق للتداول الفوري (Spot). ارفع صورة من TradingView أو المنصة لأي زوج — قراءة بنيوية لمراجعة تفكيرك الخاص، وليست نصيحة مالية.",
     dragHere: "اسحب صورة الشارت هنا، أو",
     chooseFile: "اختر ملفًا",
     readingChart: "جارٍ قراءة الشارت…",
@@ -1196,7 +1202,7 @@ const fr: Dict = {
     showcase: {
       analyzerTitle: "Analyseur de graphique IA",
       analyzerBody:
-        "Importez une capture d'écran et Atlas lit la structure, la tendance, les niveaux clés et les scénarios — puis en fait un plan, pas une supposition.",
+        "Analyse technique classique et structure de marché : Atlas lit les points pivots, supports et résistances, tendance, momentum et volume — puis ne construit un plan spot que si le graphique le justifie.",
       step1: "Importer le graphique",
       step2: "Structure du marché",
       step3: "Scénarios",
@@ -1349,6 +1355,9 @@ const fr: Dict = {
     unavailable: "Ce graphique est temporairement indisponible. Veuillez réessayer sous peu.",
     staleWarning: "Affichage des dernières données disponibles — Binance était injoignable pour une récupération récente.",
     expand: "Agrandir",
+    confirmed: "Confirmé",
+    uncertain: "Incertain",
+    riskReward: "Risque / rendement",
     close: "Fermer",
     analyzeWithAi: "Analyser avec Atlas AI",
     analyzing: "Analyse en cours…",
@@ -1416,7 +1425,7 @@ const fr: Dict = {
   analyzer: {
     title: "Analyseur de graphique",
     subtitle:
-      "Importez une capture d'écran TradingView ou d'une plateforme pour n'importe quelle paire. La précision avant la prédiction — une lecture structurelle pour vérifier votre propre raisonnement, pas un conseil financier.",
+      "Analyse technique classique + structure de marché pour le trading spot. Importez une capture d'écran TradingView ou d'une plateforme pour n'importe quelle paire — une lecture structurelle pour vérifier votre propre raisonnement, pas un conseil financier.",
     dragHere: "Glissez une capture d'écran du graphique ici, ou",
     chooseFile: "Choisir un fichier",
     readingChart: "Lecture du graphique…",

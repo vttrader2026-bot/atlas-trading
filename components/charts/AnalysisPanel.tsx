@@ -32,7 +32,8 @@ type Analysis = {
   whatToWatch: string[];
   noClearSetup: string | null;
   invalidation: { level: string; explanation: string };
-  tradePlan: { direction: string; entryZone: string; invalidation: string; targets: string[]; riskNote: string };
+  tradePlan: { direction: string; entryZone: string; invalidation: string; targets: string[]; riskNote: string; riskReward?: string };
+  observations?: { confirmed: string[]; uncertain: string[] };
   _usage?: { plan: string; remaining: number; limit: number };
 };
 
@@ -291,6 +292,20 @@ export default function AnalysisPanel({
 
             <p className="text-sm text-text-muted leading-relaxed">{analysis.currentCondition.explanation}</p>
 
+            {analysis.noClearSetup && (
+              <div className="border border-gold/40 bg-gold/5 rounded-xl p-4">
+                <div className="text-xs text-gold">⚪ {t("analyzer.waitLabel")}</div>
+                <p className="mt-1 text-sm leading-relaxed">{analysis.noClearSetup}</p>
+              </div>
+            )}
+
+            {analysis.observations && (analysis.observations.confirmed?.length > 0 || analysis.observations.uncertain?.length > 0) && (
+              <div className="grid sm:grid-cols-2 gap-3">
+                <ObsList title={t("chart.confirmed")} items={analysis.observations.confirmed} tone="text-bull" />
+                <ObsList title={t("chart.uncertain")} items={analysis.observations.uncertain} tone="text-gold" />
+              </div>
+            )}
+
             {analysis.keyLevels?.length > 0 && (
               <div className="divide-y divide-line border border-line rounded-md overflow-hidden">
                 {analysis.keyLevels.map((lvl, i) => (
@@ -314,9 +329,16 @@ export default function AnalysisPanel({
                 <PlanField label={t("analyzer.entryZone")} value={analysis.tradePlan.entryZone} />
                 <PlanField label={t("analyzer.invalidationShort")} value={analysis.tradePlan.invalidation} />
                 <PlanField label={t("analyzer.targets")} value={analysis.tradePlan.targets?.join(" · ") || "—"} />
+                {analysis.tradePlan.riskReward && analysis.tradePlan.riskReward !== "N/A" && (
+                  <PlanField label={t("chart.riskReward")} value={analysis.tradePlan.riskReward} />
+                )}
               </div>
               <p className="mt-2 text-xs text-text-muted leading-relaxed">{analysis.tradePlan.riskNote}</p>
-              <button onClick={createTradePlan} className="btn-primary mt-3 text-sm">
+              <button
+                onClick={createTradePlan}
+                disabled={analysis.tradePlan.direction.toLowerCase().includes("wait")}
+                className="btn-primary mt-3 text-sm disabled:opacity-50"
+              >
                 {t("analyzer.createTradePlan")}
               </button>
             </div>
@@ -337,6 +359,23 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
     <div className="border border-line rounded-xl p-3">
       <div className="text-[11px] text-text-muted uppercase tracking-wide">{label}</div>
       <div className="mt-1 text-sm font-medium">{value}</div>
+    </div>
+  );
+}
+
+function ObsList({ title, items, tone }: { title: string; items: string[]; tone: string }) {
+  if (!items?.length) return null;
+  return (
+    <div className="border border-line rounded-xl p-3">
+      <div className={`text-[11px] uppercase tracking-wide ${tone}`}>{title}</div>
+      <ul className="mt-2 space-y-1">
+        {items.map((it, i) => (
+          <li key={i} className="text-xs text-text-muted leading-relaxed flex gap-1.5">
+            <span className={tone}>•</span>
+            {it}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
