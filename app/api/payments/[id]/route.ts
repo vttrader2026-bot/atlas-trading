@@ -38,14 +38,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.status === "approved") {
     try {
       const client = await clerkClient();
-      await client.users.updateUserMetadata(existing.userId, {
-        privateMetadata: { plan: "elite" },
-      });
+      const target = existing.plan ?? "elite"; // pre-Analyzer-plan requests were all Elite
+      const user = await client.users.getUser(existing.userId);
+      const current = (user.privateMetadata as Record<string, unknown> | null)?.plan;
+      // Never let an Analyzer-only purchase downgrade someone who is already Elite.
+      if (!(current === "elite" && target === "analyzer")) {
+        await client.users.updateUserMetadata(existing.userId, {
+          privateMetadata: { plan: target },
+        });
+      }
     } catch (err) {
       // The payment request is already marked approved at this point, but
       // the plan flip failed - surface this clearly rather than silently
       // leaving someone paid-but-still-Free.
-      console.error("payments: approved request but failed to set Clerk plan to elite", err);
+      console.error("payments: approved request but failed to set Clerk plan", err);
       return NextResponse.json(
         { error: "Marked approved, but failed to update the user's plan. Set it manually in Clerk.", request: updated },
         { status: 500 }

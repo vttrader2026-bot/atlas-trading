@@ -1,11 +1,14 @@
 import { randomUUID } from "crypto";
 import { getRedis } from "@/lib/userStore";
+import type { PaidPlan } from "@/lib/plan";
 
 export type PaymentStatus = "pending" | "approved" | "rejected";
 
 export type PaymentRequest = {
   id: string;
   userId: string;
+  /** Which plan was purchased. Records created before the Analyzer plan existed have no value and mean "elite". */
+  plan?: PaidPlan;
   amount: string;
   method: string;
   proof: string;
@@ -28,6 +31,7 @@ const KEY = "payments:requests";
  */
 export async function createPaymentRequest(input: {
   userId: string;
+  plan: PaidPlan;
   amount: string;
   method: string;
   proof: string;
@@ -39,6 +43,7 @@ export async function createPaymentRequest(input: {
   const request: PaymentRequest = {
     id: randomUUID(),
     userId: input.userId,
+    plan: input.plan,
     amount: input.amount,
     method: input.method,
     proof: input.proof,

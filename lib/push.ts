@@ -500,7 +500,7 @@ export async function notifyElitePromo(): Promise<{ sent: number; reason: string
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           if (!prefs.enabled || !prefs.promotional) return;
           const plan = await getUserPlan(userId);
-          if (plan !== "free") return; // never promo existing Elite members
+          if (plan === "elite") return; // never promo existing Elite members (Analyzer-only members still get it)
           const delivered = await sendToUser(userId, (lang) => eliteNowPayload(lang));
           if (delivered > 0) sent++;
         }),

@@ -2,14 +2,29 @@ import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getRedis } from "@/lib/userStore";
 
-export type Plan = "free" | "elite";
+export type Plan = "free" | "analyzer" | "elite";
+
+/** Plans a user can buy (what a payment request can ask for). */
+export type PaidPlan = "analyzer" | "elite";
+export const PAID_PLANS: readonly PaidPlan[] = ["analyzer", "elite"];
+export function isPaidPlan(v: unknown): v is PaidPlan {
+  return v === "analyzer" || v === "elite";
+}
 
 // Single source of truth for what each plan includes. Change limits here,
 // not in scattered checks elsewhere in the app.
 const DAILY_ANALYZE_LIMIT: Record<Plan, number> = {
   free: 3,
+  analyzer: 20, // Analyzer-only paid plan: 20/day, none of Elite's other perks
   elite: 20,
 };
+
+/** User-facing message when today's analysis allowance is used up. */
+export function analyzeLimitReachedMessage(plan: Plan, limit: number): string {
+  return plan === "free"
+    ? `You've used all ${limit} free analyses for today. This resets at midnight UTC, or upgrade for ${DAILY_ANALYZE_LIMIT.analyzer} a day.`
+    : `You've used all ${limit} analyses for today. This resets at midnight UTC.`;
+}
 
 /**
  * The only function that should decide what plan a user is on. Reads
@@ -23,7 +38,7 @@ export async function getUserPlan(userId: string | null | undefined): Promise<Pl
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
     const raw = (user.privateMetadata as Record<string, unknown> | null)?.plan;
-    return raw === "elite" ? "elite" : "free";
+    return raw === "elite" ? "elite" : raw === "analyzer" ? "analyzer" : "free";
   } catch (err) {
     console.error("plan: getUserPlan failed, defaulting to free", err);
     return "free";
@@ -120,4 +135,4 @@ export async function peekAnalyzeUsage(userId: string): Promise<UsageResult> {
     console.error("plan: peekAnalyzeUsage failed, failing open", err);
     return { allowed: true, remaining: limit, limit, plan };
   }
-}
+}// ANALYZER-PLAN-2346

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createPaymentRequest, listPaymentRequests, type PaymentStatus } from "@/lib/paymentRequests";
 import { sendPaymentProofToAdmin } from "@/lib/telegram";
+import { isPaidPlan } from "@/lib/plan";
 
 const MAX_PROOF_BYTES = 4 * 1024 * 1024; // ~4MB base64 payload ceiling, kept well under typical Redis/request limits
 
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { amount?: string; method?: string; proof?: string; telegramUsername?: string };
+  let body: { plan?: string; amount?: string; method?: string; proof?: string; telegramUsername?: string };
   try {
     body = await req.json();
   } catch {
@@ -24,6 +25,11 @@ export async function POST(req: NextRequest) {
   }
 
   const { amount, method, proof, telegramUsername } = body;
+  // Older clients send no plan; that has always meant Elite.
+  const plan = body.plan === undefined ? "elite" : body.plan;
+  if (!isPaidPlan(plan)) {
+    return NextResponse.json({ error: "Unknown plan" }, { status: 400 });
+  }
   if (!amount || !method || !proof) {
     return NextResponse.json({ error: "amount, method, and proof are required" }, { status: 400 });
   }
@@ -33,6 +39,7 @@ export async function POST(req: NextRequest) {
 
   const request = await createPaymentRequest({
     userId,
+    plan,
     amount,
     method,
     proof,
@@ -45,7 +52,8 @@ export async function POST(req: NextRequest) {
   // request details as the caption underneath it.
   await sendPaymentProofToAdmin(
     proof,
-    `💳 <b>New Atlas Elite payment request</b>\n` +
+    `💳 <b>New ${plan === "analyzer" ? "Atlas Analyzer Pro" : "Atlas Elite"} payment request</b>\n` +
+      `Plan: ${plan}\n` +
       `Method: ${escapeHtml(method)}\n` +
       `Amount: ${escapeHtml(amount)}\n` +
       `Telegram: ${escapeHtml(telegramUsername || "not provided")}\n` +

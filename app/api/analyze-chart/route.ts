@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
+import { analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
 import { getCandles, MarketDataError, type Interval } from "@/lib/marketData";
 import { buildPrompt, computeFacts, HIGHER_TF, LOWER_TF, type Facts } from "@/lib/analyzerPrompt";
 import { enforceSpotPlan } from "@/lib/spotPlan";
@@ -78,10 +78,7 @@ export async function POST(req: NextRequest) {
   if (!usage.allowed) {
     return NextResponse.json(
       {
-        error:
-          usage.plan === "elite"
-            ? "You've used all 20 Elite analyses for today. This resets at midnight UTC."
-            : "You've used all 3 free analyses for today. This resets at midnight UTC, or upgrade to Atlas Elite for 20 a day.",
+        error: analyzeLimitReachedMessage(usage.plan, usage.limit),
       },
       { status: 429 }
     );

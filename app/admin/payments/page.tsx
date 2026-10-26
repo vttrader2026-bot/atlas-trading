@@ -6,6 +6,7 @@ type PaymentStatus = "pending" | "approved" | "rejected";
 type PaymentRequest = {
   id: string;
   userId: string;
+  plan?: "analyzer" | "elite";
   amount: string;
   method: string;
   proof: string;
@@ -102,6 +103,7 @@ export default function AdminPaymentsPage() {
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div>
                 <div className="font-medium">{r.method.toUpperCase()} — {r.amount}</div>
+                <div className="text-xs text-gold mt-0.5">Plan: {r.plan === "analyzer" ? "Analyzer Pro ($4.99 / 250 MRU)" : "Elite ($14.99 / 600 MRU)"}</div>
                 <div className="text-xs text-text-muted mt-0.5">
                   {r.telegramUsername || "no Telegram username"} · {new Date(r.createdAt).toLocaleString()}
                 </div>

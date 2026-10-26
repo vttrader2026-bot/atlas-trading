@@ -6,6 +6,12 @@ import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
 
 type Method = "usdt" | "bankily" | "masrivi" | "sedad";
+type PlanChoice = "analyzer" | "elite";
+
+const PLAN_PRICE: Record<PlanChoice, { usd: string; mru: string }> = {
+  analyzer: { usd: "4.99", mru: "250" },
+  elite: { usd: "14.99", mru: "600" },
+};
 type RowKey = "wallet" | "network" | "account";
 
 const ROW_LABELS: Record<RowKey, [string, string]> = {
@@ -119,6 +125,7 @@ export default function ElitePage() {
   const s = (en: string, ar: string) => (isAr ? ar : en);
   const { isSignedIn, isLoaded } = useUser();
 
+  const [plan, setPlan] = useState<PlanChoice>("elite");
   const [method, setMethod] = useState<Method>("usdt");
   const [amount, setAmount] = useState("");
   const [telegramUsername, setTelegramUsername] = useState("");
@@ -140,7 +147,7 @@ export default function ElitePage() {
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, method, proof, telegramUsername }),
+        body: JSON.stringify({ plan, amount, method, proof, telegramUsername }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -166,48 +173,65 @@ export default function ElitePage() {
         ⚜ Atlas Elite
       </span>
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-3">
-        {s("Upgrade to Atlas Elite", "الترقية إلى Atlas Elite")}
+        {s("Upgrade your plan", "ترقية خطتك")}
       </h1>
       <p className="text-text-muted text-sm mt-1.5 max-w-md">
         {s(
-          "Private spot signals, full trade management, and priority access — $14.99/month (≈ 600 MRU). Manual verification, no recurring card charges.",
-          "إشارات سبوت خاصة، إدارة كاملة للصفقات، ووصول ذو أولوية — 14.99$ شهريًا (≈ 600 أوقية). تحقق يدوي، بدون رسوم بطاقة متكررة."
+          "Choose the Analyzer plan for 20 AI analyses a day, or go Elite for everything. Manual verification, no recurring card charges.",
+          "اختر خطة المحلل للحصول على 20 تحليلًا بالذكاء الاصطناعي يوميًا، أو Elite للحصول على كل شيء. تحقق يدوي، بدون رسوم بطاقة متكررة."
         )}
       </p>
 
-      <div className="grid sm:grid-cols-2 gap-3 mt-6">
+      <div className="grid sm:grid-cols-3 gap-3 mt-6">
         <div className="card p-4">
           <div className="text-label">{s("Free", "مجاني")}</div>
           <div className="text-xl font-bold mt-1">$0</div>
           <ul className="mt-2.5 text-sm text-text-muted space-y-1.5 list-disc list-inside">
             <li>{s("Public trade feed", "خلاصة الصفقات العامة")}</li>
-            <li>{s("Public Telegram group", "مجموعة تيليجرام العامة")}</li>
-            <li>{s("Public WhatsApp group", "مجموعة واتساب العامة")}</li>
-            <li>{s("Market Radar", "رادار السوق")}</li>
-            <li>{s("AI Analyzer — 2/day", "المحلل بالذكاء الاصطناعي — 2/يوم")}</li>
+            <li>{s("Market Radar + charts", "رادار السوق + الرسوم البيانية")}</li>
+            <li>{s("AI Analyzer — 3/day", "المحلل بالذكاء الاصطناعي — 3/يوم")}</li>
             <li>{s("Trade Plan, Risk calculator, Journal", "خطة الصفقة، حاسبة المخاطر، السجل")}</li>
           </ul>
         </div>
-        <div className="card card-accent p-4">
-          <div className="text-label text-gold">Atlas Elite</div>
+        <button
+          type="button"
+          onClick={() => setPlan("analyzer")}
+          className={"card p-4 text-left transition-colors " + (plan === "analyzer" ? "card-accent ring-1 ring-gold" : "hover:border-text-muted")}
+        >
+          <div className="text-label text-gold">Atlas Analyzer Pro</div>
           <div className="text-xl font-bold mt-1">
-            $14.99<span className="text-sm text-text-muted font-normal">/{s("mo", "شهر")}</span>
+            ${PLAN_PRICE.analyzer.usd}<span className="text-sm text-text-muted font-normal">/{s("mo", "شهر")}</span>
           </div>
-          <div className="text-xs text-text-muted mt-0.5">≈ 600 MRU</div>
+          <div className="text-xs text-text-muted mt-0.5">≈ {PLAN_PRICE.analyzer.mru} MRU</div>
           <ul className="mt-2.5 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
             <li>{s("Everything in Free", "كل ما في المجاني")}</li>
             <li>{s("AI Analyzer — 20/day", "المحلل بالذكاء الاصطناعي — 20/يوم")}</li>
+            <li>{s("Screenshot + one-click chart analysis", "تحليل الصور + تحليل الرسم البياني بنقرة")}</li>
+          </ul>
+        </button>
+        <button
+          type="button"
+          onClick={() => setPlan("elite")}
+          className={"card p-4 text-left transition-colors " + (plan === "elite" ? "card-accent ring-1 ring-gold" : "hover:border-text-muted")}
+        >
+          <div className="text-label text-gold">Atlas Elite</div>
+          <div className="text-xl font-bold mt-1">
+            ${PLAN_PRICE.elite.usd}<span className="text-sm text-text-muted font-normal">/{s("mo", "شهر")}</span>
+          </div>
+          <div className="text-xs text-text-muted mt-0.5">≈ {PLAN_PRICE.elite.mru} MRU</div>
+          <ul className="mt-2.5 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
+            <li>{s("Everything in Analyzer Pro", "كل ما في خطة المحلل")}</li>
             <li>{s("Private spot signals, earlier access", "إشارات سبوت خاصة، وصول مبكر")}</li>
             <li>{s("TP1/TP2/TP3 + stop-loss updates", "تحديثات TP1/TP2/TP3 ووقف الخسارة")}</li>
             <li>{s("Full trade management", "إدارة كاملة للصفقات")}</li>
             <li>{s("Private Telegram group, Atlas Bot alerts", "مجموعة تيليجرام خاصة، تنبيهات Atlas Bot")}</li>
           </ul>
-        </div>
+        </button>
       </div>
 
       {!isLoaded ? null : !isSignedIn ? (
         <div className="card p-5 mt-6 text-center">
-          <p className="text-sm text-text-muted">{s("Sign in to submit an Atlas Elite payment request.", "سجّل الدخول لإرسال طلب دفع Atlas Elite.")}</p>
+          <p className="text-sm text-text-muted">{s("Sign in to submit a payment request.", "سجّل الدخول لإرسال طلب دفع.")}</p>
           <Link href="/sign-in" className="btn-primary mt-3 inline-flex">
             {s("Sign in", "تسجيل الدخول")}
           </Link>
@@ -275,14 +299,17 @@ export default function ElitePage() {
           </div>
 
           <div className="card p-5 mt-4">
-            <div className="font-medium mb-3">{s("Submit your payment", "أرسل دفعتك")}</div>
+            <div className="font-medium mb-1">{s("Submit your payment", "أرسل دفعتك")}</div>
+            <p className="text-xs text-text-muted mb-3">
+              {plan === "analyzer" ? "Atlas Analyzer Pro" : "Atlas Elite"} — ${PLAN_PRICE[plan].usd} ≈ {PLAN_PRICE[plan].mru} MRU {s("per month", "شهريًا")}
+            </p>
             <div className="mb-3">
               <label className="text-label block mb-1.5">{s("Amount sent", "المبلغ المُرسل")}</label>
               <input
                 type="text"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder={s("e.g. 14.99 USDT or 600 MRU", "مثال: 14.99 USDT أو 600 أوقية")}
+                placeholder={s(`e.g. ${PLAN_PRICE[plan].usd} USDT or ${PLAN_PRICE[plan].mru} MRU`, `مثال: ${PLAN_PRICE[plan].usd} USDT أو ${PLAN_PRICE[plan].mru} أوقية`)}
                 className="input"
               />
             </div>
