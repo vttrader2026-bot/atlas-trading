@@ -41,6 +41,24 @@ const CHROME = {
   whatsappCta: { en: "Join WhatsApp Community", ar: "\u0627\u0646\u0636\u0645 \u0625\u0644\u0649 \u0645\u062C\u062A\u0645\u0639 \u0648\u0627\u062A\u0633\u0627\u0628", fr: "Rejoindre la communaut\u00E9 WhatsApp" },
 };
 
+// Free course PDFs. Put the three files in /public/academy/ with exactly these
+// names and they are served at /academy/<name>.
+const COURSE_FILES = {
+  en: { href: "/academy/atlas-crypto-course-en.pdf", label: "English" },
+  ar: { href: "/academy/atlas-crypto-course-ar.pdf", label: "العربية" },
+  fr: { href: "/academy/atlas-crypto-course-fr.pdf", label: "Français" },
+} as const;
+
+const COURSE_CHROME = {
+  title: { en: "Free crypto trading course (PDF)", ar: "دورة تداول العملات الرقمية المجانية (PDF)", fr: "Cours gratuit de trading crypto (PDF)" },
+  body: {
+    en: "The full Atlas crypto trading course, free to download in English, Arabic and French.",
+    ar: "دورة أطلس الكاملة لتداول العملات الرقمية، متاحة للتحميل مجانًا بالعربية والإنجليزية والفرنسية.",
+    fr: "Le cours complet de trading crypto Atlas, à télécharger gratuitement en anglais, arabe et français.",
+  },
+  download: { en: "Download", ar: "تحميل", fr: "Télécharger" },
+};
+
 const TELEGRAM_URL = "https://t.me/atlastradingcrypto";
 const WHATSAPP_URL = "https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t";
 
@@ -75,6 +93,27 @@ export default function AcademyIndex() {
     <main className="max-w-5xl mx-auto px-6 py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{CHROME.title[lang]}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{CHROME.subtitle[lang]}</p>
+
+      <div className="mt-8 card card-accent p-6">
+        <div className="text-label text-gold">PDF</div>
+        <h2 className="mt-1 text-lg font-semibold">{COURSE_CHROME.title[lang]}</h2>
+        <p className="mt-1 text-sm text-text-muted max-w-xl">{COURSE_CHROME.body[lang]}</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {(["en", "ar", "fr"] as ("en" | "ar" | "fr")[])
+            .sort((a, b) => (a === lang ? -1 : b === lang ? 1 : 0))
+            .map((l) => (
+              <a
+                key={l}
+                href={COURSE_FILES[l].href}
+                download
+                className={(l === lang ? "btn-primary" : "px-4 py-2 rounded-md text-sm border border-line text-text-muted hover:text-text transition-colors") + " inline-flex items-center gap-1.5"}
+              >
+                <span aria-hidden>{"↓"}</span>
+                {COURSE_CHROME.download[lang]} · {COURSE_FILES[l].label}
+              </a>
+            ))}
+        </div>
+      </div>
 
       <div className="mt-8 space-y-10">
         {SECTION_ORDER.map((section) => {

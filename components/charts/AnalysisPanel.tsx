@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import type { Candle, Interval } from "@/lib/marketDataTypes";
 import { SUPPORTED_INTERVALS } from "@/lib/marketDataTypes";
 import { useLanguage } from "@/lib/i18n";
+import { downloadAnalysisPdf } from "@/lib/analysisPdf";
 import { saveDraft, firstNumber, type TradePlanDraft } from "@/lib/tradePlan";
 import AnalysisChart, { DEFAULT_TOGGLES, type IndicatorToggles } from "@/components/charts/AnalysisChart";
 
@@ -58,6 +59,7 @@ export default function AnalysisPanel({
   const [interval, setInterval_] = useState<Interval>("1h");
   const [toggles, setToggles] = useState<IndicatorToggles>(DEFAULT_TOGGLES);
   const [fullscreen, setFullscreen] = useState(false);
+  const [pdfWorking, setPdfWorking] = useState(false);
   const [klines, setKlines] = useState<KlinesState>({ status: "loading" });
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
@@ -334,6 +336,23 @@ export default function AnalysisPanel({
                 )}
               </div>
               <p className="mt-2 text-xs text-text-muted leading-relaxed">{analysis.tradePlan.riskNote}</p>
+              <button
+                onClick={async () => {
+                  if (pdfWorking) return;
+                  setPdfWorking(true);
+                  try {
+                    await downloadAnalysisPdf(analysis);
+                  } catch (err) {
+                    console.error("Could not generate PDF", err);
+                  } finally {
+                    setPdfWorking(false);
+                  }
+                }}
+                disabled={pdfWorking}
+                className="mt-3 mr-2 px-3 py-1.5 rounded-md text-sm border border-line text-text-muted hover:text-text transition-colors disabled:opacity-50"
+              >
+                {pdfWorking ? "Preparing PDF..." : "Download PDF"}
+              </button>
               <button
                 onClick={createTradePlan}
                 disabled={analysis.tradePlan.direction.toLowerCase().includes("wait")}
