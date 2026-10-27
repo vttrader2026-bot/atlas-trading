@@ -141,7 +141,10 @@ export default function Nav() {
     },
     {
       label: "LEARN",
-      links: [{ href: "/academy", label: t("nav.academy") }],
+      links: [
+        { href: "/academy", label: t("nav.academy") },
+        { href: "/share", label: lang === "ar" ? "مشاركة" : lang === "fr" ? "Partager" : "Share" },
+      ],
     },
   ];
 
