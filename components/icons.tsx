@@ -147,3 +147,29 @@ export function IconTradeFeed({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function IconAcademy({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M3 9.5L12 5l9 4.5-9 4.5-9-4.5z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M7 12v4.2c0 .9 2.2 2.3 5 2.3s5-1.4 5-2.3V12"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M21 9.5V15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
