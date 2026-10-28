@@ -6,6 +6,9 @@ import { getTicker24h, getAllTickers24h, formatPrice, formatCompact, Ticker24h }
 import { buildRadarRows, RadarRow } from "@/lib/radar";
 import { useLanguage } from "@/lib/i18n";
 import { IconRadar, IconAnalyzer, IconJournal, IconRisk } from "@/components/icons";
+import { ChangePill, CoinLogo } from "@/components/market/MarketBits";
+import { GROUP_STYLE } from "@/lib/marketGroups";
+import type { AssetCategory } from "@/lib/marketIntelAssets";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 import type { RankedAsset } from "@/lib/marketIntelCompute";
 import type { FearGreed, AltcoinSeason, GlobalMetrics } from "@/lib/coinmarketcap";
@@ -132,7 +135,7 @@ export default function Home() {
         <div className="mt-7 border border-line rounded-xl bg-surface overflow-hidden">
           <div className="flex items-center justify-between px-5 h-10 border-b border-line">
             <span className="text-label">{t("pulseSection.liveMarkets")}</span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-bull font-medium">
+            <span className="inline-flex items-center gap-1.5 text-xs text-bull font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
               {t("pulseSection.live")}
             </span>
@@ -142,7 +145,6 @@ export default function Home() {
             {HERO_PAIRS.map((symbol, i) => {
               const tk = tickers[symbol];
               const change = tk ? parseFloat(tk.priceChangePercent) : 0;
-              const positive = change >= 0;
               const base = symbol.replace("USDT", "");
               const name = PULSE_COIN_NAMES[base] || base;
               return (
@@ -154,22 +156,15 @@ export default function Home() {
                   <div className="flex items-center gap-3">
                     <PulseCoinLogo base={base} />
                     <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{name}</div>
-                      <div className="text-xs text-text-muted font-data">{base}/USDT</div>
+                      <div className="text-base font-semibold truncate">{name}</div>
+                      <div className="text-sm text-text-muted font-data">{base}/USDT</div>
                     </div>
                   </div>
                   <div className="mt-4 flex items-end justify-between gap-2">
                     <span className="font-data text-2xl sm:text-3xl font-bold tracking-tight">
                       {tk ? `$${formatPrice(tk.lastPrice)}` : "..."}
                     </span>
-                    <span
-                      className={`font-data text-sm font-medium flex items-center gap-1 ${
-                        positive ? "text-bull" : "text-bear"
-                      }`}
-                    >
-                      <span aria-hidden>{positive ? "▲" : "▼"}</span>
-                      {tk ? `${positive ? "+" : ""}${change.toFixed(2)}%` : "--"}
-                    </span>
+                    {tk ? <ChangePill value={change} /> : <span className="text-text-muted font-data">--</span>}
                   </div>
                 </div>
               );
@@ -178,7 +173,7 @@ export default function Home() {
 
           <Link
             href="/radar"
-            className="flex items-center justify-center gap-1.5 px-5 py-3.5 border-t border-line text-sm text-text-muted hover:text-gold transition-colors"
+            className="flex items-center justify-center gap-2 px-5 py-4 border-t border-line text-base font-medium text-gold bg-gold/5 hover:bg-gold/10 transition-colors"
           >
             {t("pulseSection.openRadar")}
             <span aria-hidden>{"→"}</span>
@@ -213,14 +208,16 @@ export default function Home() {
         <p className="mt-3 text-base text-text-muted leading-relaxed max-w-xl">
           {t("intelSection.body")}
         </p>
-        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-[10px] uppercase tracking-wide text-text-muted">
-            {t("intelSection.sourcesLabel")}
-          </span>
-          {["Grayscale", "Coinbase 50", "World Liberty Financial", "Made in USA"].map((name, i, arr) => (
-            <span key={name} className="text-xs text-text-muted">
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <span className="text-label">{t("intelSection.sourcesLabel")}</span>
+          {([
+            ["Grayscale", "grayscale"],
+            ["Coinbase 50", "coinbase50"],
+            ["World Liberty Financial", "worldLiberty"],
+            ["Made in USA", "madeInUsa"],
+          ] as [string, AssetCategory][]).map(([name, key]) => (
+            <span key={key} className="grp-chip" style={{ "--c": GROUP_STYLE[key].color } as React.CSSProperties}>
               {name}
-              {i < arr.length - 1 && <span className="mx-1.5 opacity-50" aria-hidden>·</span>}
             </span>
           ))}
         </div>
@@ -248,7 +245,7 @@ export default function Home() {
                 <IconBtc className="w-6 h-6 shrink-0" />
                 <span className="font-data text-sm font-medium">BTC/USDT</span>
               </div>
-              <span className="px-2 py-0.5 rounded-full border border-line text-[10px] tracking-wide text-text-muted">
+              <span className="px-2 py-0.5 rounded-full border border-line text-xs tracking-wide text-text-muted">
                 {t("home.spotPromo.sampleTag")}
               </span>
             </div>
@@ -256,23 +253,23 @@ export default function Home() {
             <div className="mt-3 font-data text-2xl font-bold">
               {tickers["BTCUSDT"] ? `$${formatPrice(tickers["BTCUSDT"].lastPrice)}` : "—"}
             </div>
-            <div className="text-[11px] text-text-muted">{t("home.spotPromo.currentPrice")}</div>
+            <div className="text-xs text-text-muted">{t("home.spotPromo.currentPrice")}</div>
 
             <div className="mt-4 pt-4 border-t border-line grid grid-cols-3 gap-2 text-center">
               <div>
-                <div className="text-[10px] text-text-muted uppercase tracking-wide">{t("tradePlan.entry")}</div>
+                <div className="text-xs text-text-muted uppercase tracking-wide">{t("tradePlan.entry")}</div>
                 <div className="font-data text-sm mt-0.5">$61,250</div>
               </div>
               <div>
-                <div className="text-[10px] text-text-muted uppercase tracking-wide">TP</div>
+                <div className="text-xs text-text-muted uppercase tracking-wide">TP</div>
                 <div className="font-data text-sm mt-0.5 text-bull">$64,000</div>
               </div>
               <div>
-                <div className="text-[10px] text-text-muted uppercase tracking-wide">SL</div>
+                <div className="text-xs text-text-muted uppercase tracking-wide">SL</div>
                 <div className="font-data text-sm mt-0.5 text-bear">$59,800</div>
               </div>
             </div>
-            <div className="mt-3 text-[10px] text-text-muted text-center">{t("home.spotPromo.disclaimer")}</div>
+            <div className="mt-3 text-xs text-text-muted text-center">{t("home.spotPromo.disclaimer")}</div>
           </div>
         </div>
       </section>
@@ -298,7 +295,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="font-data text-base font-medium">{trade.pair}</span>
                   <span
-                    className={`px-2 py-0.5 rounded-full border text-[11px] ${
+                    className={`px-2 py-0.5 rounded-full border text-xs ${
                       trade.direction === "Long" ? "border-bull/40 text-bull" : "border-bear/40 text-bear"
                     }`}
                   >
@@ -330,7 +327,7 @@ export default function Home() {
               <WorkspaceField label={t("workspaceSection.accountBalance")} />
               <WorkspaceField label={t("workspaceSection.riskPerTrade")} suffix="%" />
               <div className="pt-2 border-t border-line flex items-center justify-between">
-                <span className="text-[11px] text-text-muted uppercase tracking-wide">{t("workspaceSection.positionSize")}</span>
+                <span className="text-xs text-text-muted uppercase tracking-wide">{t("workspaceSection.positionSize")}</span>
                 <span className="font-data text-xs text-text-muted">--</span>
               </div>
             </div>
@@ -340,13 +337,13 @@ export default function Home() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-data text-text-muted">BTC/USDT</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-line text-text-muted">Long</span>
+                <span className="text-xs px-1.5 py-0.5 rounded-full border border-line text-text-muted">Long</span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="font-data text-text-muted">ETH/USDT</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-line text-text-muted">Short</span>
+                <span className="text-xs px-1.5 py-0.5 rounded-full border border-line text-text-muted">Short</span>
               </div>
-              <div className="pt-2 border-t border-line text-[11px] text-text-muted">
+              <div className="pt-2 border-t border-line text-xs text-text-muted">
                 {t("workspaceSection.journalNote")}
               </div>
             </div>
@@ -356,13 +353,13 @@ export default function Home() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-data">BTC/USDT</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-bull/40 text-bull">Long</span>
+                <span className="text-xs px-1.5 py-0.5 rounded-full border border-bull/40 text-bull">Long</span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="font-data">SOL/USDT</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-bear/40 text-bear">Short</span>
+                <span className="text-xs px-1.5 py-0.5 rounded-full border border-bear/40 text-bear">Short</span>
               </div>
-              <div className="pt-2 border-t border-line text-[11px] text-text-muted">
+              <div className="pt-2 border-t border-line text-xs text-text-muted">
                 {t("workspaceSection.tradeFeedNote")}
               </div>
             </div>
@@ -516,7 +513,7 @@ function DemoStat({
 }) {
   return (
     <div className={`rounded-lg border p-3 ${tone === "bull" ? "border-bull/30" : "border-bear/30"}`}>
-      <div className="text-[11px] text-text-muted">{label}</div>
+      <div className="text-xs text-text-muted">{label}</div>
       <div className={`font-data text-base font-medium mt-0.5 ${tone === "bull" ? "text-bull" : "text-bear"}`}>
         {value}
       </div>
@@ -627,19 +624,13 @@ function RadarPreview() {
     };
   }, []);
 
-  const conditionStyle: Record<string, string> = {
-    bullish: "border-bull/40 text-bull",
-    bearish: "border-bear/40 text-bear",
-    range: "border-gold/40 text-gold",
-  };
-
   return (
     <div className="card overflow-hidden">
       <div className="flex items-center justify-between px-5 h-11 border-b border-line">
         <span className="text-label">
           {lang === "ar" ? "الأزواج المتفوقة على BTC الآن" : "Outperforming BTC right now"}
         </span>
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-bull font-medium">
+        <span className="inline-flex items-center gap-1.5 text-xs text-bull font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-bull animate-pulse" />
           {t("pulseSection.live")}
         </span>
@@ -665,44 +656,51 @@ function RadarPreview() {
         <div
           className={`overflow-x-auto transition-opacity duration-300 ${justRefreshed ? "opacity-70" : "opacity-100"}`}
         >
-          <table className="w-full text-sm min-w-[420px]">
+          <table className="w-full">
             <thead className="text-text-muted">
               <tr className="border-b border-line">
-                <th className="text-left px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
-                  {lang === "ar" ? "الزوج" : "Pair"}
-                </th>
-                <th className="text-right px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
-                  {lang === "ar" ? "24 ساعة" : "24H"}
-                </th>
-                <th className="text-left px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
-                  {lang === "ar" ? "الإعداد" : "Setup"}
-                </th>
-                <th className="text-left px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
-                  {lang === "ar" ? "الحالة" : "Status"}
-                </th>
+                <th className="mkt-th text-start">{lang === "ar" ? "الزوج" : "Pair"}</th>
+                <th className="mkt-th text-end">{lang === "ar" ? "24 ساعة" : "24H"}</th>
+                <th className="mkt-th text-end hidden sm:table-cell">{lang === "ar" ? "مقابل BTC" : "vs BTC"}</th>
+                <th className="mkt-th text-start hidden sm:table-cell">{lang === "ar" ? "الحالة" : "Status"}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row, i) => {
-                const positive = row.change >= 0;
+                const base = row.ticker.symbol.replace("USDT", "");
                 return (
                   <tr
                     key={row.ticker.symbol}
-                    className="radar-row-in border-t border-line hover:bg-surface-raised/50 transition-colors"
+                    className="radar-row-in mkt-row border-t border-line"
                     style={{ animationDelay: `${i * 70}ms` }}
                   >
-                    <td className="px-5 py-3 font-data font-medium">
-                      {row.ticker.symbol.replace("USDT", "/USDT")}
+                    <td className="mkt-td">
+                      <div className="flex items-center gap-3">
+                        <CoinLogo base={base} size={36} />
+                        <div className="min-w-0">
+                          <div className="font-data leading-tight">
+                            <span className="font-semibold text-base">{base}</span>
+                            <span className="text-text-muted text-sm">/USDT</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
+                            <span
+                              className={`tag sm:hidden ${row.condition === "bullish" ? "tag-bull" : row.condition === "bearish" ? "tag-bear" : "tag-gold"}`}
+                            >
+                              {t(`radar.condition.${row.condition}`)}
+                            </span>
+                            <span className="text-sm text-text-muted">{t(`radar.setup.${row.setup}`)}</span>
+                          </div>
+                        </div>
+                      </div>
                     </td>
-                    <td className={`px-5 py-3 text-right font-data ${positive ? "text-bull" : "text-bear"}`}>
-                      {positive ? "+" : ""}
-                      {row.change.toFixed(2)}%
+                    <td className="mkt-td text-end">
+                      <ChangePill value={row.change} />
                     </td>
-                    <td className="px-5 py-3 text-text-muted">{t(`radar.setup.${row.setup}`)}</td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`text-[11px] px-2 py-0.5 rounded-full border whitespace-nowrap ${conditionStyle[row.condition]}`}
-                      >
+                    <td dir="ltr" className="mkt-td text-end hidden sm:table-cell font-data text-gold">
+                      +{row.vsBtcPct.toFixed(2)}pp
+                    </td>
+                    <td className="mkt-td hidden sm:table-cell">
+                      <span className={`tag ${row.condition === "bullish" ? "tag-bull" : row.condition === "bearish" ? "tag-bear" : "tag-gold"}`}>
                         {t(`radar.condition.${row.condition}`)}
                       </span>
                     </td>
@@ -716,7 +714,7 @@ function RadarPreview() {
 
       <Link
         href="/radar"
-        className="flex items-center justify-center gap-1.5 px-5 py-3.5 border-t border-line text-sm text-text-muted hover:text-gold transition-colors"
+        className="flex items-center justify-center gap-2 px-5 py-4 border-t border-line text-base font-medium text-gold bg-gold/5 hover:bg-gold/10 transition-colors"
       >
         {lang === "ar" ? "عرض رادار السوق الكامل" : "View Market Radar"}
         <span aria-hidden>{"\u2192"}</span>
@@ -779,7 +777,7 @@ function MarketOverview() {
         <AltcoinSeasonCard section={overview?.altcoinSeason ?? null} devHint={overview?.devHint ?? false} loading={loading} failed={failed} />
         <GlobalMetricsCard section={overview?.globalMetrics ?? null} devHint={overview?.devHint ?? false} loading={loading} failed={failed} />
       </div>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-text-muted">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted">
         <span>{t("marketOverview.source")}</span>
         {overview?.generatedAt && (
           <span>
@@ -788,7 +786,7 @@ function MarketOverview() {
           </span>
         )}
       </div>
-      <p className="mt-2 text-[11px] text-text-muted max-w-xl">{t("marketOverview.disclaimer")}</p>
+      <p className="mt-2 text-xs text-text-muted max-w-xl">{t("marketOverview.disclaimer")}</p>
     </div>
   );
 }
@@ -1035,40 +1033,43 @@ function IntelPreview() {
 
       {assets !== null && assets.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[420px]">
+          <table className="w-full">
             <thead className="text-text-muted">
               <tr className="border-b border-line">
-                <th className="text-left px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
-                  {lang === "ar" ? "الأصل" : "Asset"}
-                </th>
-                <th className="text-left px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
-                  {lang === "ar" ? "المصدر" : "Source"}
-                </th>
-                <th className="text-right px-5 py-2.5 font-normal text-[11px] uppercase tracking-wide">
-                  7D
-                </th>
+                <th className="mkt-th text-start">{lang === "ar" ? "الأصل" : "Asset"}</th>
+                <th className="mkt-th text-start hidden sm:table-cell">{lang === "ar" ? "المصدر" : "Source"}</th>
+                <th className="mkt-th text-end">7D</th>
               </tr>
             </thead>
             <tbody>
               {assets.map((a, i) => {
-                const perf = a.perf7dPct;
-                const positive = (perf ?? 0) >= 0;
+                const chips = (
+                  <div className="flex flex-wrap gap-1.5">
+                    {a.categories.map((c) => (
+                      <span key={c} className="grp-chip" style={{ "--c": GROUP_STYLE[c as AssetCategory].color } as React.CSSProperties}>
+                        {categoryShort[c] || c}
+                      </span>
+                    ))}
+                  </div>
+                );
                 return (
                   <tr
                     key={a.symbol}
-                    className="radar-row-in border-t border-line hover:bg-surface-raised/50 transition-colors"
+                    className="radar-row-in mkt-row border-t border-line"
                     style={{ animationDelay: `${i * 70}ms` }}
                   >
-                    <td className="px-5 py-3 font-data font-medium">{a.symbol}</td>
-                    <td className="px-5 py-3 text-text-muted text-xs">
-                      {a.categories.map((c) => categoryShort[c] || c).join(" · ")}
+                    <td className="mkt-td">
+                      <div className="flex items-center gap-3">
+                        <CoinLogo base={a.symbol} size={36} />
+                        <div className="min-w-0">
+                          <div className="font-data font-semibold text-base leading-tight">{a.symbol}</div>
+                          <div className="sm:hidden mt-1">{chips}</div>
+                        </div>
+                      </div>
                     </td>
-                    <td
-                      className={`px-5 py-3 text-right font-data ${
-                        perf === null ? "text-text-muted" : positive ? "text-bull" : "text-bear"
-                      }`}
-                    >
-                      {perf === null ? "--" : `${positive ? "+" : ""}${perf.toFixed(1)}%`}
+                    <td className="mkt-td hidden sm:table-cell">{chips}</td>
+                    <td className="mkt-td text-end">
+                      <ChangePill value={a.perf7dPct} digits={1} />
                     </td>
                   </tr>
                 );
@@ -1080,7 +1081,7 @@ function IntelPreview() {
 
       <Link
         href="/market-intelligence"
-        className="flex items-center justify-center gap-1.5 px-5 py-3.5 border-t border-line text-sm text-text-muted hover:text-gold transition-colors"
+        className="flex items-center justify-center gap-2 px-5 py-4 border-t border-line text-base font-medium text-gold bg-gold/5 hover:bg-gold/10 transition-colors"
       >
         {t("intelSection.cta")}
         <span aria-hidden>{"→"}</span>
@@ -1118,7 +1119,7 @@ function PulseCoinLogo({ base }: { base: string }) {
 function WorkspaceField({ label, suffix }: { label: string; suffix?: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-[11px] text-text-muted">{label}</span>
+      <span className="text-xs text-text-muted">{label}</span>
       <span className="font-data text-xs text-text-muted border border-line rounded px-2 py-1 bg-surface-raised/40">
         --{suffix ? ` ${suffix}` : ""}
       </span>

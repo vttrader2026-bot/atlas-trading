@@ -37,7 +37,7 @@ function LangSwitcher({
           key={opt.code}
           type="button"
           onClick={() => setLang(opt.code)}
-          className={`px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors ${
+          className={`px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
             lang === opt.code ? "bg-gold/15 text-gold" : "text-text-muted hover:text-text"
           }`}
         >
@@ -71,7 +71,7 @@ function CommandNavLink({
       }`}
     >
       <span
-        className={`flex shrink-0 items-center transition-colors duration-150 ${
+        className={`flex shrink-0 items-center lg:hidden 2xl:flex transition-colors duration-150 ${
           active ? "text-gold" : "text-text-muted group-hover:text-text"
         }`}
       >

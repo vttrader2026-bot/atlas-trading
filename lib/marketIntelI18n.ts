@@ -35,6 +35,14 @@ const en: Dict = {
   },
   categoryKindOfficial: "Official index / portfolio",
   categoryKindNarrative: "Narrative / community classification — not an official index",
+  groups: {
+    assets: "assets",
+    up: "up",
+    down: "down",
+    today: "today",
+    official: "Official index",
+    narrative: "Narrative",
+  },
   searchPlaceholder: "Search ticker…",
   sort: {
     rank: "Sort: Strength rank",
@@ -114,6 +122,14 @@ const ar: Dict = {
   },
   categoryKindOfficial: "مؤشر رسمي / محفظة رسمية",
   categoryKindNarrative: "تصنيف سردي / مجتمعي — ليس مؤشرًا رسميًا",
+  groups: {
+    assets: "أصل",
+    up: "صاعد",
+    down: "هابط",
+    today: "اليوم",
+    official: "مؤشر رسمي",
+    narrative: "سردية",
+  },
   searchPlaceholder: "ابحث عن رمز…",
   sort: {
     rank: "ترتيب: قوة السوق",
@@ -193,6 +209,14 @@ const fr: Dict = {
   },
   categoryKindOfficial: "Indice officiel / portefeuille officiel",
   categoryKindNarrative: "Classification narrative / communautaire — pas un indice officiel",
+  groups: {
+    assets: "actifs",
+    up: "en hausse",
+    down: "en baisse",
+    today: "aujourd'hui",
+    official: "Indice officiel",
+    narrative: "Narratif",
+  },
   searchPlaceholder: "Rechercher un ticker…",
   sort: {
     rank: "Trier : Classement de force",
