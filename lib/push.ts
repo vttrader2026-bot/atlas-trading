@@ -5,7 +5,7 @@ import { normalizePrefs } from "@/lib/notificationPrefs";
 import { getUserPlan } from "@/lib/plan";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 import { buildRadarRows, type RadarRow } from "@/lib/radar";
-import { getAllTickers24h, getTicker24h } from "@/lib/binance";
+import { getAllTickers24h, getTicker24h, getSpotTradingSymbols } from "@/lib/binance";
 import { lessons, type Lesson } from "@/lib/academy-content";
 
 type Lang = "en" | "ar";
@@ -357,9 +357,9 @@ export async function notifyRadarAlerts(): Promise<{ sent: number; reason: strin
 
   let rows: RadarRow[];
   try {
-    const [tickers, btc] = await Promise.all([getAllTickers24h(), getTicker24h("BTCUSDT")]);
+    const [tickers, btc, spot] = await Promise.all([getAllTickers24h(), getTicker24h("BTCUSDT"), getSpotTradingSymbols()]);
     const btcChangePct = btc ? parseFloat(btc.priceChangePercent) : 0;
-    rows = buildRadarRows(tickers, btcChangePct).filter(radarAlertEligible);
+    rows = buildRadarRows(tickers, btcChangePct, spot).filter(radarAlertEligible);
   } catch (err) {
     console.error("push: notifyRadarAlerts could not load market data", err);
     return { sent: 0, reason: "market-data-unavailable" };

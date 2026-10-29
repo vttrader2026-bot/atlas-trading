@@ -35,6 +35,49 @@ export async function getUsdtSymbols(): Promise<string[]> {
     .sort();
 }
 
+type ExchangeSymbol = { symbol: string; quoteAsset: string; status: string; isSpotTradingAllowed?: boolean };
+
+let spotCache: { at: number; set: Set<string> } | null = null;
+let spotInflight: Promise<Set<string> | null> | null = null;
+const SPOT_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * Symbols that are actually tradable on Binance spot right now (USDT quote,
+ * status TRADING, spot trading allowed). The 24h ticker feed also carries
+ * delisted / halted pairs (CREAM, KDA, ADADOWN ...) that do not show on
+ * TradingView's BINANCE spot, so Radar uses this as the source of truth.
+ * Returns null when it cannot be loaded (callers then fall back to the
+ * built-in filters). Cached for 10 minutes, one request shared by all callers.
+ */
+export async function getSpotTradingSymbols(): Promise<Set<string> | null> {
+  if (spotCache && Date.now() - spotCache.at < SPOT_TTL_MS) return spotCache.set;
+  if (spotInflight) return spotInflight;
+  spotInflight = (async () => {
+    try {
+      const res = await fetch(`${BASE}/exchangeInfo?symbolStatus=TRADING`, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) return spotCache?.set ?? null;
+      const data = (await res.json()) as { symbols?: ExchangeSymbol[] };
+      if (!Array.isArray(data.symbols)) return spotCache?.set ?? null;
+      const set = new Set(
+        data.symbols
+          .filter((s) => s.quoteAsset === "USDT" && s.status === "TRADING" && s.isSpotTradingAllowed !== false)
+          .map((s) => s.symbol)
+      );
+      if (set.size < 50) return spotCache?.set ?? null; // implausibly small: don't trust it
+      spotCache = { at: Date.now(), set };
+      return set;
+    } catch {
+      return spotCache?.set ?? null;
+    } finally {
+      spotInflight = null;
+    }
+  })();
+  return spotInflight;
+}
+
 /** 24h ticker stats for every USDT pair in one call. */
 export async function getAllTickers24h(): Promise<Ticker24h[]> {
   const res = await fetch(`${BASE}/ticker/24hr`, { cache: "no-store" });

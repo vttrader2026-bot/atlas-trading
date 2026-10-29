@@ -1,7 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildRadarRows, type RadarRow } from "@/lib/radar";
 import { DEFAULT_SORT, SORT_KEYS, defaultDir, sortRows, sortValue } from "@/lib/radarSort";
 import type { Ticker24h } from "@/lib/binance";
+
+// These tests feed deliberately invalid tickers through; the universe filter is covered in radarUniverse.test.ts.
+vi.mock("@/lib/radarUniverse", () => ({ isRadarEligible: () => true }));
 
 function tk(base: string, o: Partial<Ticker24h> = {}): Ticker24h {
   return { symbol: base + "USDT", lastPrice: "100", priceChangePercent: "1", highPrice: "110", lowPrice: "90", quoteVolume: "1000", ...o };

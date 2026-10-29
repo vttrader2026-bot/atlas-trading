@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getTicker24h, getAllTickers24h, formatPrice, formatCompact, Ticker24h } from "@/lib/binance";
+import { getTicker24h, getAllTickers24h, getSpotTradingSymbols, formatPrice, formatCompact, Ticker24h } from "@/lib/binance";
 import { buildRadarRows, RadarRow } from "@/lib/radar";
 import { useLanguage } from "@/lib/i18n";
 import { IconRadar, IconAnalyzer, IconJournal, IconRisk } from "@/components/icons";
@@ -597,10 +597,10 @@ function RadarPreview() {
     let isFirstLoad = true;
     async function load() {
       try {
-        const [tickers, btc] = await Promise.all([getAllTickers24h(), getTicker24h("BTCUSDT")]);
+        const [tickers, btc, spot] = await Promise.all([getAllTickers24h(), getTicker24h("BTCUSDT"), getSpotTradingSymbols()]);
         if (cancelled) return;
         const btcChange = parseFloat(btc.priceChangePercent);
-        const built = buildRadarRows(tickers, btcChange);
+        const built = buildRadarRows(tickers, btcChange, spot);
         const shortlist = [...built]
           .filter((r) => r.tags.includes("outperformBtc") && !PREVIEW_EXCLUDED_SYMBOLS.has(r.ticker.symbol))
           .sort((a, b) => b.vsBtcPct - a.vsBtcPct)

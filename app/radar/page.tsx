@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { formatPrice, formatCompact } from "@/lib/binance";
+import { formatPrice, formatCompact, getSpotTradingSymbols } from "@/lib/binance";
 import { useLiveTickers } from "@/lib/useLiveTickers";
 import { buildRadarRows, RadarRow, RadarTag, MarketCondition } from "@/lib/radar";
 import { useLanguage } from "@/lib/i18n";
@@ -50,6 +50,8 @@ export default function RadarPage() {
   const { t } = useLanguage();
   const tickers = useLiveTickers();
   const [error, setError] = useState(false);
+  // undefined = still loading, null = unavailable (fall back to built-in rules), Set = live spot list
+  const [spot, setSpot] = useState<Set<string> | null | undefined>(undefined);
   const [filter, setFilter] = useState<RadarTag | "all">("all");
   const [chartSymbol, setChartSymbol] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT.key);
@@ -68,13 +70,23 @@ export default function RadarPage() {
     return () => clearTimeout(timer);
   }, [tickers]);
 
+  useEffect(() => {
+    let cancelled = false;
+    getSpotTradingSymbols().then((s) => {
+      if (!cancelled) setSpot(s);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const rows = useMemo<RadarRow[] | null>(() => {
     const list = Object.values(tickers);
-    if (list.length === 0) return null;
+    if (list.length === 0 || spot === undefined) return null;
     const btc = tickers["BTCUSDT"];
     const btcChange = btc ? parseFloat(btc.priceChangePercent) : 0;
-    return buildRadarRows(list, btcChange);
-  }, [tickers]);
+    return buildRadarRows(list, btcChange, spot);
+  }, [tickers, spot]);
 
   const shortlist = useMemo(() => {
     if (!rows) return [];
