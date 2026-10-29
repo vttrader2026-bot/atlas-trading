@@ -8,6 +8,7 @@ import { buildRadarRows, RadarRow, RadarTag, MarketCondition } from "@/lib/radar
 import { useLanguage } from "@/lib/i18n";
 import AnalysisPanel from "@/components/charts/AnalysisPanel";
 import { ChangePill, CoinLogo, RangeBar } from "@/components/market/MarketBits";
+import { DEFAULT_SORT, SORT_KEYS, defaultDir, sortRows, type SortDir, type SortKey } from "@/lib/radarSort";
 
 const FILTERS: { key: RadarTag | "all"; labelKey: string }[] = [
   { key: "all", labelKey: "radar.filterAll" },
@@ -27,12 +28,32 @@ const FILTER_LESSON_SLUGS: Partial<Record<RadarTag, string>> = {
 
 const SHORTLIST_SIZE = 8;
 
+// Direction labels depend on the field: highest/lowest, nearest/farthest, A–Z.
+function dirOptions(key: SortKey): { value: SortDir; labelKey: string }[] {
+  if (key === "distHigh" || key === "distLow")
+    return [
+      { value: "asc", labelKey: "radar.dir.nearest" },
+      { value: "desc", labelKey: "radar.dir.farthest" },
+    ];
+  if (key === "name")
+    return [
+      { value: "asc", labelKey: "radar.dir.az" },
+      { value: "desc", labelKey: "radar.dir.za" },
+    ];
+  return [
+    { value: "desc", labelKey: "radar.dir.highest" },
+    { value: "asc", labelKey: "radar.dir.lowest" },
+  ];
+}
+
 export default function RadarPage() {
   const { t } = useLanguage();
   const tickers = useLiveTickers();
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<RadarTag | "all">("all");
   const [chartSymbol, setChartSymbol] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT.key);
+  const [sortDir, setSortDir] = useState<SortDir>(DEFAULT_SORT.dir);
 
   // The live WebSocket feed (lib/binanceStream) bootstraps itself via REST
   // and keeps reconnecting on its own, so the only failure mode worth
@@ -66,8 +87,9 @@ export default function RadarPage() {
   const filtered = useMemo(() => {
     if (!rows) return [];
     const list = filter === "all" ? rows : rows.filter((r) => r.tags.includes(filter));
-    return [...list].sort((a, b) => b.volume - a.volume).slice(0, 60);
-  }, [rows, filter]);
+    // Default (volume, highest first) is exactly the previous ordering.
+    return sortRows(list, sortKey, sortDir).slice(0, 60);
+  }, [rows, filter, sortKey, sortDir]);
 
   // Real counts per screen, derived from the same rows the filters use.
   const counts = useMemo(() => {
@@ -112,6 +134,7 @@ export default function RadarPage() {
           </div>
 
           <div className="mt-14 border-t border-line pt-10">
+            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
             <div className="flex flex-wrap gap-2">
               {FILTERS.map((f) => {
                 const lessonSlug = f.key !== "all" ? FILTER_LESSON_SLUGS[f.key] : undefined;
@@ -148,6 +171,40 @@ export default function RadarPage() {
                   </div>
                 );
               })}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="sr-only" htmlFor="radar-sort-key">{t("radar.sortBy")}</label>
+              <select
+                id="radar-sort-key"
+                value={sortKey}
+                onChange={(e) => {
+                  const k = e.target.value as SortKey;
+                  setSortKey(k);
+                  setSortDir(defaultDir(k));
+                }}
+                className="input !w-auto !py-2 !px-3 text-sm"
+              >
+                {SORT_KEYS.map((k) => (
+                  <option key={k} value={k}>
+                    {t("radar.sortBy")}: {t(`radar.sort.${k}`)}
+                  </option>
+                ))}
+              </select>
+              <label className="sr-only" htmlFor="radar-sort-dir">{t("radar.sortDirection")}</label>
+              <select
+                id="radar-sort-dir"
+                value={sortDir}
+                onChange={(e) => setSortDir(e.target.value as SortDir)}
+                className="input !w-auto !py-2 !px-3 text-sm"
+              >
+                {dirOptions(sortKey).map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {t(o.labelKey)}
+                  </option>
+                ))}
+              </select>
+            </div>
             </div>
 
             <div className="mt-4 panel overflow-hidden">
@@ -330,3 +387,4 @@ function ConditionBadge({ condition, label }: { condition: MarketCondition; labe
 // RADAR-VIEWCHART-2205
 // RADAR-NOANALYZE-0217
 // RADAR-REDESIGN-1951
+// RADAR-SORT-0245
