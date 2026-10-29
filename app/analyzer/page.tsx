@@ -1,5 +1,6 @@
 "use client";
 
+import StarButton from "@/components/watchlist/StarButton";
 import { useEffect, useId, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -412,6 +413,7 @@ function AnalysisResult({
           <span className="font-data text-sm px-2.5 py-1 rounded border border-line text-text-muted">
             {result.pair}
           </span>
+          <StarButton symbol={result.pair} />
           <span className="font-data text-sm px-2.5 py-1 rounded border border-line text-text-muted">
             {result.timeframe}
           </span>

@@ -8,6 +8,7 @@ import { buildRadarRows, RadarRow, RadarTag, MarketCondition } from "@/lib/radar
 import { useLanguage } from "@/lib/i18n";
 import AnalysisPanel from "@/components/charts/AnalysisPanel";
 import { ChangePill, CoinLogo, RangeBar } from "@/components/market/MarketBits";
+import StarButton from "@/components/watchlist/StarButton";
 import { DEFAULT_SORT, SORT_KEYS, defaultDir, sortRows, type SortDir, type SortKey } from "@/lib/radarSort";
 
 const FILTERS: { key: RadarTag | "all"; labelKey: string }[] = [
@@ -232,7 +233,7 @@ export default function RadarPage() {
                       <th className="mkt-th !whitespace-normal text-start hidden xl:table-cell">{t("radar.range24h")}</th>
                       <th className="mkt-th !whitespace-normal text-start">{t("radar.conditionHeader")}</th>
                       <th className="mkt-th !whitespace-normal text-start">{t("radar.setupHeader")}</th>
-                      <th className="mkt-th w-10" aria-hidden="true" />
+                      <th className="mkt-th w-24" aria-hidden="true" />
                     </tr>
                   </thead>
                   <tbody>
@@ -280,7 +281,8 @@ export default function RadarPage() {
                             <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
                           </td>
                           <td className="mkt-td text-text-muted text-sm whitespace-nowrap">{t(`radar.setup.${row.setup}`)}</td>
-                          <td className="mkt-td ps-0 text-end">
+                          <td className="mkt-td ps-0 text-end whitespace-nowrap">
+                            <StarButton symbol={row.ticker.symbol} />
                             <button
                               onClick={() => setChartSymbol(base)}
                               title={t("radar.viewChart")}
@@ -305,10 +307,10 @@ export default function RadarPage() {
                 {filtered.map((row) => {
                   const base = row.ticker.symbol.replace("USDT", "");
                   return (
+                    <div key={row.ticker.symbol} className="flex items-stretch">
                     <button
-                      key={row.ticker.symbol}
                       onClick={() => setChartSymbol(base)}
-                      className="flex items-center gap-3 px-4 py-3.5 w-full text-start active:bg-surface-raised/50 transition-colors"
+                      className="flex items-center gap-3 ps-4 pe-2 py-3.5 flex-1 min-w-0 text-start active:bg-surface-raised/50 transition-colors"
                     >
                       <CoinLogo base={base} size={40} />
                       <div className="min-w-0 flex-1">
@@ -328,6 +330,8 @@ export default function RadarPage() {
                         </div>
                       </div>
                     </button>
+                    <StarButton symbol={row.ticker.symbol} className="items-center pe-3" />
+                    </div>
                   );
                 })}
               </div>
@@ -356,7 +360,8 @@ function ShortlistCard({
 }) {
   const base = row.ticker.symbol.replace("USDT", "");
   return (
-    <div className="panel p-4 flex flex-col transition-colors hover:border-text-muted min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink">
+    <div className="panel p-4 flex flex-col transition-colors hover:border-text-muted min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink relative">
+      <StarButton symbol={row.ticker.symbol} className="absolute top-2 end-2 z-10" />
       <button onClick={() => onViewChart(base)} className="block w-full text-start">
         <div className="flex items-center gap-3">
           <CoinLogo base={base} size={36} />

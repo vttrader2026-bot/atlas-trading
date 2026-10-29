@@ -14,6 +14,7 @@ import {
   IconMarketIntel,
   IconAnalyzer,
   IconAcademy,
+  IconWatchlist,
   IconTradeFeed,
 } from "@/components/icons";
 
@@ -66,7 +67,7 @@ function CommandNavLink({
       href={href}
       aria-current={active ? "page" : undefined}
       title={label}
-      className={`group relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors duration-150 ${
+      className={`group relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 lg:px-1.5 xl:px-2.5 py-[7px] text-[13px] font-medium transition-colors duration-150 ${
         active ? "bg-gold/10 text-text" : "text-text-muted hover:bg-surface-raised/70 hover:text-text"
       }`}
     >
@@ -120,6 +121,11 @@ export default function Nav() {
       label: t("nav.analyzer"),
     },
     {
+      href: "/watchlist",
+      icon: <IconWatchlist className="w-[18px] h-[18px]" />,
+      label: t("nav.watchlist"),
+    },
+    {
       href: "/trade-feed",
       icon: <IconTradeFeed className="w-[18px] h-[18px]" />,
       label: t("nav.tradeFeed"),
@@ -138,6 +144,7 @@ export default function Nav() {
       label: "MARKETS",
       links: [
         { href: "/radar", label: t("nav.radar") },
+        { href: "/watchlist", label: t("nav.watchlist") },
         { href: "/market-intelligence", label: marketIntelLabel },
         { href: "/trade-feed", label: t("nav.tradeFeed") },
       ],
