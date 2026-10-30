@@ -67,12 +67,12 @@ function CommandNavLink({
       href={href}
       aria-current={active ? "page" : undefined}
       title={label}
-      className={`group relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 lg:px-1.5 xl:px-2.5 py-[7px] text-[13px] font-medium transition-colors duration-150 ${
+      className={`group relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 lg:px-1 xl:px-2.5 py-[7px] text-[13px] lg:text-[12.5px] xl:text-[13px] font-medium transition-colors duration-150 ${
         active ? "bg-gold/10 text-text" : "text-text-muted hover:bg-surface-raised/70 hover:text-text"
       }`}
     >
       <span
-        className={`flex shrink-0 items-center lg:hidden 2xl:flex transition-colors duration-150 ${
+        className={`flex shrink-0 items-center lg:hidden transition-colors duration-150 ${
           active ? "text-gold" : "text-text-muted group-hover:text-text"
         }`}
       >
@@ -203,7 +203,7 @@ export default function Nav() {
 
   return (
     <header className="relative sticky top-0 z-40 backdrop-blur-md bg-bg/75 border-b border-line">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center gap-2 h-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-2 h-14">
         <Link href="/" className="shrink-0">
           <Logo />
         </Link>
@@ -212,7 +212,7 @@ export default function Nav() {
           aria-label="Primary"
           className="hidden sm:flex flex-1 min-w-0 items-center justify-end sm:justify-center"
         >
-          <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-none rounded-lg border border-line/70 bg-surface/50 p-1">
+          <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-none rounded-lg border border-line/70 bg-surface/50 p-0.5 xl:p-1">
             {COMMAND_LINKS.map((link) => (
               <CommandNavLink
                 key={link.href}
@@ -223,9 +223,9 @@ export default function Nav() {
               />
             ))}
           </div>
-          <Link href="/elite" className={`${elitePillClass} ms-2 px-3 py-1.5`}>
-            {"⚜ "}
-            {eliteLabel}
+          <Link href="/elite" className={`${elitePillClass} ms-1 xl:ms-2 px-2 lg:px-2.5 xl:px-3 py-1.5`} aria-label={eliteLabel} title={eliteLabel}>
+            {"⚜"}
+            <span className="hidden lg:inline">{" "}{eliteLabel}</span>
           </Link>
         </nav>
 
@@ -315,3 +315,4 @@ export default function Nav() {
   );
 }
 // NAV-ACADEMY-0017
+// NAV-FIT-0035
