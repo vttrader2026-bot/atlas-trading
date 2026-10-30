@@ -225,6 +225,7 @@ export default function SharePage() {
                 options={[
                   { value: "en", label: "English" },
                   { value: "ar", label: "العربية" },
+                  { value: "fr", label: "Français" },
                 ]}
               />
             </div>
