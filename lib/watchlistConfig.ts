@@ -11,4 +11,5 @@ export function watchlistLimit(plan: string | null | undefined): number {
   if (plan === "analyzer") return WATCHLIST_LIMITS.analyzer;
   return WATCHLIST_LIMITS.free;
 }
-// ATLAS-ALL-1750
+
+// ATLAS-ALL-1800

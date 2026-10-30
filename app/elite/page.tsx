@@ -201,6 +201,7 @@ function ElitePageInner() {
             <li>{s("Market Radar + charts", "رادار السوق + الرسوم البيانية")}</li>
             <li>{s("AI Analyzer — 3/day", "المحلل بالذكاء الاصطناعي — 3/يوم")}</li>
             <li>{s("Trade Plan, Risk calculator, Journal", "خطة الصفقة، حاسبة المخاطر، السجل")}</li>
+            <li>{s("Watchlist — 10 coins", "قائمة المراقبة — 10 عملات")}</li>
           </ul>
         </div>
         <button
@@ -217,6 +218,7 @@ function ElitePageInner() {
             <li>{s("Everything in Free", "كل ما في المجاني")}</li>
             <li>{s("AI Analyzer — 20/day", "المحلل بالذكاء الاصطناعي — 20/يوم")}</li>
             <li>{s("Screenshot + one-click chart analysis", "تحليل الصور + تحليل الرسم البياني بنقرة")}</li>
+            <li>{s("Watchlist — up to 50 coins", "قائمة المراقبة — حتى 50 عملة")}</li>
           </ul>
         </button>
         <button
@@ -230,7 +232,7 @@ function ElitePageInner() {
           </div>
           <div className="text-xs text-text-muted mt-0.5">≈ {PLAN_PRICE.elite.mru} MRU</div>
           <ul className="mt-2.5 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
-            <li>{s("Everything in Analyzer Pro", "كل ما في خطة المحلل")}</li>
+            <li>{s("Everything in Analyzer Pro, incl. Watchlist of 50 coins", "كل ما في خطة المحلل، مع قائمة مراقبة حتى 50 عملة")}</li>
             <li>{s("Private spot signals, earlier access", "إشارات سبوت خاصة، وصول مبكر")}</li>
             <li>{s("TP1/TP2/TP3 + stop-loss updates", "تحديثات TP1/TP2/TP3 ووقف الخسارة")}</li>
             <li>{s("Full trade management", "إدارة كاملة للصفقات")}</li>
