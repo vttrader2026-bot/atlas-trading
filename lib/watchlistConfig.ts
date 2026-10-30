@@ -1,8 +1,8 @@
 // Watchlist limits per plan. Change the numbers here and nowhere else.
-// (Analyzer-only members get the free allowance; only Elite gets the larger one.)
+// Analyzer Pro and Elite both get the larger allowance.
 export const WATCHLIST_LIMITS = {
   free: 10,
-  analyzer: 10,
+  analyzer: 50,
   elite: 50,
 } as const;
 
@@ -11,3 +11,4 @@ export function watchlistLimit(plan: string | null | undefined): number {
   if (plan === "analyzer") return WATCHLIST_LIMITS.analyzer;
   return WATCHLIST_LIMITS.free;
 }
+// ATLAS-ALL-1750

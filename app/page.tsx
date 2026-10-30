@@ -99,6 +99,7 @@ export default function Home() {
             <EliteFeature>{t("proSection.f2")}</EliteFeature>
             <EliteFeature>{t("proSection.f3")}</EliteFeature>
             <EliteFeature>{t("proSection.f4")}</EliteFeature>
+            <EliteFeature>{t("proSection.f5")}</EliteFeature>
           </div>
           <div className="mt-auto pt-8 flex flex-wrap items-center gap-5">
             <div>
@@ -133,6 +134,7 @@ export default function Home() {
             <EliteFeature>{t("eliteSection.f7")}</EliteFeature>
             <EliteFeature>{t("eliteSection.f8")}</EliteFeature>
             <EliteFeature>{t("eliteSection.f9")}</EliteFeature>
+            <EliteFeature>{t("eliteSection.f10")}</EliteFeature>
           </div>
 
           <div className="mt-auto pt-8 flex flex-wrap items-center gap-5">
