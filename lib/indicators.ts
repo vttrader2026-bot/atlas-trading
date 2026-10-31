@@ -138,3 +138,27 @@ export function latest(points: IndicatorPoint[]): number | null {
   return points[points.length - 1].value;
 }
 // PHASE5-MARKER-2055
+
+/**
+ * Average True Range (Wilder's smoothing). The first value is the simple
+ * average of the first `period` true ranges; fewer than `period + 1` candles
+ * yields no points (never a padded guess). Callers must pass CLOSED candles.
+ */
+export function calcATR(candles: Candle[], period = 14): IndicatorPoint[] {
+  if (candles.length < period + 1) return [];
+  const tr: number[] = [];
+  for (let i = 1; i < candles.length; i++) {
+    const c = candles[i];
+    const pc = candles[i - 1].close;
+    tr.push(Math.max(c.high - c.low, Math.abs(c.high - pc), Math.abs(c.low - pc)));
+  }
+  let atr = 0;
+  for (let i = 0; i < period; i++) atr += tr[i];
+  atr /= period;
+  const out: IndicatorPoint[] = [{ time: candles[period].openTime, value: atr }];
+  for (let i = period; i < tr.length; i++) {
+    atr = (atr * (period - 1) + tr[i]) / period;
+    out.push({ time: candles[i + 1].openTime, value: atr });
+  }
+  return out;
+}

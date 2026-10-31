@@ -6,6 +6,8 @@
 import { calcEMA, calcMACD, calcRSI, latest } from "@/lib/indicators";
 import type { Candle, Interval } from "@/lib/marketDataTypes";
 import { classifyStructure, findSwings, findZones, volumeReport } from "@/lib/chartStructure";
+import type { EngineResult } from "@/lib/analyzerEngine";
+import { engineFactsBlock } from "@/lib/analyzerEngineApply";
 
 function languageLine(lang: string): string {
   return lang === "ar"
@@ -126,7 +128,7 @@ function factsBlock(f: Facts, full: boolean): string {
   return lines.join("\n");
 }
 
-export function buildPrompt(args: { lang: string; pair: string; primary: Facts; higher: Facts | null; lower: Facts | null; higherName: string | null; lowerName: string | null }): string {
+export function buildPrompt(args: { lang: string; pair: string; primary: Facts; higher: Facts | null; lower: Facts | null; higherName: string | null; lowerName: string | null; engine?: EngineResult }): string {
   return `You are Atlas, a classic technical analysis and market-structure analyst for SPOT crypto trading. You are given REAL, server-fetched Binance Spot data and facts computed from it (swing points, structure labels, support/resistance zones, volume, indicators) for ${args.pair} — not a screenshot. Use ONLY the facts below; never invent a price, level, indicator value or setup that isn't derivable from them.
 
 METHODOLOGY — apply in this order of priority:
@@ -145,7 +147,7 @@ HARD RULES:
 - Separate what is confirmed (directly in the facts) from what is uncertain (depends on future candles or on missing data) in the "observations" field.
 - If an indicator value says "not enough history", do not cite one.
 
-=== PRIMARY TIMEFRAME FACTS ===
+${args.engine ? engineFactsBlock(args.engine, args.pair) + "\nThe engine result above OVERRIDES any trade-plan instruction below: never produce entry, stop-loss, target or risk/reward values yourself.\n\n" : ""}=== PRIMARY TIMEFRAME FACTS ===
 ${factsBlock(args.primary, true)}
 
 === HIGHER TIMEFRAME CONTEXT (${args.higherName ?? "unavailable"}) ===

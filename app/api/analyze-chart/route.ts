@@ -4,6 +4,8 @@ import { analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } fro
 import { getCandles, MarketDataError, type Interval } from "@/lib/marketData";
 import { buildPrompt, computeFacts, HIGHER_TF, LOWER_TF, type Facts } from "@/lib/analyzerPrompt";
 import { enforceSpotPlan } from "@/lib/spotPlan";
+import { analyzeCandles, closedCandles, type EngineResult } from "@/lib/analyzerEngine";
+import { applyEngineToAnalysis } from "@/lib/analyzerEngineApply";
 
 // Same models, same retry policy, same per-attempt timeout as the
 // screenshot-based Analyzer (app/api/analyze/route.ts) — this route is a
@@ -105,6 +107,7 @@ export async function POST(req: NextRequest) {
   let primary: Facts;
   let higher: Facts | null = null;
   let lower: Facts | null = null;
+  let engine: EngineResult;
   const higherName = HIGHER_TF[interval] ?? null;
   const lowerName = LOWER_TF[interval] ?? null;
 
@@ -122,9 +125,18 @@ export async function POST(req: NextRequest) {
     if (result.candles.length === 0) {
       return NextResponse.json({ error: "No candle data available for this pair/timeframe." }, { status: 502 });
     }
-    primary = computeFacts(interval, result.candles);
-    if (hi.status === "fulfilled" && higherName && hi.value.candles.length > 0) higher = computeFacts(higherName, hi.value.candles);
-    if (lo.status === "fulfilled" && lowerName && lo.value.candles.length > 0) lower = computeFacts(lowerName, lo.value.candles);
+    // Completed candles only: a still-forming candle never feeds the analysis.
+    const mainClosed = closedCandles(result.candles);
+    if (mainClosed.length === 0) {
+      return NextResponse.json({ error: "No completed candles available for this pair/timeframe." }, { status: 502 });
+    }
+    primary = computeFacts(interval, mainClosed);
+    const hiClosed = hi.status === "fulfilled" ? closedCandles(hi.value.candles) : [];
+    const loClosed = lo.status === "fulfilled" ? closedCandles(lo.value.candles) : [];
+    if (hiClosed.length > 0 && higherName) higher = computeFacts(higherName, hiClosed);
+    if (loClosed.length > 0 && lowerName) lower = computeFacts(lowerName, loClosed);
+    // The deterministic engine owns structure, trend, levels and the trade plan.
+    engine = analyzeCandles({ candles: mainClosed, interval, higherCandles: hiClosed });
   } catch (err) {
     if (err instanceof MarketDataError) {
       return NextResponse.json({ error: err.code, message: err.message }, { status: 502 });
@@ -142,6 +154,7 @@ export async function POST(req: NextRequest) {
     lower,
     higherName: higher ? higherName : null,
     lowerName: lower ? lowerName : null,
+    engine,
   });
 
   function callGemini(model: string) {
@@ -194,6 +207,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const parsed = JSON.parse(text);
+    // Engine output replaces anything the model wrote about levels or the plan.
+    applyEngineToAnalysis(parsed, engine, lang);
     enforceSpotPlan(parsed, primary.lastClose);
     const consumed = await consumeAnalyzeUsage(userId);
     return NextResponse.json({

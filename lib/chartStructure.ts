@@ -95,18 +95,7 @@ export function findZones(
   tolerancePct = 0.6,
   perSide = 3
 ): { support: Zone[]; resistance: Zone[] } {
-  const sorted = [...swings].sort((a, b) => a.price - b.price);
-  const clusters: { prices: number[] }[] = [];
-  for (const s of sorted) {
-    const c = clusters[clusters.length - 1];
-    if (c && (s.price - c.prices[0]) / c.prices[0] * 100 <= tolerancePct) c.prices.push(s.price);
-    else clusters.push({ prices: [s.price] });
-  }
-  const zones: Zone[] = clusters.map((c) => {
-    const low = Math.min(...c.prices);
-    const high = Math.max(...c.prices);
-    return { low, high, mid: (low + high) / 2, touches: c.prices.length };
-  });
+  const zones = clusterZones(swings, tolerancePct);
   const support = zones
     .filter((z) => z.high < lastClose)
     .sort((a, b) => b.mid - a.mid)
@@ -116,6 +105,22 @@ export function findZones(
     .sort((a, b) => a.mid - b.mid)
     .slice(0, perSide);
   return { support, resistance };
+}
+
+/** All swing clusters (zones), ascending by price, regardless of where price is. */
+export function clusterZones(swings: Swing[], tolerancePct = 0.6): Zone[] {
+  const sorted = [...swings].sort((a, b) => a.price - b.price);
+  const clusters: { prices: number[] }[] = [];
+  for (const s of sorted) {
+    const c = clusters[clusters.length - 1];
+    if (c && (s.price - c.prices[0]) / c.prices[0] * 100 <= tolerancePct) c.prices.push(s.price);
+    else clusters.push({ prices: [s.price] });
+  }
+  return clusters.map((c) => {
+    const low = Math.min(...c.prices);
+    const high = Math.max(...c.prices);
+    return { low, high, mid: (low + high) / 2, touches: c.prices.length };
+  });
 }
 
 export type VolumeReport = {

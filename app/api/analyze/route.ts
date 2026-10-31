@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import { analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
 import { getTicker24h } from "@/lib/binance";
 import { enforceSpotPlan } from "@/lib/spotPlan";
+import { applyEngineToAnalysis, engineFactsBlock } from "@/lib/analyzerEngineApply";
+import { engineForScreenshot } from "@/lib/analyzerEngineServer";
 
 // Google-maintained aliases for the current Gemini releases — avoid
 // hardcoding specific dated model names that Google later retires.
@@ -37,7 +39,7 @@ type TraderContext = {
   style?: string;
 };
 
-function buildPrompt(lang: string, context: TraderContext, livePrice: number | null): string {
+function buildPrompt(lang: string, context: TraderContext, livePrice: number | null, engineBlock: string): string {
   const languageLine =
     lang === "ar"
       ? `LANGUAGE REQUIREMENT — VERY IMPORTANT:
@@ -81,6 +83,10 @@ Distinguish confirmed observations (directly visible) from uncertain interpretat
 
 ${contextLines ? `Trader-provided context (use it, but trust what you actually see in the image over this if they conflict):\n${contextLines}\n` : ""}
 ${livePrice !== null ? `REAL-TIME MARKET DATA — authoritative for the current price:\n- The current live price for this pair is approximately ${livePrice}.\n- The chart screenshot may be from slightly earlier, so prices shown on it can differ from this real-time value. Use the screenshot for structure, levels, and patterns, but anchor any statement about the CURRENT price, and your judgment of whether a bullish/bearish confirmation condition has ALREADY happened or is still pending, to this real-time price rather than guessing from the image alone.\n` : ""}
+${engineBlock}
+
+The engine result above OVERRIDES the trade-planning instructions in this prompt: the screenshot is supporting visual context only. Never produce entry, stop-loss, target, invalidation price or risk/reward values yourself.
+
 CORE RULES — these matter more than anything else:
 1. Never invent probabilities, confidence percentages, or guaranteed outcomes ("90% chance", "will pump", "guaranteed target"). Use conditional language only: "if price confirms above X, the bullish case strengthens" — never "price will reach X".
 2. Never invent an indicator value you cannot actually see (RSI, MACD, volume, moving averages). If it's not visibly on the chart, say so plainly instead of guessing a number.
@@ -257,6 +263,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Shared deterministic engine: real closed Binance USDT candles for the
+  // stated pair + timeframe. If they can't be verified, the result is
+  // VISUAL_READ_ONLY with no executable plan.
+  const { engine, pair: verifiedPair } = await engineForScreenshot(context.pair, context.timeframe);
+  const engineBlock = engineFactsBlock(engine, verifiedPair ?? context.pair ?? "the chart");
+
   function callGemini(model: string) {
     return fetchWithRetry(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -267,7 +279,7 @@ export async function POST(req: NextRequest) {
           contents: [
             {
               parts: [
-                { text: buildPrompt(lang, context, livePrice) },
+                { text: buildPrompt(lang, context, livePrice, engineBlock) },
                 { inline_data: { mime_type: mimeType, data: base64 } },
               ],
             },
@@ -332,6 +344,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const parsed = JSON.parse(text);
+    // Engine output replaces anything the model wrote about levels or the plan.
+    applyEngineToAnalysis(parsed, engine, lang);
+    if (verifiedPair) parsed.pair = verifiedPair;
     enforceSpotPlan(parsed, livePrice);
     if (userId) {
       const usage = await consumeAnalyzeUsage(userId);
