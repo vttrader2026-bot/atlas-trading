@@ -269,6 +269,7 @@ export function allowedNumbers(engine: EngineResult): number[] {
   const m = engine.market;
   if (m) {
     out.push(m.price, m.atr, m.rangeHigh, m.rangeLow);
+    if (m.macd) out.push(m.macd.line, m.macd.signal, m.macd.histogram);
     for (const v of [m.ema20, m.ema50, m.ema200, m.rsi14, m.structure.lastSwingHigh, m.structure.lastSwingLow]) if (v !== null) out.push(v);
     for (const l of m.structure.labelled) out.push(l.price);
     for (const zn of [...m.support, ...m.resistance]) out.push(zn.low, zn.high, zn.mid);

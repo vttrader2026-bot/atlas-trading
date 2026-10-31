@@ -2,48 +2,16 @@
 
 import StarButton from "@/components/watchlist/StarButton";
 import { useEffect, useId, useRef, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/lib/i18n";
-import { saveDraft, firstNumber, TradePlanDraft } from "@/lib/tradePlan";
 import { getRemainingUses, recordUse, DAILY_ANALYZE_LIMIT } from "@/lib/usageLimit";
 import { useAuth } from "@clerk/nextjs";
-import { downloadAnalysisPdf } from "@/lib/analysisPdf";
+import AnalysisResult from "@/components/analyzer/AnalysisResult";
+import type { AnalysisData } from "@/components/analyzer/types";
 
-type Level = { label: string; price: string };
-type Scenario = { confirmation: string; targets: string[]; why: string } | null;
-type TradePlan = {
-  direction: string;
-  entryZone: string;
-  invalidation: string;
-  targets: string[];
-  riskNote: string;
-};
-type TeachMe = {
-  structure: string;
-  trend: string;
-  keyLevels: string;
-  confirmation: string;
-  invalidation: string;
-};
-
-type Analysis = {
-  pair: string;
-  timeframe: string;
-  marketStructure: { state: string; explanation: string };
-  trend: { direction: string; strength: string; explanation: string };
-  momentum: string;
-  keyLevels: Level[];
-  currentCondition: { label: string; explanation: string };
-  bullishScenario: Scenario;
-  bearishScenario: Scenario;
-  whatToWatch: string[];
-  noClearSetup: string | null;
-  invalidation: { level: string; explanation: string };
-  tradePlan: TradePlan;
-  teachMe: TeachMe;
-};
+type Analysis = AnalysisData;
 
 const PAIRS = ["auto", "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"];
 const TIMEFRAMES = ["auto", "15M", "1H", "4H", "1D", "1W"];
@@ -80,6 +48,7 @@ function AnalyzerPageInner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Analysis | null>(null);
+  const [analyzedAt, setAnalyzedAt] = useState<number>(0);
   const [remaining, setRemaining] = useState(DAILY_ANALYZE_LIMIT);
   const [limit, setLimit] = useState(DAILY_ANALYZE_LIMIT);
   // "free" until the server says otherwise (anonymous visitors are free too).
@@ -152,6 +121,7 @@ function AnalyzerPageInner() {
           setRemaining(data._usage.remaining);
           if (typeof data._usage.limit === "number") setLimit(data._usage.limit);
         }
+        setAnalyzedAt(Date.now());
         setResult(data);
       }
     } catch {
@@ -319,7 +289,7 @@ function AnalyzerPageInner() {
         </div>
       )}
 
-      {result && <AnalysisResult result={result} t={t} />}
+      {result && <AnalysisResult data={result} analyzedAt={analyzedAt} starSlot={<StarButton symbol={result.pair} />} />}
 
       {!result && !error && (
         <p className="mt-8 text-xs text-text-muted leading-relaxed max-w-xl">
@@ -358,365 +328,6 @@ function Select({
       >
         {children}
       </select>
-    </div>
-  );
-}
-
-function stateColor(state: string): string {
-  const s = state.toLowerCase();
-  if (s.includes("bull")) return "text-bull border-bull/40";
-  if (s.includes("bear")) return "text-bear border-bear/40";
-  if (s.includes("rang") || s.includes("neutral")) return "text-gold border-gold/40";
-  return "text-text-muted border-line";
-}
-
-function DownloadPdfButton({ result }: { result: Analysis }) {
-  const [working, setWorking] = useState(false);
-
-  async function handleClick() {
-    setWorking(true);
-    try {
-      await downloadAnalysisPdf(result);
-    } catch (err) {
-      console.error("Could not generate PDF", err);
-    } finally {
-      setWorking(false);
-    }
-  }
-
-  return (
-    <button
-      onClick={handleClick}
-      disabled={working}
-      className="px-3 py-1.5 rounded-md text-xs border border-line text-text-muted hover:text-text transition-colors"
-    >
-      {working ? "Preparing PDF..." : "Download PDF"}
-    </button>
-  );
-}
-
-function AnalysisResult({
-  result,
-  t,
-}: {
-  result: Analysis;
-  t: (key: string) => string;
-}) {
-  const [teachMode, setTeachMode] = useState(false);
-  const isWait =
-    !!result.noClearSetup || result.tradePlan?.direction?.toLowerCase().includes("wait");
-
-  return (
-    <div className="mt-8 space-y-5">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="font-data text-sm px-2.5 py-1 rounded border border-line text-text-muted">
-            {result.pair}
-          </span>
-          <StarButton symbol={result.pair} />
-          <span className="font-data text-sm px-2.5 py-1 rounded border border-line text-text-muted">
-            {result.timeframe}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <DownloadPdfButton result={result} />
-          <button
-            onClick={() => setTeachMode((v) => !v)}
-            className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
-              teachMode
-                ? "border-gold text-gold bg-gold/10"
-                : "border-line text-text-muted hover:text-text"
-            }`}
-          >
-            {t("analyzer.teachMeToggle")}
-          </button>
-        </div>
-      </div>
-
-      {/* Summary strip — the most important info, always visible */}
-      <div className="grid sm:grid-cols-3 gap-3">
-        <SummaryStat
-          label={t("analyzer.marketStructure")}
-          value={result.marketStructure.state}
-          tone={stateColor(result.marketStructure.state)}
-          lessonHref="/academy/trend-direction"
-        />
-        <SummaryStat
-          label={t("analyzer.trend")}
-          value={`${result.trend.direction} · ${result.trend.strength}`}
-          tone={stateColor(result.trend.direction)}
-          lessonHref="/academy/trend-direction"
-        />
-        <SummaryStat
-          label={t("analyzer.currentCondition")}
-          value={result.currentCondition.label}
-          tone="text-text border-line"
-        />
-      </div>
-
-      {isWait && (
-        <div className="border border-gold/40 bg-gold/5 rounded-lg p-5">
-          <div className="text-sm text-gold">⚪ {t("analyzer.waitLabel")}</div>
-          <p className="mt-2 text-sm leading-relaxed">
-            {result.noClearSetup || result.currentCondition.explanation}
-          </p>
-        </div>
-      )}
-
-      <CollapsibleExplain title={t("analyzer.marketStructure")} lessonHref="/academy/trend-direction">
-        <p className="text-sm text-text-muted leading-relaxed">
-          {teachMode ? result.teachMe.structure : result.marketStructure.explanation}
-        </p>
-      </CollapsibleExplain>
-
-      <CollapsibleExplain title={t("analyzer.trend")} lessonHref="/academy/trend-direction">
-        <p className="text-sm text-text-muted leading-relaxed">
-          {teachMode ? result.teachMe.trend : result.trend.explanation}
-        </p>
-      </CollapsibleExplain>
-
-      <CollapsibleExplain title={t("analyzer.momentum")}>
-        <p className="text-sm text-text-muted leading-relaxed">{result.momentum}</p>
-      </CollapsibleExplain>
-
-      {result.keyLevels?.length > 0 && (
-        <Section title={t("analyzer.keyLevels")} lessonHref="/academy/support-resistance">
-          <div className="divide-y divide-line border border-line rounded-md overflow-hidden">
-            {result.keyLevels.map((lvl, i) => (
-              <div key={i} className="flex items-center justify-between px-3 py-2 text-sm">
-                <span className="text-text-muted">{lvl.label}</span>
-                <span className="font-data">{lvl.price}</span>
-              </div>
-            ))}
-          </div>
-          {teachMode && (
-            <p className="mt-3 text-sm text-text-muted leading-relaxed">{result.teachMe.keyLevels}</p>
-          )}
-        </Section>
-      )}
-
-      {!isWait && (
-        <div className="grid sm:grid-cols-2 gap-4">
-          {result.bullishScenario && (
-            <ScenarioCard title={t("analyzer.bullishScenario")} scenario={result.bullishScenario} tone="bull" t={t} />
-          )}
-          {result.bearishScenario && (
-            <ScenarioCard title={t("analyzer.bearishScenario")} scenario={result.bearishScenario} tone="bear" t={t} />
-          )}
-        </div>
-      )}
-
-      {result.whatToWatch?.length > 0 && (
-        <Section title={t("analyzer.whatToWatch")}>
-          <ul className="space-y-1.5">
-            {result.whatToWatch.map((item, i) => (
-              <li key={i} className="text-sm text-text-muted flex gap-2">
-                <span className="text-gold">•</span>
-                {item}
-              </li>
-            ))}
-          </ul>
-          {teachMode && (
-            <p className="mt-3 text-sm text-text-muted leading-relaxed border-t border-line pt-3">
-              {result.teachMe.confirmation}
-            </p>
-          )}
-        </Section>
-      )}
-
-      <div className="border border-bear/30 bg-bear/5 rounded-xl p-6">
-        <div className="text-sm text-bear">{t("analyzer.invalidation")}</div>
-        <div className="mt-1 font-data text-base">{result.invalidation.level}</div>
-        <p className="mt-2 text-sm text-text-muted leading-relaxed">
-          {teachMode ? result.teachMe.invalidation : result.invalidation.explanation}
-        </p>
-      </div>
-
-      {result.tradePlan && (
-        <div className="border border-gold/30 rounded-xl p-6 bg-surface">
-          <div className="text-sm text-gold">{t("analyzer.tradePlan")}</div>
-          <div className="mt-3 grid sm:grid-cols-2 gap-3 text-sm">
-            <PlanField label={t("analyzer.direction")} value={result.tradePlan.direction} />
-            <PlanField label={t("analyzer.entryZone")} value={result.tradePlan.entryZone} />
-            <PlanField label={t("analyzer.invalidationShort")} value={result.tradePlan.invalidation} />
-            <PlanField label={t("analyzer.targets")} value={result.tradePlan.targets?.join(" · ") || "—"} />
-          </div>
-          <p className="mt-3 text-xs text-text-muted leading-relaxed">{result.tradePlan.riskNote}</p>
-          <CreateTradePlanButton result={result} t={t} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SummaryStat({
-  label,
-  value,
-  tone,
-  lessonHref,
-}: {
-  label: string;
-  value: string;
-  tone: string;
-  lessonHref?: string;
-}) {
-  return (
-    <div className={`border rounded-xl p-4 ${tone.split(" ")[1] || "border-line"}`}>
-      <div className="flex items-center gap-1.5">
-        <div className="text-[11px] text-text-muted uppercase tracking-wide">{label}</div>
-        {lessonHref && (
-          <Link href={lessonHref} className="text-text-muted hover:text-gold transition-colors text-xs" title="تعلّم المزيد">
-            ⓘ
-          </Link>
-        )}
-      </div>
-      <div className={`mt-1 text-sm font-medium ${tone.split(" ")[0] || "text-text"}`}>{value}</div>
-    </div>
-  );
-}
-
-function CollapsibleExplain({
-  title,
-  children,
-  lessonHref,
-}: {
-  title: string;
-  children: React.ReactNode;
-  lessonHref?: string;
-}) {
-  return (
-    <details className="group card card-hover overflow-hidden">
-      <summary className="px-5 py-3 text-sm cursor-pointer select-none flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
-        <span className="text-text-muted flex items-center gap-1.5">
-          {title}
-          {lessonHref && (
-            <Link
-              href={lessonHref}
-              onClick={(e) => e.stopPropagation()}
-              className="text-text-muted hover:text-gold transition-colors text-xs"
-              title="تعلّم المزيد"
-            >
-              ⓘ
-            </Link>
-          )}
-        </span>
-        <span className="text-text-muted text-xs group-open:rotate-180 transition-transform">▾</span>
-      </summary>
-      <div className="px-5 pb-4">{children}</div>
-    </details>
-  );
-}
-
-function CreateTradePlanButton({ result, t }: { result: Analysis; t: (key: string) => string }) {
-  const router = useRouter();
-
-  function create() {
-    const direction: TradePlanDraft["direction"] = result.tradePlan.direction
-      .toLowerCase()
-      .includes("short")
-      ? "Short"
-      : result.tradePlan.direction.toLowerCase().includes("long")
-        ? "Long"
-        : "Wait";
-
-    const reasoningParts = [
-      result.currentCondition?.explanation,
-      direction === "Long" ? result.bullishScenario?.why : undefined,
-      direction === "Short" ? result.bearishScenario?.why : undefined,
-    ].filter(Boolean);
-
-    const draft: TradePlanDraft = {
-      pair: result.pair,
-      direction,
-      timeframe: result.timeframe || "",
-      entryZone: result.tradePlan.entryZone,
-      invalidationText: result.invalidation?.level || result.tradePlan.invalidation,
-      entry: firstNumber(result.tradePlan.entryZone),
-      invalidation: firstNumber(result.invalidation?.level || result.tradePlan.invalidation),
-      tp1: firstNumber(result.tradePlan.targets?.[0] || ""),
-      tp2: firstNumber(result.tradePlan.targets?.[1] || ""),
-      tp3: firstNumber(result.tradePlan.targets?.[2] || ""),
-      reasoning: reasoningParts.join(" "),
-    };
-    saveDraft(draft);
-    router.push("/trade-plan");
-  }
-
-  return (
-    <button
-      onClick={create}
-      className="btn-primary mt-4"
-    >
-      {t("analyzer.createTradePlan")}
-    </button>
-  );
-}
-
-function Section({
-  title,
-  children,
-  highlight,
-  lessonHref,
-}: {
-  title: string;
-  children: React.ReactNode;
-  highlight?: boolean;
-  lessonHref?: string;
-}) {
-  return (
-    <div className={`border rounded-xl p-6 ${highlight ? "border-gold/30 bg-surface" : "border-line bg-surface"}`}>
-      <div className="text-label mb-2 flex items-center gap-1.5">
-        {title}
-        {lessonHref && (
-          <Link href={lessonHref} className="text-text-muted hover:text-gold transition-colors text-xs normal-case tracking-normal" title="تعلّم المزيد">
-            ⓘ
-          </Link>
-        )}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function ScenarioCard({
-  title,
-  scenario,
-  tone,
-  t,
-}: {
-  title: string;
-  scenario: { confirmation: string; targets: string[]; why: string };
-  tone: "bull" | "bear";
-  t: (key: string) => string;
-}) {
-  const border = tone === "bull" ? "border-bull/30" : "border-bear/30";
-  const text = tone === "bull" ? "text-bull" : "text-bear";
-  return (
-    <div className={`border ${border} rounded-xl p-6 bg-surface`}>
-      <div className={`text-sm ${text}`}>{title}</div>
-      <div className="mt-3">
-        <div className="text-xs text-text-muted">{t("analyzer.confirmation")}</div>
-        <p className="text-sm mt-1">{scenario.confirmation}</p>
-      </div>
-      {scenario.targets?.length > 0 && (
-        <div className="mt-3">
-          <div className="text-xs text-text-muted">{t("analyzer.targets")}</div>
-          <p className="text-sm mt-1 font-data">{scenario.targets.join(" · ")}</p>
-        </div>
-      )}
-      <div className="mt-3">
-        <div className="text-xs text-text-muted">{t("analyzer.why")}</div>
-        <p className="text-sm mt-1 text-text-muted leading-relaxed">{scenario.why}</p>
-      </div>
-    </div>
-  );
-}
-
-function PlanField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-xs text-text-muted">{label}</div>
-      <div className="mt-0.5">{value}</div>
     </div>
   );
 }

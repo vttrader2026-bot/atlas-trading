@@ -10,33 +10,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import type { Candle, Interval } from "@/lib/marketDataTypes";
 import { SUPPORTED_INTERVALS } from "@/lib/marketDataTypes";
 import { useLanguage } from "@/lib/i18n";
-import { downloadAnalysisPdf } from "@/lib/analysisPdf";
-import { saveDraft, firstNumber, type TradePlanDraft } from "@/lib/tradePlan";
+import AnalysisResult from "@/components/analyzer/AnalysisResult";
+import type { AnalysisData } from "@/components/analyzer/types";
 import AnalysisChart, { DEFAULT_TOGGLES, type IndicatorToggles } from "@/components/charts/AnalysisChart";
 
-type Level = { label: string; price: string };
-type Scenario = { confirmation: string; targets: string[]; why: string } | null;
-type Analysis = {
-  pair: string;
-  timeframe: string;
-  marketStructure: { state: string; explanation: string };
-  trend: { direction: string; strength: string; explanation: string };
-  momentum: string;
-  keyLevels: Level[];
-  currentCondition: { label: string; explanation: string };
-  bullishScenario: Scenario;
-  bearishScenario: Scenario;
-  whatToWatch: string[];
-  noClearSetup: string | null;
-  invalidation: { level: string; explanation: string };
-  tradePlan: { direction: string; entryZone: string; invalidation: string; targets: string[]; riskNote: string; riskReward?: string };
-  observations?: { confirmed: string[]; uncertain: string[] };
-  _usage?: { plan: string; remaining: number; limit: number };
-};
+type Analysis = AnalysisData;
 
 type KlinesState =
   | { status: "loading" }
@@ -54,12 +35,11 @@ export default function AnalysisPanel({
 }) {
   const { t, lang } = useLanguage();
   const { isSignedIn } = useAuth();
-  const router = useRouter();
 
   const [interval, setInterval_] = useState<Interval>("1h");
   const [toggles, setToggles] = useState<IndicatorToggles>(DEFAULT_TOGGLES);
   const [fullscreen, setFullscreen] = useState(false);
-  const [pdfWorking, setPdfWorking] = useState(false);
+  const [analyzedAt, setAnalyzedAt] = useState(0);
   const [klines, setKlines] = useState<KlinesState>({ status: "loading" });
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
@@ -112,36 +92,13 @@ export default function AnalysisPanel({
         setAnalyzeError(data?.error || t("chart.analyzeError"));
         return;
       }
+      setAnalyzedAt(Date.now());
       setAnalysis(data as Analysis);
     } catch {
       setAnalyzeError(t("chart.analyzeError"));
     } finally {
       setAnalyzing(false);
     }
-  }
-
-  function createTradePlan() {
-    if (!analysis) return;
-    const direction: TradePlanDraft["direction"] = analysis.tradePlan.direction.toLowerCase().includes("short")
-      ? "Short"
-      : analysis.tradePlan.direction.toLowerCase().includes("long")
-        ? "Long"
-        : "Wait";
-    const draft: TradePlanDraft = {
-      pair: analysis.pair,
-      direction,
-      timeframe: analysis.timeframe || "",
-      entryZone: analysis.tradePlan.entryZone,
-      invalidationText: analysis.invalidation?.level || analysis.tradePlan.invalidation,
-      entry: firstNumber(analysis.tradePlan.entryZone),
-      invalidation: firstNumber(analysis.invalidation?.level || analysis.tradePlan.invalidation),
-      tp1: firstNumber(analysis.tradePlan.targets?.[0] || ""),
-      tp2: firstNumber(analysis.tradePlan.targets?.[1] || ""),
-      tp3: firstNumber(analysis.tradePlan.targets?.[2] || ""),
-      reasoning: analysis.currentCondition?.explanation || "",
-    };
-    saveDraft(draft);
-    router.push("/trade-plan");
   }
 
   const lastCandle =
@@ -281,88 +238,7 @@ export default function AnalysisPanel({
           {analyzeError && <p className="mt-2 text-sm text-bear">{analyzeError}</p>}
         </div>
 
-        {analysis && (
-          <div className="mt-6 space-y-4 border-t border-line pt-5">
-            <div className="grid sm:grid-cols-3 gap-3">
-              <SummaryStat label={t("analyzer.marketStructure")} value={analysis.marketStructure.state} />
-              <SummaryStat
-                label={t("analyzer.trend")}
-                value={`${analysis.trend.direction} · ${analysis.trend.strength}`}
-              />
-              <SummaryStat label={t("analyzer.currentCondition")} value={analysis.currentCondition.label} />
-            </div>
-
-            <p className="text-sm text-text-muted leading-relaxed">{analysis.currentCondition.explanation}</p>
-
-            {analysis.noClearSetup && (
-              <div className="border border-gold/40 bg-gold/5 rounded-xl p-4">
-                <div className="text-xs text-gold">⚪ {t("analyzer.waitLabel")}</div>
-                <p className="mt-1 text-sm leading-relaxed">{analysis.noClearSetup}</p>
-              </div>
-            )}
-
-            {analysis.observations && (analysis.observations.confirmed?.length > 0 || analysis.observations.uncertain?.length > 0) && (
-              <div className="grid sm:grid-cols-2 gap-3">
-                <ObsList title={t("chart.confirmed")} items={analysis.observations.confirmed} tone="text-bull" />
-                <ObsList title={t("chart.uncertain")} items={analysis.observations.uncertain} tone="text-gold" />
-              </div>
-            )}
-
-            {analysis.keyLevels?.length > 0 && (
-              <div className="divide-y divide-line border border-line rounded-md overflow-hidden">
-                {analysis.keyLevels.map((lvl, i) => (
-                  <div key={i} className="flex items-center justify-between px-3 py-2 text-sm">
-                    <span className="text-text-muted">{lvl.label}</span>
-                    <span className="font-data">{lvl.price}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="border border-bear/30 bg-bear/5 rounded-xl p-4">
-              <div className="text-xs text-bear">{t("analyzer.invalidation")}</div>
-              <div className="mt-1 font-data text-sm">{analysis.invalidation.level}</div>
-            </div>
-
-            <div className="border border-gold/30 rounded-xl p-4 bg-surface">
-              <div className="text-xs text-gold">{t("analyzer.tradePlan")}</div>
-              <div className="mt-2 grid sm:grid-cols-2 gap-2 text-sm">
-                <PlanField label={t("analyzer.direction")} value={analysis.tradePlan.direction} />
-                <PlanField label={t("analyzer.entryZone")} value={analysis.tradePlan.entryZone} />
-                <PlanField label={t("analyzer.invalidationShort")} value={analysis.tradePlan.invalidation} />
-                <PlanField label={t("analyzer.targets")} value={analysis.tradePlan.targets?.join(" · ") || "—"} />
-                {analysis.tradePlan.riskReward && analysis.tradePlan.riskReward !== "N/A" && (
-                  <PlanField label={t("chart.riskReward")} value={analysis.tradePlan.riskReward} />
-                )}
-              </div>
-              <p className="mt-2 text-xs text-text-muted leading-relaxed">{analysis.tradePlan.riskNote}</p>
-              <button
-                onClick={async () => {
-                  if (pdfWorking) return;
-                  setPdfWorking(true);
-                  try {
-                    await downloadAnalysisPdf(analysis);
-                  } catch (err) {
-                    console.error("Could not generate PDF", err);
-                  } finally {
-                    setPdfWorking(false);
-                  }
-                }}
-                disabled={pdfWorking}
-                className="mt-3 mr-2 px-3 py-1.5 rounded-md text-sm border border-line text-text-muted hover:text-text transition-colors disabled:opacity-50"
-              >
-                {pdfWorking ? "Preparing PDF..." : "Download PDF"}
-              </button>
-              <button
-                onClick={createTradePlan}
-                disabled={analysis.tradePlan.direction.toLowerCase().includes("wait")}
-                className="btn-primary mt-3 text-sm disabled:opacity-50"
-              >
-                {t("analyzer.createTradePlan")}
-              </button>
-            </div>
-          </div>
-        )}
+        {analysis && <AnalysisResult data={analysis} analyzedAt={analyzedAt} />}
       </div>
     </div>
   );
@@ -371,39 +247,4 @@ export default function AnalysisPanel({
 function formatPrice(n: number): string {
   const decimals = n < 1 ? 6 : n < 100 ? 4 : 2;
   return n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-
-function SummaryStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border border-line rounded-xl p-3">
-      <div className="text-[11px] text-text-muted uppercase tracking-wide">{label}</div>
-      <div className="mt-1 text-sm font-medium">{value}</div>
-    </div>
-  );
-}
-
-function ObsList({ title, items, tone }: { title: string; items: string[]; tone: string }) {
-  if (!items?.length) return null;
-  return (
-    <div className="border border-line rounded-xl p-3">
-      <div className={`text-[11px] uppercase tracking-wide ${tone}`}>{title}</div>
-      <ul className="mt-2 space-y-1">
-        {items.map((it, i) => (
-          <li key={i} className="text-xs text-text-muted leading-relaxed flex gap-1.5">
-            <span className={tone}>•</span>
-            {it}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function PlanField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-xs text-text-muted">{label}</div>
-      <div className="mt-0.5">{value}</div>
-    </div>
-  );
 }

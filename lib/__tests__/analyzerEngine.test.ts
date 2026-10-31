@@ -95,6 +95,12 @@ describe("VALID SETUP (spot LONG pullback)", () => {
     expect(p.targets[0].source).not.toBe("atr_extension"); // TP1 is always structural
   });
 
+  it("exposes MACD as display evidence", () => {
+    const m = r.market!.macd!;
+    expect(Number.isFinite(m.line) && Number.isFinite(m.signal) && Number.isFinite(m.histogram)).toBe(true);
+    expect(m.histogram).toBeCloseTo(m.line - m.signal, 6);
+  });
+
   it("is deterministic", () => {
     expect(analyzeCandles({ candles: build(100, PULLBACK), interval: "1h" })).toEqual(r);
   });

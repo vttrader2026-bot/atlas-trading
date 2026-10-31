@@ -19,7 +19,7 @@
 
 import type { Candle, Interval } from "@/lib/marketDataTypes";
 import { INTERVAL_MS, SUPPORTED_INTERVALS } from "@/lib/marketDataTypes";
-import { calcATR, calcEMA, calcRSI, latest } from "@/lib/indicators";
+import { calcATR, calcEMA, calcMACD, calcRSI, latest } from "@/lib/indicators";
 import {
   classifyStructure,
   clusterZones,
@@ -124,6 +124,8 @@ export type MarketReading = {
   ema50: number | null;
   ema200: number | null;
   rsi14: number | null;
+  /** MACD(12,26,9) of the closed candles — display evidence only, never used for a verdict. */
+  macd: { line: number; signal: number; histogram: number } | null;
   volume: VolumeReport;
   rangeHigh: number;
   rangeLow: number;
@@ -270,6 +272,14 @@ function trendFrom(structure: StructureReport, price: number, ema20: number | nu
   return { direction, strength };
 }
 
+function readMacd(closed: Candle[]): MarketReading["macd"] {
+  const m = calcMACD(closed);
+  const line = latest(m.macd);
+  const signal = latest(m.signal);
+  const histogram = latest(m.histogram);
+  return line === null || signal === null || histogram === null ? null : { line, signal, histogram };
+}
+
 type Reading = { market: MarketReading; zones: Zone[]; closed: Candle[] };
 
 function readMarket(closed: Candle[]): Reading | null {
@@ -299,6 +309,7 @@ function readMarket(closed: Candle[]): Reading | null {
       ema50,
       ema200,
       rsi14: latest(calcRSI(closed, 14)),
+      macd: readMacd(closed),
       volume: volumeReport(closed),
       rangeHigh: Math.max(...closed.map((c) => c.high)),
       rangeLow: Math.min(...closed.map((c) => c.low)),
