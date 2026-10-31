@@ -7,7 +7,7 @@ export const HOUR = 3_600_000;
  * are interpolated linearly. open = midpoint of previous/current close so the
  * turning candles are strict swing extremes.
  */
-export function build(start: number, segs: [number, number][], opts: { wick?: number; volume?: (i: number, n: number) => number } = {}): Candle[] {
+export function build(start: number, segs: [number, number][], opts: { wick?: number; volume?: (i: number, n: number) => number; endMs?: number } = {}): Candle[] {
   const wick = opts.wick ?? 0.5;
   const closes: number[] = [];
   let prev = start;
@@ -20,8 +20,8 @@ export function build(start: number, segs: [number, number][], opts: { wick?: nu
     const open = (pc + close) / 2;
     pc = close;
     return {
-      openTime: i * HOUR,
-      closeTime: i * HOUR + HOUR - 1,
+      openTime: opts.endMs !== undefined ? opts.endMs - (closes.length - i) * HOUR : i * HOUR,
+      closeTime: opts.endMs !== undefined ? opts.endMs - (closes.length - i - 1) * HOUR - 1 : i * HOUR + HOUR - 1,
       open,
       high: Math.max(open, close) + wick,
       low: Math.min(open, close) - wick,

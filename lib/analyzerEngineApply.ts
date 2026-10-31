@@ -27,6 +27,16 @@ export const REASON_TEXT: Record<ReasonCode, Record<Lang, string>> = {
     ar: "لا توجد شموع مغلقة كافية لقراءة هذا السوق بشكل موثوق.",
     fr: "Pas assez de bougies clôturées pour lire ce marché de façon fiable.",
   },
+  INVALID_DATA: {
+    en: "The candle data failed integrity checks, so no setup is shown.",
+    ar: "فشلت بيانات الشموع في فحوصات السلامة، لذلك لا يُعرض أي إعداد.",
+    fr: "Les données de bougies ont échoué aux contrôles d'intégrité : aucun setup n'est affiché.",
+  },
+  STALE_DATA: {
+    en: "Market data is out of date right now, so no setup is shown.",
+    ar: "بيانات السوق قديمة حاليًا، لذلك لا يُعرض أي إعداد.",
+    fr: "Les données de marché sont obsolètes pour le moment : aucun setup n'est affiché.",
+  },
   DOWNTREND: {
     en: "The market structure is bearish (lower highs and lower lows). Atlas only plans spot buys.",
     ar: "هيكل السوق هابط (قمم وقيعان أدنى). أطلس يخطط لعمليات الشراء الفوري فقط.",
@@ -185,12 +195,14 @@ export function reasonTexts(engine: EngineResult, lang: string): string[] {
   return engine.reasons.map((c) => REASON_TEXT[c][L(lang)]);
 }
 
-/** Compact, locale-free price text; keeps tiny prices readable and stays parseable. */
+/**
+ * Price text for display. Shows the engine's own value (already rounded to 8
+ * significant digits) so the number the user sees is exactly the number that
+ * passed validation — never a separately re-rounded copy.
+ */
 export function fmtPrice(v: number): string {
   if (!Number.isFinite(v)) return "N/A";
-  const abs = Math.abs(v);
-  const digits = abs >= 1000 ? 2 : abs >= 1 ? 4 : abs >= 0.01 ? 5 : 8;
-  return String(Number(v.toFixed(digits)));
+  return String(Number(v.toPrecision(8)));
 }
 
 // ───────────────────────── prompt block ─────────────────────────
@@ -269,7 +281,11 @@ export function allowedNumbers(engine: EngineResult): number[] {
   return out;
 }
 
-const PRICE_TOKEN = /\$?\d{1,3}(?:,\d{3})+(?:\.\d+)?|\$?\d+\.\d+|\$?\d{4,}/g;
+const PRICE_TOKEN = /\$?\d{1,3}(?:,\d{3})+(?:\.\d+)?|\$?\d+\.\d+|\$?\d{2,}/g;
+
+// Whole numbers that are indicator settings or counts, not prices ("EMA 50", "20 candles", "RSI(14)", "20/50/200").
+const COUNT_BEFORE = /(?:EMA|SMA|MA|RSI|ATR|MACD|period|periods|last|past|top|first|within)\s*\(?$/i;
+const COUNT_AFTER = /^\s*(?:EMA|SMA|MA|period|periods|candle|candles|bar|bars|day|days|hour|hours|week|weeks|minute|minutes|swing|swings|touch|touches|time|times|point|points)\b/i;
 
 /** Price-like numbers in `text` that are in the coin's price range but are not an engine value. */
 export function unsupportedPrices(text: string, allowed: number[], refPrice: number): number[] {
@@ -279,6 +295,12 @@ export function unsupportedPrices(text: string, allowed: number[], refPrice: num
     const next = text[idx + m[0].length] ?? "";
     const prev = text.slice(Math.max(0, idx - 3), idx);
     if (next === "%" || next === "x" || next === "×" || /:\s*$/.test(prev)) continue; // percentages, multiples, ratios
+    const isWhole = !/[.,]/.test(m[0]);
+    if (isWhole) {
+      const before = text.slice(Math.max(0, idx - 12), idx);
+      const after = text.slice(idx + m[0].length, idx + m[0].length + 14);
+      if (/[A-Za-z]/.test(next) || next === "/" || before.endsWith("/") || COUNT_BEFORE.test(before) || COUNT_AFTER.test(after)) continue;
+    }
     const v = parseFloat(m[0].replace(/[$,]/g, ""));
     if (!Number.isFinite(v)) continue;
     if (v < refPrice * 0.2 || v > refPrice * 5) continue; // not a price of this coin

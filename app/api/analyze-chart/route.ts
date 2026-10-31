@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     if (hiClosed.length > 0 && higherName) higher = computeFacts(higherName, hiClosed);
     if (loClosed.length > 0 && lowerName) lower = computeFacts(lowerName, loClosed);
     // The deterministic engine owns structure, trend, levels and the trade plan.
-    engine = analyzeCandles({ candles: mainClosed, interval, higherCandles: hiClosed });
+    engine = analyzeCandles({ candles: mainClosed, interval, higherCandles: hiClosed, stale: result.stale, nowMs: Date.now() });
   } catch (err) {
     if (err instanceof MarketDataError) {
       return NextResponse.json({ error: err.code, message: err.message }, { status: 502 });

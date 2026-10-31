@@ -33,6 +33,10 @@ function serviceUnavailableMessage(lang: string): string {
     : "Analyzer temporarily unavailable — we're experiencing high demand. Please try again in a moment.";
 }
 
+// The engine now loads real candles before the AI call, so allow the same
+// headroom as the chart route.
+export const maxDuration = 30;
+
 type TraderContext = {
   pair?: string;
   timeframe?: string;

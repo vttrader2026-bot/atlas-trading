@@ -50,6 +50,13 @@ describe("price scrubbing", () => {
     expect(unsupportedPrices(`RSI ${engine.market!.rsi14!.toFixed(1)} with 1.8x volume, up 3.2% on a 1 : 2.4 ratio over 20 EMA.`, allowed, ref)).toEqual([]);
   });
 
+  it("also catches whole-number prices but ignores indicator settings, counts and ratios", () => {
+    expect(unsupportedPrices("Price may reach 131 soon.", allowed, ref)).toEqual([131]);
+    expect(unsupportedPrices("A break below 118 would hurt.", allowed, ref)).toEqual([118]);
+    expect(unsupportedPrices("Price holds above the EMA 50 and the 200 EMA; RSI(14) is neutral; EMA 20/50/200 stacked.", allowed, ref)).toEqual([]);
+    expect(unsupportedPrices("Over the last 20 candles, with 3 touches on the 4H chart (1h and 15M ignored).", allowed, ref)).toEqual([]);
+  });
+
   it("removes only the offending sentences", () => {
     const o = { a: "Good context. It targets 171.31 soon. Final thought.", b: ["Keep 135.5 in view.", "Dream of 171.5."] };
     const removed = scrubUnsupportedPrices(o, allowed, ref);
@@ -90,6 +97,13 @@ describe("applyEngineToAnalysis — VALID SETUP", () => {
     expect(text).not.toContain("171.31");
     expect(text).not.toContain("77.77");
     expect(out.observations.confirmed[0]).toBe("Swing high 135.5 held."); // engine-supplied price survives
+  });
+
+  it("displays the exact engine values (no separate re-rounding)", () => {
+    const p = engine.plan!;
+    expect(Number(out.tradePlan.invalidation)).toBe(p.stopLoss);
+    expect(out.tradePlan.targets.map(Number)).toEqual(p.targets.map((t) => t.price));
+    expect(out.tradePlan.entryZone).toBe(`${p.entry.low} - ${p.entry.high}`);
   });
 
   it("includes localized verdict metadata and the raw engine result", () => {

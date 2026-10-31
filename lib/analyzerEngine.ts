@@ -18,7 +18,7 @@
 //  * No Fibonacci: the exact methodology has not been verified yet.
 
 import type { Candle, Interval } from "@/lib/marketDataTypes";
-import { SUPPORTED_INTERVALS } from "@/lib/marketDataTypes";
+import { INTERVAL_MS, SUPPORTED_INTERVALS } from "@/lib/marketDataTypes";
 import { calcATR, calcEMA, calcRSI, latest } from "@/lib/indicators";
 import {
   classifyStructure,
@@ -62,6 +62,8 @@ export type Verdict = "VALID_SETUP" | "WAIT_FOR_CONFIRMATION" | "NO_CLEAN_SETUP"
 export type ReasonCode =
   // data
   | "INSUFFICIENT_DATA"
+  | "INVALID_DATA"
+  | "STALE_DATA"
   // market / structure
   | "DOWNTREND"
   | "RANGE_NO_EDGE"
@@ -167,6 +169,24 @@ const round2 = (v: number) => Math.round(v * 100) / 100;
 
 export function closedCandles(candles: Candle[]): Candle[] {
   return candles.filter((c) => c.status === "closed");
+}
+
+/**
+ * Structural sanity of a candle series. The market-data service already
+ * validates what it fetches; this is the engine's own last line of defence so
+ * a malformed series can never produce a plan.
+ */
+export function candlesAreSane(candles: Candle[]): boolean {
+  let prevOpen = -Infinity;
+  for (const c of candles) {
+    const nums = [c.openTime, c.closeTime, c.open, c.high, c.low, c.close, c.volume];
+    if (nums.some((n) => typeof n !== "number" || !Number.isFinite(n))) return false;
+    if (c.low <= 0 || c.volume < 0) return false;
+    if (c.high < c.low || c.high < Math.max(c.open, c.close) || c.low > Math.min(c.open, c.close)) return false;
+    if (c.closeTime < c.openTime || c.openTime <= prevOpen) return false;
+    prevOpen = c.openTime;
+  }
+  return true;
 }
 
 export function isSupportedTimeframe(v: string): v is Interval {
@@ -495,10 +515,23 @@ export function analyzeCandles(input: {
   higherCandles?: Candle[] | null;
   /** Override the RSI level above which an otherwise valid setup is demoted to WAIT. */
   overboughtRsi?: number;
+  /** True when the candles came from a stale fallback cache (Binance unreachable). */
+  stale?: boolean;
+  /** Current time (ms). When given, a last closed candle older than 2 intervals is rejected as stale. */
+  nowMs?: number;
 }): EngineResult {
   const closed = closedCandles(input.candles);
   if (closed.length < ENGINE_CONFIG.minClosedCandles) {
     return emptyResult("NO_CLEAN_SETUP", ["INSUFFICIENT_DATA"], input.interval, closed.length);
+  }
+  if (!candlesAreSane(closed)) {
+    return emptyResult("NO_CLEAN_SETUP", ["INVALID_DATA"], input.interval, closed.length);
+  }
+  if (
+    input.stale ||
+    (input.nowMs !== undefined && input.nowMs - closed[closed.length - 1].closeTime > 2 * INTERVAL_MS[input.interval])
+  ) {
+    return emptyResult("NO_CLEAN_SETUP", ["STALE_DATA"], input.interval, closed.length);
   }
   const reading = readMarket(closed);
   if (!reading) return emptyResult("NO_CLEAN_SETUP", ["INSUFFICIENT_DATA"], input.interval, closed.length);
@@ -506,7 +539,7 @@ export function analyzeCandles(input: {
   let higher: EngineResult["higherTimeframe"] = null;
   if (input.higherCandles) {
     const hc = closedCandles(input.higherCandles);
-    if (hc.length >= ENGINE_CONFIG.minClosedCandles) {
+    if (hc.length >= ENGINE_CONFIG.minClosedCandles && candlesAreSane(hc)) {
       const hr = readMarket(hc);
       if (hr) higher = { direction: hr.market.trend.direction };
     }
@@ -536,4 +569,4 @@ export function analyzeCandles(input: {
     plan: ev.verdict === "VALID_SETUP" ? ev.plan : null,
   };
 }
-// ENGINE-P1-0300
+// ENGINE-P1B-1300

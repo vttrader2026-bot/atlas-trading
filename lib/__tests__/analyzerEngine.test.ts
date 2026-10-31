@@ -3,6 +3,7 @@ import {
   ENGINE_CONFIG,
   analyzeCandles,
   buildTargets,
+  candlesAreSane,
   closedCandles,
   resolveScreenshotMarket,
   validatePlan,
@@ -282,5 +283,110 @@ describe("screenshot requirement and VISUAL READ ONLY", () => {
     expect(r.market).toBeNull();
     expect(r.watch).toBeNull();
     noExecutable(r);
+  });
+});
+
+describe("invalid, stale and insufficient market data is rejected safely", () => {
+  const good = () => build(100, PULLBACK);
+
+  it("accepts the clean series", () => {
+    expect(candlesAreSane(good())).toBe(true);
+    expect(analyzeCandles({ candles: good(), interval: "1h" }).verdict).toBe("VALID_SETUP");
+  });
+
+  const corrupt: [string, (c: Candle[]) => void][] = [
+    ["NaN close", (c) => { c[40].close = NaN; }],
+    ["high below low", (c) => { c[40].high = c[40].low - 1; }],
+    ["close above high", (c) => { c[40].close = c[40].high + 5; }],
+    ["zero/negative low", (c) => { c[40].low = 0; }],
+    ["negative volume", (c) => { c[40].volume = -1; }],
+    ["duplicate timestamp", (c) => { c[41].openTime = c[40].openTime; }],
+    ["out-of-order timestamps", (c) => { c[41].openTime = c[39].openTime - 1; }],
+  ];
+  for (const [name, mutate] of corrupt) {
+    it(`rejects ${name} with INVALID_DATA and no plan`, () => {
+      const c = good();
+      mutate(c);
+      const r = analyzeCandles({ candles: c, interval: "1h" });
+      expect(r.verdict).toBe("NO_CLEAN_SETUP");
+      expect(r.reasons).toEqual(["INVALID_DATA"]);
+      noExecutable(r);
+    });
+  }
+
+  it("rejects data served from a stale fallback cache", () => {
+    const r = analyzeCandles({ candles: good(), interval: "1h", stale: true });
+    expect(r.reasons).toEqual(["STALE_DATA"]);
+    noExecutable(r);
+  });
+
+  it("rejects a last closed candle that is more than two intervals old, accepts a fresh one", () => {
+    const now = 1_800_000_000_000;
+    const fresh = build(100, PULLBACK, { endMs: now });
+    expect(analyzeCandles({ candles: fresh, interval: "1h", nowMs: now }).verdict).toBe("VALID_SETUP");
+    const old = analyzeCandles({ candles: fresh, interval: "1h", nowMs: now + 3 * HOUR });
+    expect(old.reasons).toEqual(["STALE_DATA"]);
+    noExecutable(old);
+  });
+
+  it("ignores a corrupt higher-timeframe series instead of trusting it", () => {
+    const bad = build(100, PULLBACK);
+    bad[10].high = NaN;
+    const r = analyzeCandles({ candles: good(), interval: "1h", higherCandles: bad });
+    expect(r.higherTimeframe).toBeNull();
+    expect(r.verdict).toBe("VALID_SETUP");
+  });
+});
+
+describe("plan invariants hold across many generated series", () => {
+  // Property-style check over randomised bullish pullback shapes. It must
+  // actually FIND valid plans (asserted below) or it would prove nothing.
+  it("every VALID plan satisfies SL buffer, ordering and worst-entry R:R; every other verdict has no plan", () => {
+    const counts: Record<string, number> = {};
+    for (let seed = 1; seed <= 600; seed++) {
+      let x = seed * 7919 + 13;
+      const rnd = () => ((x = (x * 9301 + 49297) % 233280) / 233280);
+      const h1 = 115 + rnd() * 10;
+      const l1 = h1 - (6 + rnd() * 6);
+      const h2 = h1 + 8 + rnd() * 14;
+      const l2 = l1 + 3 + rnd() * 8;
+      const step = 0.08 + rnd() * 0.3;
+      const segs: [number, number][] = [
+        [100, 20],
+        [h1, 10 + Math.floor(rnd() * 5)],
+        [l1, 10 + Math.floor(rnd() * 5)],
+        [h2, 10 + Math.floor(rnd() * 5)],
+        [l2, 10 + Math.floor(rnd() * 5)],
+        [l2 + step, 1],
+        [l2 + 2 * step, 1],
+        [l2 + 3 * step, 1],
+        [l2 + 4 * step, 1],
+      ];
+      const r = analyzeCandles({ candles: build(100, segs, { wick: 0.3 + rnd() * 0.5 }), interval: "1h" });
+      const key = r.verdict + (r.reasons.length ? ":" + r.reasons.join("+") : "");
+      counts[key] = (counts[key] ?? 0) + 1;
+      if (r.verdict !== "VALID_SETUP") {
+        noExecutable(r);
+        continue;
+      }
+      const p = r.plan!;
+      const atr = r.market!.atr;
+      expect(p.stopLoss).toBeLessThan(p.entry.low);
+      expect(p.entry.low - p.stopLoss).toBeGreaterThanOrEqual(ENGINE_CONFIG.slAtrBuffer * atr - atr * 1e-3);
+      expect(p.entry.high).toBeGreaterThanOrEqual(p.entry.low);
+      expect(p.targets[0].price).toBeGreaterThan(p.entry.high);
+      expect(p.targets[1].price).toBeGreaterThan(p.targets[0].price);
+      expect(p.targets[2].price).toBeGreaterThan(p.targets[1].price);
+      const risk = p.entry.high - p.stopLoss;
+      expect(risk).toBeLessThanOrEqual(ENGINE_CONFIG.maxRiskAtr * atr + atr * 1e-3);
+      p.targets.forEach((t) => expect(t.rr).toBeCloseTo((t.price - p.entry.high) / risk, 1));
+      expect(p.targets[0].rr).toBeGreaterThanOrEqual(ENGINE_CONFIG.minRrTp1 - 0.01);
+      expect(p.targets[0].source).not.toBe("atr_extension");
+      expect(r.market!.structure.state).toBe("Bullish");
+      expect(r.market!.structure.brokeLastSwingLow).toBe(false);
+    }
+    console.log("property run outcome counts:", JSON.stringify(counts));
+    expect(counts["VALID_SETUP"] ?? 0).toBeGreaterThanOrEqual(30);
+    expect(Object.keys(counts).length).toBeGreaterThanOrEqual(3); // several different verdict/reason paths were exercised
   });
 });

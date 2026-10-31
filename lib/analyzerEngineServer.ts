@@ -32,6 +32,8 @@ export async function engineForScreenshot(
     candles: main.value.candles,
     interval: target.interval,
     higherCandles: hi.status === "fulfilled" ? hi.value.candles : null,
+    stale: main.value.stale,
+    nowMs: Date.now(),
   });
   return { engine, pair: `${target.baseAsset}/USDT` };
 }
