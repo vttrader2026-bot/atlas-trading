@@ -552,6 +552,7 @@ const en: Dict = {
     setupType: {
       pullback: "Pullback to support",
       breakout: "Confirmed breakout",
+      retest: "Breakout retest",
     },
     trendVsSetup: {
       title: "Trend is not a trade",
@@ -627,6 +628,7 @@ const en: Dict = {
       noHistory: "not enough history",
       candles: "{n} closed candles on {tf}",
       emaStack: "Price vs EMA",
+      imageRead: "Read from the image (not verified)",
     },
     scenarios: {
       title: "Scenarios",
@@ -640,7 +642,6 @@ const en: Dict = {
       closeBelowLow: "Price closes below the last swing low {p}",
       closeBelowStop: "Price closes below the stop-loss {p}",
       reclaim: "Price reclaims resistance at {p}",
-      bearNote: "Risk framing for a spot holder, never a short idea.",
     },
     plan: {
       title: "Trade plan",
@@ -653,7 +654,7 @@ const en: Dict = {
       risk: "Risk per unit",
       conditions: "Setup conditions",
       cStructure: "Market structure is bullish or has broken above the last swing high",
-      cConfirm: "Confirmation: bullish close at support, or volume-backed breakout",
+      cConfirm: "Confirmation: bullish close at support or at a retested breakout level, or a volume-backed breakout",
       cHtf: "Higher timeframe is not bearish",
       cRr: "Reward to TP1 is at least {n}× the risk",
       cStop: "Stop sits below the whole entry zone with an ATR buffer",
@@ -667,9 +668,38 @@ const en: Dict = {
       srcAtr: "ATR extension",
       riskNote: "Risk note",
     },
+    need: {
+      PRICE_EXTENDED: "Price pulls back close to the support or breakout zone, then shows buyers there.",
+      AWAIT_BULLISH_CLOSE: "A bullish candle closes inside the support zone.",
+      AWAIT_BREAKOUT_CLOSE: "A candle closes above the broken swing high.",
+      BREAKOUT_NEEDS_VOLUME: "The close above resistance is backed by clearly higher volume.",
+      OVERBOUGHT: "RSI cools down from overbought levels while the structure stays intact.",
+      DOWNTREND: "The structure turns: a higher low forms and price breaks above the last lower high.",
+      RANGE_NO_EDGE: "Price reaches an edge of the range and reacts there, or breaks out with volume.",
+      STRUCTURE_UNCLEAR: "More swing highs and lows are confirmed, so a clear structure appears.",
+      STRUCTURE_BROKEN: "Price recovers above the broken swing low and rebuilds higher lows.",
+      SUPPORT_BROKEN: "Price closes back above the lost support zone.",
+      NO_SUPPORT_ZONE: "A support zone with repeated reactions forms below price.",
+      HTF_BEARISH: "The higher-timeframe trend stops being bearish.",
+      NO_TARGET_ROOM: "Clear room opens up toward the next resistance above price.",
+      INSUFFICIENT_DATA: "More closed candles become available for this pair and timeframe.",
+      INVALID_DATA: "Clean, verified candle data is available again.",
+      STALE_DATA: "Fresh market data is available.",
+      PAIR_REQUIRED: "Choose a Binance USDT pair so Atlas can verify the chart against real candles.",
+      PAIR_NOT_USDT: "Choose a Binance USDT pair so Atlas can verify the chart against real candles.",
+      TIMEFRAME_REQUIRED: "Choose the chart's timeframe so Atlas can load the matching candles.",
+      UNSUPPORTED_TIMEFRAME: "Choose a supported timeframe so Atlas can load the matching candles.",
+      CANDLES_UNAVAILABLE: "Try again when real candles for this pair can be loaded.",
+      generic: "The market offers a structural entry with enough reward for the risk and a stop below the whole zone.",
+      also: "Also keep an eye on",
+    },
     details: {
       title: "Details and explanations",
       teach: "Teach me this chart",
+    },
+    errors: {
+      notImage: "Upload a PNG, JPEG, WebP or GIF chart image.",
+      tooLarge: "The image is too large. Upload a chart image under 4 MB.",
     },
   },
   tradePlan: {
@@ -1412,6 +1442,7 @@ const ar: Dict = {
     setupType: {
       pullback: "تصحيح إلى الدعم",
       breakout: "اختراق مؤكد",
+      retest: "إعادة اختبار الاختراق",
     },
     trendVsSetup: {
       title: "الاتجاه ليس صفقة",
@@ -1487,6 +1518,7 @@ const ar: Dict = {
       noHistory: "لا يوجد تاريخ كافٍ",
       candles: "{n} شمعة مغلقة على {tf}",
       emaStack: "السعر مقابل المتوسطات",
+      imageRead: "مقروء من الصورة (غير موثّق)",
     },
     scenarios: {
       title: "السيناريوهات",
@@ -1500,7 +1532,6 @@ const ar: Dict = {
       closeBelowLow: "أغلق السعر تحت آخر قاع {p}",
       closeBelowStop: "أغلق السعر تحت وقف الخسارة {p}",
       reclaim: "استعاد السعر المقاومة عند {p}",
-      bearNote: "تأطير للمخاطر لحامل الأصل الفوري، وليس فكرة بيع على المكشوف.",
     },
     plan: {
       title: "خطة التداول",
@@ -1513,7 +1544,7 @@ const ar: Dict = {
       risk: "المخاطرة لكل وحدة",
       conditions: "شروط الفرصة",
       cStructure: "الهيكل صاعد أو اخترق آخر قمة",
-      cConfirm: "التأكيد: إغلاق صاعد عند الدعم أو اختراق مدعوم بالحجم",
+      cConfirm: "التأكيد: إغلاق صاعد عند الدعم أو عند مستوى اختراق أعيد اختباره، أو اختراق مدعوم بالحجم",
       cHtf: "الإطار الزمني الأعلى ليس هابطًا",
       cRr: "العائد حتى الهدف 1 لا يقل عن {n} أضعاف المخاطرة",
       cStop: "الوقف تحت منطقة الدخول كاملة مع هامش ATR",
@@ -1527,9 +1558,38 @@ const ar: Dict = {
       srcAtr: "امتداد ATR",
       riskNote: "ملاحظة المخاطرة",
     },
+    need: {
+      PRICE_EXTENDED: "يعود السعر قريبًا من منطقة الدعم أو الاختراق ثم يظهر مشترون هناك.",
+      AWAIT_BULLISH_CLOSE: "تُغلق شمعة صاعدة داخل منطقة الدعم.",
+      AWAIT_BREAKOUT_CLOSE: "تُغلق شمعة فوق القمة المخترقة.",
+      BREAKOUT_NEEDS_VOLUME: "يدعم الإغلاق فوق المقاومة حجم تداول أعلى بوضوح.",
+      OVERBOUGHT: "يهدأ مؤشر RSI من مستويات التشبّع الشرائي مع بقاء الهيكل سليمًا.",
+      DOWNTREND: "ينقلب الهيكل: يتكوّن قاع أعلى ويخترق السعر آخر قمة أدنى.",
+      RANGE_NO_EDGE: "يصل السعر إلى حافة النطاق ويتفاعل عندها، أو يخترق بحجم تداول.",
+      STRUCTURE_UNCLEAR: "تتأكد قمم وقيعان إضافية فيظهر هيكل واضح.",
+      STRUCTURE_BROKEN: "يتعافى السعر فوق القاع المكسور ويعيد بناء قيعان أعلى.",
+      SUPPORT_BROKEN: "يُغلق السعر مجددًا فوق منطقة الدعم المفقودة.",
+      NO_SUPPORT_ZONE: "تتكوّن منطقة دعم بتفاعلات متكررة أسفل السعر.",
+      HTF_BEARISH: "يتوقف اتجاه الإطار الزمني الأعلى عن كونه هابطًا.",
+      NO_TARGET_ROOM: "تتسع المسافة نحو المقاومة التالية فوق السعر.",
+      INSUFFICIENT_DATA: "تتوفر شموع مغلقة أكثر لهذا الزوج والإطار الزمني.",
+      INVALID_DATA: "تتوفر بيانات شموع سليمة وموثّقة من جديد.",
+      STALE_DATA: "تتوفر بيانات سوق محدّثة.",
+      PAIR_REQUIRED: "اختر زوج USDT على Binance ليتمكن Atlas من التحقق من الشارت بالشموع الحقيقية.",
+      PAIR_NOT_USDT: "اختر زوج USDT على Binance ليتمكن Atlas من التحقق من الشارت بالشموع الحقيقية.",
+      TIMEFRAME_REQUIRED: "اختر الإطار الزمني للشارت ليحمّل Atlas الشموع المطابقة.",
+      UNSUPPORTED_TIMEFRAME: "اختر إطارًا زمنيًا مدعومًا ليحمّل Atlas الشموع المطابقة.",
+      CANDLES_UNAVAILABLE: "حاول مجددًا عندما يمكن تحميل شموع حقيقية لهذا الزوج.",
+      generic: "يوفّر السوق دخولًا هيكليًا بعائد كافٍ مقابل المخاطرة ووقف خسارة أسفل المنطقة بالكامل.",
+      also: "راقب أيضًا",
+    },
     details: {
       title: "التفاصيل والشروحات",
       teach: "اشرح لي هذا الرسم",
+    },
+    errors: {
+      notImage: "ارفع صورة شارت بصيغة PNG أو JPEG أو WebP أو GIF.",
+      tooLarge: "الصورة كبيرة جدًا. ارفع صورة شارت أقل من 4 ميغابايت.",
     },
   },
   tradePlan: {
@@ -2272,6 +2332,7 @@ const fr: Dict = {
     setupType: {
       pullback: "Repli vers le support",
       breakout: "Cassure confirmée",
+      retest: "Retest de cassure",
     },
     trendVsSetup: {
       title: "Une tendance n'est pas un trade",
@@ -2347,6 +2408,7 @@ const fr: Dict = {
       noHistory: "historique insuffisant",
       candles: "{n} bougies clôturées en {tf}",
       emaStack: "Prix vs EMA",
+      imageRead: "Lu sur l'image (non vérifié)",
     },
     scenarios: {
       title: "Scénarios",
@@ -2360,7 +2422,6 @@ const fr: Dict = {
       closeBelowLow: "Le prix clôture sous le dernier creux {p}",
       closeBelowStop: "Le prix clôture sous le stop-loss {p}",
       reclaim: "Le prix reprend la résistance à {p}",
-      bearNote: "Cadrage du risque pour un détenteur spot, jamais une idée de vente à découvert.",
     },
     plan: {
       title: "Plan de trade",
@@ -2373,7 +2434,7 @@ const fr: Dict = {
       risk: "Risque par unité",
       conditions: "Conditions du setup",
       cStructure: "La structure est haussière ou a cassé le dernier sommet",
-      cConfirm: "Confirmation : clôture haussière sur le support, ou cassure appuyée par le volume",
+      cConfirm: "Confirmation : clôture haussière sur le support ou sur un niveau de cassure retesté, ou cassure appuyée par le volume",
       cHtf: "L'unité de temps supérieure n'est pas baissière",
       cRr: "Le gain jusqu'au TP1 vaut au moins {n}× le risque",
       cStop: "Le stop est sous toute la zone d'entrée avec une marge ATR",
@@ -2387,9 +2448,38 @@ const fr: Dict = {
       srcAtr: "extension ATR",
       riskNote: "Note de risque",
     },
+    need: {
+      PRICE_EXTENDED: "Le prix revient près de la zone de support ou de cassure, puis y montre des acheteurs.",
+      AWAIT_BULLISH_CLOSE: "Une bougie haussière clôture dans la zone de support.",
+      AWAIT_BREAKOUT_CLOSE: "Une bougie clôture au-dessus du plus haut cassé.",
+      BREAKOUT_NEEDS_VOLUME: "La clôture au-dessus de la résistance est soutenue par un volume nettement plus élevé.",
+      OVERBOUGHT: "Le RSI redescend des niveaux de surachat tandis que la structure reste intacte.",
+      DOWNTREND: "La structure se retourne : un creux plus haut se forme et le prix dépasse le dernier sommet plus bas.",
+      RANGE_NO_EDGE: "Le prix atteint un bord de la range et y réagit, ou casse avec du volume.",
+      STRUCTURE_UNCLEAR: "Davantage de sommets et de creux sont confirmés, ce qui dessine une structure claire.",
+      STRUCTURE_BROKEN: "Le prix repasse au-dessus du creux cassé et reconstruit des creux plus hauts.",
+      SUPPORT_BROKEN: "Le prix clôture de nouveau au-dessus de la zone de support perdue.",
+      NO_SUPPORT_ZONE: "Une zone de support aux réactions répétées se forme sous le prix.",
+      HTF_BEARISH: "La tendance de l'unité de temps supérieure cesse d'être baissière.",
+      NO_TARGET_ROOM: "De l'espace se libère jusqu'à la prochaine résistance au-dessus du prix.",
+      INSUFFICIENT_DATA: "Davantage de bougies clôturées deviennent disponibles pour cette paire et cette unité de temps.",
+      INVALID_DATA: "Des données de bougies propres et vérifiées sont de nouveau disponibles.",
+      STALE_DATA: "Des données de marché fraîches sont disponibles.",
+      PAIR_REQUIRED: "Choisissez une paire USDT de Binance pour qu'Atlas vérifie le graphique avec de vraies bougies.",
+      PAIR_NOT_USDT: "Choisissez une paire USDT de Binance pour qu'Atlas vérifie le graphique avec de vraies bougies.",
+      TIMEFRAME_REQUIRED: "Choisissez l'unité de temps du graphique pour qu'Atlas charge les bougies correspondantes.",
+      UNSUPPORTED_TIMEFRAME: "Choisissez une unité de temps prise en charge pour qu'Atlas charge les bougies correspondantes.",
+      CANDLES_UNAVAILABLE: "Réessayez quand de vraies bougies pourront être chargées pour cette paire.",
+      generic: "Le marché offre une entrée structurelle avec assez de gain pour le risque et un stop sous toute la zone.",
+      also: "Surveillez aussi",
+    },
     details: {
       title: "Détails et explications",
       teach: "Explique-moi ce graphique",
+    },
+    errors: {
+      notImage: "Importez une image de graphique PNG, JPEG, WebP ou GIF.",
+      tooLarge: "L'image est trop volumineuse. Importez une image de moins de 4 Mo.",
     },
   },
   tradePlan: {
@@ -2587,7 +2677,7 @@ const fr: Dict = {
   },
 };
 
-const dictionaries: Record<Lang, Dict> = { en, ar, fr };
+export const dictionaries: Record<Lang, Dict> = { en, ar, fr };
 
 function resolve(dict: Dict, path: string): string {
   const parts = path.split(".");

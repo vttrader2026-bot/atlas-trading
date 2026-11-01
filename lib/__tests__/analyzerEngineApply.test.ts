@@ -12,6 +12,7 @@ import {
   unsupportedPrices,
 } from "@/lib/analyzerEngineApply";
 import { buildPrompt, computeFacts } from "@/lib/analyzerPrompt";
+import { RISK_NOTE, momentumText, uncertainFacts } from "@/lib/analyzerSanitize";
 import { build } from "./helpers/candles";
 
 const VALID_SEGS: [number, number][] = [[100, 20], [120, 12], [110, 12], [135, 12], [122, 12], [122.2, 1], [122.4, 1], [122.6, 1], [122.8, 1]];
@@ -83,12 +84,15 @@ describe("applyEngineToAnalysis — VALID SETUP", () => {
     expect(out.noClearSetup).toBeNull();
   });
 
-  it("overrides structure/trend/key levels from the engine and keeps the model's explanations", () => {
+  it("overrides structure/trend/key levels and their explanations from the engine (the model's contradicting text is replaced)", () => {
     expect(out.marketStructure.state).toBe("Bullish");
     expect(out.trend.direction).toBe("Bullish");
     expect(out.keyLevels.map((k: any) => k.price)).not.toContain("999");
     expect(out.keyLevels.some((k: any) => k.label === "Current Price" && k.price === fmtPrice(engine.market!.price))).toBe(true);
-    expect(out.trend.explanation).toBe("Trend is clear.");
+    expect(out.trend.explanation).not.toBe("Trend is clear.");
+    expect(out.trend.explanation).toMatch(/bullish/i);
+    expect(out.marketStructure.explanation).not.toMatch(/Price bounced at 118/); // model text contradicted the engine
+    expect(out.marketStructure.explanation).toMatch(/higher highs and higher lows/i);
   });
 
   it("scrubs model sentences that quote prices the engine did not provide", () => {
@@ -96,7 +100,9 @@ describe("applyEngineToAnalysis — VALID SETUP", () => {
     expect(text).not.toContain("118.2");
     expect(text).not.toContain("171.31");
     expect(text).not.toContain("77.77");
-    expect(out.observations.confirmed[0]).toBe("Swing high 135.5 held."); // engine-supplied price survives
+    // "Confirmed" is engine-measured only: the model's own confirmed list is replaced, so its claim cannot appear as a fact.
+    expect(out.observations.confirmed).not.toContain("Swing high 135.5 held.");
+    expect(out.observations.confirmed.join(" ")).toMatch(/EMA/);
   });
 
   it("displays the exact engine values (no separate re-rounding)", () => {
@@ -131,7 +137,7 @@ describe("applyEngineToAnalysis — WAIT and NO CLEAN never carry executable val
         entryZone: "N/A",
         invalidation: "N/A",
         targets: [],
-        riskNote: "Not financial advice.",
+        riskNote: RISK_NOTE.en,
         riskReward: "N/A",
       });
       expect(out.invalidation.level).toBe("N/A");
@@ -203,5 +209,48 @@ describe("prompt integration", () => {
   it("leaves the legacy prompt unchanged when no engine is passed", () => {
     const prompt = buildPrompt({ lang: "en", pair: "TEST/USDT", primary, higher: null, lower: null, higherName: null, lowerName: null });
     expect(prompt).not.toContain("ATLAS ENGINE RESULT");
+  });
+});
+
+describe("commentary is engine-owned for a verified market", () => {
+  const engine = analyzeCandles({ candles: build(100, VALID_SEGS), interval: "1h" });
+  const noisy = () => {
+    const m = modelAnswer();
+    m.momentum = "Strong bullish divergence; RSI at 91 and a golden cross confirm a 300% rally.";
+    m.whatToWatch = ["Expect a squeeze to the moon.", "Buy aggressively."];
+    m.bullishScenario.why = "Whales are accumulating.";
+    m.bearishScenario.why = "Insiders are selling.";
+    m.observations = { confirmed: ["Whales accumulate."], uncertain: ["Elon may tweet."] };
+    m.tradePlan.riskNote = "Guaranteed profit.";
+    m.invalidation.explanation = "Never fails.";
+    return m;
+  };
+
+  it.each(["en", "ar", "fr"])("%s: none of the model's opinions reach the response", (lang) => {
+    const out = applyEngineToAnalysis(noisy(), engine, lang) as any;
+    const text = JSON.stringify(out.momentum) + JSON.stringify(out.whatToWatch) + JSON.stringify(out.observations) + JSON.stringify(out.bullishScenario) + JSON.stringify(out.bearishScenario) + JSON.stringify(out.tradePlan.riskNote) + JSON.stringify(out.invalidation);
+    for (const bad of ["Whales", "Insiders", "moon", "Guaranteed", "divergence", "golden cross", "Elon", "Never fails", "91"]) expect(text).not.toContain(bad);
+    expect(out.whatToWatch).toEqual([]);
+    expect(out.momentum).toBe(momentumText(engine, lang as "en"));
+    expect(out.tradePlan.riskNote).toBe(RISK_NOTE[lang as "en"]);
+    expect(out.observations.uncertain).toEqual(uncertainFacts(engine, lang as "en"));
+  });
+
+  it("momentum text states only measured values", () => {
+    const m = engine.market!;
+    const text = momentumText(engine, "en");
+    expect(text).toContain(`RSI(14) is ${m.rsi14!.toFixed(1)}`);
+    expect(text).toMatch(/MACD histogram is (positive|negative)/);
+  });
+
+  it("an unverified screenshot keeps the model's image read (labelled VISUAL READ ONLY in the UI) but gets no engine-made claims", () => {
+    const v = visualReadOnly(["PAIR_REQUIRED"]);
+    const m = noisy();
+    m.momentum = "Candles on the image look stretched upward.";
+    const out = applyEngineToAnalysis(m, v, "en") as any;
+    expect(out.momentum).toContain("stretched"); // image read, still sanitised for price/indicator claims
+    expect(applyEngineToAnalysis(noisy(), v, "en").momentum).toBe(""); // unsupported indicator claims removed even here
+    expect(out.verdict).toBe("VISUAL_READ_ONLY");
+    expect(out.tradePlan.targets).toEqual([]);
   });
 });

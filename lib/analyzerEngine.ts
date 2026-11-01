@@ -26,6 +26,7 @@ import {
   findSwings,
   volumeReport,
   type StructureReport,
+  type Swing,
   type VolumeReport,
   type Zone,
 } from "@/lib/chartStructure";
@@ -53,6 +54,14 @@ export const ENGINE_CONFIG = {
   /** Risk (worst entry to stop) may not exceed this many ATRs. */
   maxRiskAtr: 6,
   overboughtRsi: 75,
+  /** Breakout-and-retest: the volume-confirmed breakout bar must be within this many closed candles. */
+  retestMaxBars: 40,
+  /** ...and the pullback that touched the broken level within this many candles of the last close. */
+  retestRecentBars: 6,
+  /** The pullback "touches" the broken zone when its low comes within this many ATRs of the zone's top. */
+  retestTouchAtr: 0.25,
+  /** A breakout bar needs at least this multiple of the prior 20-candle average volume. */
+  breakoutVolumeMult: 1.5,
 } as const;
 
 // ───────────────────────── types ─────────────────────────
@@ -97,7 +106,7 @@ export type ReasonCode =
 
 export type TrendDirection = "Bullish" | "Bearish" | "Neutral";
 export type TrendStrength = "Weak" | "Moderate" | "Strong";
-export type SetupType = "pullback" | "breakout";
+export type SetupType = "pullback" | "breakout" | "retest";
 
 export type TargetSource = "resistance" | "range_high" | "atr_extension";
 export type PlanTarget = { price: number; rr: number; source: TargetSource };
@@ -280,7 +289,7 @@ function readMacd(closed: Candle[]): MarketReading["macd"] {
   return line === null || signal === null || histogram === null ? null : { line, signal, histogram };
 }
 
-type Reading = { market: MarketReading; zones: Zone[]; closed: Candle[] };
+type Reading = { market: MarketReading; zones: Zone[]; closed: Candle[]; swings: Swing[] };
 
 function readMarket(closed: Candle[]): Reading | null {
   const atr = latest(calcATR(closed, ENGINE_CONFIG.atrPeriod));
@@ -298,6 +307,7 @@ function readMarket(closed: Candle[]): Reading | null {
   return {
     closed,
     zones,
+    swings,
     market: {
       price,
       atr,
@@ -454,6 +464,60 @@ const wait = (reasons: ReasonCode[], candidate: SetupType, watch: WatchLevel): E
   plan: null,
 });
 
+type Retest = { zone: Zone; retestLow: number; confirmed: boolean };
+
+/**
+ * Breakout-and-successful-retest. All of these must hold on closed candles:
+ *  1. a resistance zone made of confirmed swing highs;
+ *  2. a LATER candle closed above the whole zone (previous close not above it) with a bullish body and
+ *     volume of at least `breakoutVolumeMult` x its prior 20-candle average;
+ *  3. since then no candle has closed back inside/below the zone (otherwise it is a failed breakout);
+ *  4. price pulled back and touched the zone from above within the last `retestRecentBars` candles;
+ *  5. the last close is above the zone; "confirmed" additionally needs a bullish last candle closing at/above the zone mid.
+ * Nothing is forced: if any condition fails the result is null and the normal pullback/breakout rules apply.
+ */
+export function findRetest(r: Reading): Retest | null {
+  const { closed, market: m, swings } = r;
+  const n = closed.length;
+  const atr = m.atr;
+  const last = closed[n - 1];
+  const highs = swings.filter((x) => x.kind === "high");
+  const zones = clusterZones(highs, ENGINE_CONFIG.zoneTolerancePct)
+    .filter((z) => z.high < m.price)
+    .sort((a, b) => b.mid - a.mid); // nearest to price first
+  for (const zone of zones) {
+    const members = highs.filter((h) => h.price >= zone.low && h.price <= zone.high);
+    const confirmedAt = Math.max(...members.map((h) => h.index)) + ENGINE_CONFIG.swingLookback;
+    const start = Math.max(21, confirmedAt + 1, n - ENGINE_CONFIG.retestMaxBars);
+    let b = -1;
+    for (let i = start; i <= n - 2; i++) {
+      const c = closed[i];
+      if (!(c.close > zone.high) || closed[i - 1].close > zone.high || !(c.close > c.open)) continue;
+      const avg = closed.slice(i - 20, i).reduce((acc, x) => acc + x.volume, 0) / 20;
+      if (avg > 0 && c.volume >= ENGINE_CONFIG.breakoutVolumeMult * avg) {
+        b = i;
+        break; // the first qualifying breakout bar
+      }
+    }
+    if (b < 0) continue;
+    const after = closed.slice(b + 1);
+    if (after.some((c) => c.close <= zone.high)) continue; // closed back inside the zone: failed / not a clean hold
+    let t = -1;
+    for (let i = Math.max(b + 1, n - ENGINE_CONFIG.retestRecentBars); i < n; i++) {
+      if (closed[i].low <= zone.high + ENGINE_CONFIG.retestTouchAtr * atr) {
+        t = i;
+        break;
+      }
+    }
+    if (t < 0) continue;
+    const retestLow = Math.min(...closed.slice(t).map((c) => c.low));
+    if (retestLow < zone.low - 0.5 * atr) continue; // sliced through the zone: not a hold
+    const confirmed = last.close > last.open && last.close >= zone.mid;
+    return { zone, retestLow, confirmed };
+  }
+  return null;
+}
+
 function evaluate(r: Reading, overboughtRsi: number): Evaluation {
   const { market: m, closed, zones } = r;
   const s = m.structure;
@@ -461,6 +525,13 @@ function evaluate(r: Reading, overboughtRsi: number): Evaluation {
 
   if (s.state === "Bearish") return noClean(["DOWNTREND"]);
   if (s.brokeLastSwingLow) return noClean(["STRUCTURE_BROKEN"]);
+
+  // ── Retest of a broken resistance that is now acting as support.
+  const rt = findRetest(r);
+  if (rt && (m.price - rt.zone.high) / m.atr <= ENGINE_CONFIG.maxEntryDistanceAtr) {
+    if (!rt.confirmed) return wait(["AWAIT_BULLISH_CLOSE"], "retest", { role: "retest", price: rt.zone.high });
+    return finish(assemble("retest", rt.zone.mid, m.price, Math.min(rt.zone.low, rt.retestLow), rt.zone, r), "retest", m, overboughtRsi);
+  }
   if (s.state === "Unclear" || s.lastSwingHigh === null || s.lastSwingLow === null) return noClean(["STRUCTURE_UNCLEAR"]);
 
   const containing = (p: number) => zones.find((z) => p >= z.low && p <= z.high) ?? null;
@@ -566,6 +637,17 @@ export function analyzeCandles(input: {
     });
   }
 
+  // An overbought market is worth flagging on every WAIT, not only on a demoted valid setup.
+  const overbought = input.overboughtRsi ?? ENGINE_CONFIG.overboughtRsi;
+  if (
+    ev.verdict === "WAIT_FOR_CONFIRMATION" &&
+    reading.market.rsi14 !== null &&
+    reading.market.rsi14 >= overbought &&
+    !ev.reasons.includes("OVERBOUGHT")
+  ) {
+    ev = { ...ev, reasons: [...ev.reasons, "OVERBOUGHT"] };
+  }
+
   const last = closed[closed.length - 1];
   return {
     verdict: ev.verdict,
@@ -581,3 +663,4 @@ export function analyzeCandles(input: {
   };
 }
 // ENGINE-P1B-1300
+// READINESS-P5-1300

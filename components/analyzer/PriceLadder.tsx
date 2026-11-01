@@ -6,7 +6,7 @@ import Frame, { Num, TfChip } from "@/components/analyzer/Frame";
 import { fill, px, tfLabel } from "@/components/analyzer/types";
 
 type Kind = "res" | "sup" | "price" | "entry" | "tp" | "sl" | "watch";
-type Row = { kind: Kind; sort: number; label: string; sub?: string; value: string; pct: number | null; tie: number };
+type Row = { kind: Kind; sort: number; label: string; sub?: string; subNum?: string; value: string; pct: number | null; tie: number };
 
 const zoneText = (low: number, high: number) => (low === high ? px(low) : `${px(low)} – ${px(high)}`);
 
@@ -34,8 +34,10 @@ export default function PriceLadder({ engine }: { engine: EngineResult }) {
   const touches = (n: number) => (n === 1 ? t("analyzerV2.ladder.touch") : fill(t("analyzerV2.ladder.touches"), { n }));
   const rows: Row[] = [];
 
+  // A target that IS a resistance zone is shown once, as the target (no duplicate price rows).
+  const targetZones = (z: { low: number; high: number }) => !!plan?.targets.some((tp) => tp.source === "resistance" && tp.price >= z.low && tp.price <= z.high);
   m.resistance.forEach((z, i) =>
-    rows.push({ kind: "res", sort: z.mid, label: `${t("analyzerV2.ladder.resistance")} ${m.resistance.length - i}`, sub: touches(z.touches), value: zoneText(z.low, z.high), pct: pct(z.mid), tie: 0 })
+    targetZones(z) ? null : rows.push({ kind: "res", sort: z.mid, label: `${t("analyzerV2.ladder.resistance")} ${m.resistance.length - i}`, sub: touches(z.touches), value: zoneText(z.low, z.high), pct: pct(z.mid), tie: 0 })
   );
   rows.push({ kind: "price", sort: price, label: t("analyzerV2.ladder.price"), value: px(price), pct: null, tie: 1 });
   m.support.forEach((z, i) =>
@@ -47,7 +49,7 @@ export default function PriceLadder({ engine }: { engine: EngineResult }) {
     rows.push({ kind: "entry", sort: mid, label: t("analyzerV2.ladder.entry"), value: zoneText(plan.entry.low, plan.entry.high), pct: pct(mid), tie: 0 });
     rows.push({ kind: "sl", sort: plan.stopLoss, label: t("analyzerV2.ladder.stop"), sub: t("analyzerV2.ladder.invalidation"), value: px(plan.stopLoss), pct: pct(plan.stopLoss), tie: 0 });
     plan.targets.forEach((tp, i) =>
-      rows.push({ kind: "tp", sort: tp.price, label: t(`analyzerV2.ladder.tp${i + 1}`), sub: `${tp.rr}R`, value: px(tp.price), pct: pct(tp.price), tie: 0 })
+      rows.push({ kind: "tp", sort: tp.price, label: t(`analyzerV2.ladder.tp${i + 1}`), subNum: `${tp.rr}R`, sub: t(tp.source === "resistance" ? "analyzerV2.plan.srcResistance" : tp.source === "range_high" ? "analyzerV2.plan.srcRange" : "analyzerV2.plan.srcAtr"), value: px(tp.price), pct: pct(tp.price), tie: 0 })
     );
   } else if (engine.watch) {
     rows.push({ kind: "watch", sort: engine.watch.price, label: t("analyzerV2.ladder.watch"), sub: t("analyzerV2.ladder.watchNote"), value: px(engine.watch.price), pct: pct(engine.watch.price), tie: 0 });
@@ -65,7 +67,8 @@ export default function PriceLadder({ engine }: { engine: EngineResult }) {
               <div className="min-w-0">
                 <div className={`text-sm font-semibold ${labelTone(r.kind)}`}>
                   {r.label}
-                  {r.sub && <span className="ms-2 text-xs font-normal text-text-muted">{r.kind === "tp" ? <Num>{r.sub}</Num> : r.sub}</span>}
+                  {r.subNum && <Num className="ms-2 text-xs font-normal text-text-muted">{r.subNum}</Num>}
+                  {r.sub && <span className="ms-2 text-xs font-normal text-text-muted">{r.sub}</span>}
                 </div>
               </div>
               <div className="text-end shrink-0">

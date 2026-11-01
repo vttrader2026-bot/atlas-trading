@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
+import { USAGE_UNAVAILABLE_MESSAGE, analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
 import { getCandles, MarketDataError, type Interval } from "@/lib/marketData";
+import { SUPPORTED_INTERVALS } from "@/lib/marketDataTypes";
 import { buildPrompt, computeFacts, HIGHER_TF, LOWER_TF, type Facts } from "@/lib/analyzerPrompt";
-import { enforceSpotPlan } from "@/lib/spotPlan";
 import { analyzeCandles, closedCandles, type EngineResult } from "@/lib/analyzerEngine";
 import { applyEngineToAnalysis } from "@/lib/analyzerEngineApply";
 
@@ -63,20 +63,22 @@ export const maxDuration = 30;
  * the same Gemini models under the same Elite/quota rules.
  */
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "No Gemini API key configured on the server." },
-      { status: 500 }
-    );
-  }
-
+  // Authenticate first: an anonymous caller learns nothing about server configuration.
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Please sign in to use the Analyzer." }, { status: 401 });
   }
 
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error("analyze-chart: GEMINI_API_KEY is not configured");
+    return NextResponse.json({ error: "The analyzer is temporarily unavailable." }, { status: 503 });
+  }
+
   const usage = await peekAnalyzeUsage(userId);
+  if (usage.unavailable) {
+    return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
+  }
   if (!usage.allowed) {
     return NextResponse.json(
       {
@@ -93,10 +95,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const baseAsset = body.baseAsset?.trim().toUpperCase();
-  const quoteAsset = body.quoteAsset?.trim().toUpperCase() || "USDT";
+  const baseAsset = typeof body.baseAsset === "string" ? body.baseAsset.trim().toUpperCase() : undefined;
+  const quoteAsset = typeof body.quoteAsset === "string" && body.quoteAsset.trim() ? body.quoteAsset.trim().toUpperCase() : "USDT";
   const interval = body.interval as Interval | undefined;
-  const lang = body.lang || "en";
+  const lang = body.lang === "ar" || body.lang === "fr" ? body.lang : "en";
+
+  // The Analyzer is spot USDT only: reject anything else before any market-data or AI call.
+  if (baseAsset && !/^[A-Z0-9]{1,15}$/.test(baseAsset)) {
+    return NextResponse.json({ error: "Invalid baseAsset." }, { status: 400 });
+  }
+  if (quoteAsset !== "USDT") {
+    return NextResponse.json({ error: "Only Binance USDT spot pairs are supported." }, { status: 400 });
+  }
+  if (interval !== undefined && !(SUPPORTED_INTERVALS as readonly string[]).includes(interval)) {
+    return NextResponse.json({ error: "Unsupported interval." }, { status: 400 });
+  }
 
   if (!baseAsset || !interval) {
     return NextResponse.json({ error: "baseAsset and interval are required." }, { status: 400 });
@@ -209,8 +222,10 @@ export async function POST(req: NextRequest) {
     const parsed = JSON.parse(text);
     // Engine output replaces anything the model wrote about levels or the plan.
     applyEngineToAnalysis(parsed, engine, lang);
-    enforceSpotPlan(parsed, primary.lastClose);
     const consumed = await consumeAnalyzeUsage(userId);
+    // The counter is authoritative: if it cannot confirm this use (outage or a parallel request took the last one), the analysis is withheld.
+    if (consumed.unavailable) return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
+    if (!consumed.allowed) return NextResponse.json({ error: analyzeLimitReachedMessage(consumed.plan, consumed.limit) }, { status: 429 });
     return NextResponse.json({
       ...parsed,
       pair: pairLabel,

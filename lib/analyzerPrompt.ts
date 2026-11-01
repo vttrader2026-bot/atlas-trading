@@ -46,7 +46,7 @@ export const RESPONSE_SHAPE = `{
   "tradePlan": { "direction": "Long" | "Wait — no clear setup", "entryZone": "zone or N/A", "invalidation": "same as invalidation.level, or N/A", "targets": ["target 1", "target 2", "target 3"], "riskNote": "1 short sentence: structural analysis, not financial advice", "riskReward": "e.g. '1 : 2.4' computed from your own entry/invalidation/first target, or 'N/A'" },
   "observations": { "confirmed": ["facts directly supported by the supplied data"], "uncertain": ["interpretations that depend on future price action or on data not supplied"] },
   "teachMe": {
-    "structure": "2-3 sentences, beginner-friendly",
+    "structure": "2-3 sentences, beginner-friendly, GENERAL concept only: do not describe this chart or quote any price",
     "trend": "1-2 sentences, beginner-friendly",
     "keyLevels": "2-3 sentences, beginner-friendly",
     "confirmation": "1-2 sentences, beginner-friendly",

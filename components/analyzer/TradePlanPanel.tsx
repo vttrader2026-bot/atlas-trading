@@ -1,13 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { EngineResult } from "@/lib/analyzerEngine";
+import { ENGINE_CONFIG, type EngineResult } from "@/lib/analyzerEngine";
 import { useLanguage } from "@/lib/i18n";
 import { saveDraft, firstNumber, type TradePlanDraft } from "@/lib/tradePlan";
 import Frame, { Num } from "@/components/analyzer/Frame";
 import { fill, px, verdictOf, type AnalysisData } from "@/components/analyzer/types";
 
-const MIN_RR = 1.2; // mirrors ENGINE_CONFIG.minRrTp1 (display text only)
 
 function Field({ label, note, children }: { label: string; note?: string; children: React.ReactNode }) {
   return (
@@ -53,19 +52,39 @@ export default function TradePlanPanel({ data, engine }: { data: AnalysisData; e
   const plan = verdict === "VALID_SETUP" ? engine?.plan ?? null : null;
 
   if (!plan) {
-    const next = data.whatToWatch ?? [];
+    const codes = data.verdictReasons?.map((r) => r.code) ?? engine?.reasons ?? [];
+    const needs = Array.from(
+      new Set(
+        (codes.length ? codes : ["generic"]).map((code) => {
+          const txt = t(`analyzerV2.need.${code}`);
+          return txt.startsWith("analyzerV2.need.") ? t("analyzerV2.need.generic") : txt;
+        })
+      )
+    );
+    const also = data.whatToWatch ?? [];
     return (
       <Frame eyebrow={t("analyzerV2.plan.title")} title={t("analyzerV2.plan.nextTitle")}>
         <p className="text-sm text-text-muted">{t("analyzerV2.plan.noPlan")}</p>
-        {next.length > 0 && (
-          <ol className="mt-4 space-y-2.5">
-            {next.map((item, i) => (
-              <li key={i} className="flex gap-3 rounded-xl border border-dashed border-gold/40 p-3.5 text-sm leading-relaxed">
-                <span className="font-data text-gold shrink-0">{i + 1}</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ol>
+        <ol className="mt-4 space-y-2.5">
+          {needs.map((item, i) => (
+            <li key={i} className="flex gap-3 rounded-xl border border-dashed border-gold/40 p-3.5 text-sm leading-relaxed">
+              <span className="font-data text-gold shrink-0">{i + 1}</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ol>
+        {also.length > 0 && (
+          <div className="mt-4">
+            <div className="text-label">{t("analyzerV2.need.also")}</div>
+            <ul className="mt-2 space-y-1.5">
+              {also.map((item, i) => (
+                <li key={i} className="flex gap-2 text-sm text-text-muted">
+                  <span aria-hidden className="mt-2 w-1.5 h-1.5 rounded-full shrink-0 bg-gold" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </Frame>
     );
@@ -75,7 +94,7 @@ export default function TradePlanPanel({ data, engine }: { data: AnalysisData; e
     t("analyzerV2.plan.cStructure"),
     t("analyzerV2.plan.cConfirm"),
     t("analyzerV2.plan.cHtf"),
-    fill(t("analyzerV2.plan.cRr"), { n: MIN_RR }),
+    fill(t("analyzerV2.plan.cRr"), { n: ENGINE_CONFIG.minRrTp1 }),
     t("analyzerV2.plan.cStop"),
   ];
   const srcLabel = (s: string) => t(s === "resistance" ? "analyzerV2.plan.srcResistance" : s === "range_high" ? "analyzerV2.plan.srcRange" : "analyzerV2.plan.srcAtr");

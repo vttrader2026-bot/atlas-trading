@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { EngineResult } from "@/lib/analyzerEngine";
 import { useLanguage } from "@/lib/i18n";
 import Frame, { Num } from "@/components/analyzer/Frame";
-import { fill, px, type AnalysisData } from "@/components/analyzer/types";
+import { fill, px, verdictOf, type AnalysisData } from "@/components/analyzer/types";
 
 function Card({ tone, title, children }: { tone: "bull" | "bear"; title: string; children: ReactNode }) {
   return (
@@ -35,13 +35,15 @@ export default function Scenarios({ data, engine }: { data: AnalysisData; engine
   const bull = data.bullishScenario;
   const bear = data.bearishScenario;
   if (!bull && !bear) return null;
+  // AI commentary is only shown where the engine sees a setup in play; under NO CLEAN SETUP it could contradict the verdict.
+  const showWhy = verdictOf(data) !== "NO_CLEAN_SETUP";
 
   const swingLow = m?.structure.lastSwingLow ?? undefined;
   const nearestRes = m ? [...m.resistance].filter((z) => z.mid > m.price).sort((a, b) => a.mid - b.mid)[0] : undefined;
 
   const bullInvalid = plan
     ? fill(t("analyzerV2.scenarios.closeBelowStop"), { p: px(plan.stopLoss) })
-    : swingLow !== undefined
+    : swingLow !== undefined && m && m.price > swingLow
       ? fill(t("analyzerV2.scenarios.closeBelowLow"), { p: px(swingLow) })
       : null;
   const bearInvalid = nearestRes ? fill(t("analyzerV2.scenarios.reclaim"), { p: px(nearestRes.high) }) : null;
@@ -52,7 +54,7 @@ export default function Scenarios({ data, engine }: { data: AnalysisData; engine
         {bull && (
           <Card tone="bull" title={t("analyzerV2.scenarios.bull")}>
             <Block label={t("analyzerV2.scenarios.confirms")}>{bull.confirmation}</Block>
-            {bull.why && <Block label={t("analyzerV2.scenarios.why")}>{bull.why}</Block>}
+            {showWhy && bull.why && <Block label={t("analyzerV2.scenarios.why")}>{bull.why}</Block>}
             <Block label={t("analyzerV2.scenarios.targets")}>
               {plan ? (
                 <div className="flex flex-wrap gap-2">
@@ -76,13 +78,12 @@ export default function Scenarios({ data, engine }: { data: AnalysisData; engine
         {bear && (
           <Card tone="bear" title={t("analyzerV2.scenarios.bear")}>
             <Block label={t("analyzerV2.scenarios.confirms")}>{bear.confirmation}</Block>
-            {bear.why && <Block label={t("analyzerV2.scenarios.why")}>{bear.why}</Block>}
+            {showWhy && bear.why && <Block label={t("analyzerV2.scenarios.why")}>{bear.why}</Block>}
             {bearInvalid && (
               <Block label={t("analyzerV2.scenarios.invalidated")}>
                 <Num className="!font-sans">{bearInvalid}</Num>
               </Block>
             )}
-            <p className="text-xs text-text-muted">{t("analyzerV2.scenarios.bearNote")}</p>
           </Card>
         )}
       </div>

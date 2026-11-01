@@ -84,6 +84,15 @@ function AnalyzerPageInner() {
 
   function onFile(f: File | null) {
     if (!f) return;
+    // Same limits the server enforces, checked here so the user gets a clear message instead of a failed upload.
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(f.type)) {
+      setError(t("analyzerV2.errors.notImage"));
+      return;
+    }
+    if (f.size > 4 * 1024 * 1024) {
+      setError(t("analyzerV2.errors.tooLarge"));
+      return;
+    }
     setFile(f);
     setPreview(URL.createObjectURL(f));
     setResult(null);

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
+import { USAGE_UNAVAILABLE_MESSAGE, analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
 import { getTicker24h } from "@/lib/binance";
-import { enforceSpotPlan } from "@/lib/spotPlan";
 import { applyEngineToAnalysis, engineFactsBlock } from "@/lib/analyzerEngineApply";
 import { engineForScreenshot } from "@/lib/analyzerEngineServer";
 
@@ -200,18 +199,19 @@ async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Pro
   return lastRes;
 }
 
-export async function POST(req: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        error:
-          "No Gemini API key configured. Add GEMINI_API_KEY to .env.local (locally) or your Vercel project's Environment Variables (in production), then restart/redeploy.",
-      },
-      { status: 500 }
-    );
-  }
+// Upload limits. Vercel rejects bodies over ~4.5 MB before this runs; this is the app-level guard.
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
+/** Free-text form fields are interpolated into the AI prompt: single line, no control characters, bounded length. */
+function cleanField(v: FormDataEntryValue | null, max: number): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const t = v.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+  return t || undefined;
+}
+
+export async function POST(req: NextRequest) {
+  // Authenticate first: an anonymous caller learns nothing about server configuration.
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json(
@@ -219,37 +219,57 @@ export async function POST(req: NextRequest) {
       { status: 401 }
     );
   }
-  let usageInfo: { plan: string; remaining: number; limit: number } | null = null;
-  if (userId) {
-    // Read-only check — do NOT consume a use yet. We only spend one of the
-    // user's daily attempts once the analysis genuinely succeeds, below.
-    const usage = await peekAnalyzeUsage(userId);
-    if (!usage.allowed) {
-      return NextResponse.json(
-        {
-          error: analyzeLimitReachedMessage(usage.plan, usage.limit),
-        },
-        { status: 429 }
-      );
-    }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error("analyze: GEMINI_API_KEY is not configured");
+    return NextResponse.json({ error: "The analyzer is temporarily unavailable." }, { status: 503 });
   }
 
-  const formData = await req.formData();
+  let usageInfo: { plan: string; remaining: number; limit: number } | null = null;
+  // Read-only check — do NOT consume a use yet. We only spend one of the
+  // user's daily attempts once the analysis genuinely succeeds, below.
+  const usage = await peekAnalyzeUsage(userId);
+  if (usage.unavailable) {
+    return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
+  }
+  if (!usage.allowed) {
+    return NextResponse.json(
+      {
+        error: analyzeLimitReachedMessage(usage.plan, usage.limit),
+      },
+      { status: 429 }
+    );
+  }
+
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch {
+    return NextResponse.json({ error: "Invalid upload." }, { status: 400 });
+  }
   const file = formData.get("image");
-  const lang = (formData.get("lang") as string) || "en";
+  const rawLang = formData.get("lang");
+  const lang = rawLang === "ar" || rawLang === "fr" ? rawLang : "en";
   const context: TraderContext = {
-    pair: (formData.get("pair") as string) || undefined,
-    timeframe: (formData.get("timeframe") as string) || undefined,
-    style: (formData.get("style") as string) || undefined,
+    pair: cleanField(formData.get("pair"), 24),
+    timeframe: cleanField(formData.get("timeframe"), 8),
+    style: cleanField(formData.get("style"), 60),
   };
 
   if (!file || typeof file === "string") {
     return NextResponse.json({ error: "No image was uploaded." }, { status: 400 });
   }
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+    return NextResponse.json({ error: "Upload a PNG, JPEG, WebP or GIF chart image." }, { status: 400 });
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return NextResponse.json({ error: "The image is too large. Upload a chart image under 4 MB." }, { status: 413 });
+  }
 
   const bytes = await file.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
-  const mimeType = file.type || "image/png";
+  const mimeType = file.type;
 
   // Best-effort real-time price anchor so the model isn't purely guessing
   // from the (possibly stale) screenshot. Only possible when the trader
@@ -351,12 +371,12 @@ export async function POST(req: NextRequest) {
     // Engine output replaces anything the model wrote about levels or the plan.
     applyEngineToAnalysis(parsed, engine, lang);
     if (verifiedPair) parsed.pair = verifiedPair;
-    enforceSpotPlan(parsed, livePrice);
-    if (userId) {
-      const usage = await consumeAnalyzeUsage(userId);
-      usageInfo = { plan: usage.plan, remaining: usage.remaining, limit: usage.limit };
-    }
-    return NextResponse.json(usageInfo ? { ...parsed, _usage: usageInfo } : parsed);
+    const consumed = await consumeAnalyzeUsage(userId);
+    // The counter is authoritative: if it cannot confirm this use (outage or a parallel request took the last one), the analysis is withheld.
+    if (consumed.unavailable) return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
+    if (!consumed.allowed) return NextResponse.json({ error: analyzeLimitReachedMessage(consumed.plan, consumed.limit) }, { status: 429 });
+    usageInfo = { plan: consumed.plan, remaining: consumed.remaining, limit: consumed.limit };
+    return NextResponse.json({ ...parsed, _usage: usageInfo });
   } catch {
     console.error("Couldn't parse Gemini response as JSON:", text.slice(0, 500));
     return NextResponse.json(

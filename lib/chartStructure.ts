@@ -43,16 +43,30 @@ export type StructureReport = {
   brokeLastSwingHigh: boolean;
 };
 
-/** Label each swing against the previous swing of the same kind, then derive the state. */
+/**
+ * Swings within this percentage of each other are "equal" (a double top / bottom),
+ * not a higher or lower swing — float noise or a few ticks must not flip the structure.
+ */
+export const SWING_EQUALITY_PCT = 0.15;
+
+/** 1 = `b` is higher than `a`, -1 = lower, 0 = equal within tolerance. */
+function compareSwing(a: number, b: number, tolPct = SWING_EQUALITY_PCT): 1 | -1 | 0 {
+  if (Math.abs(b - a) <= (Math.abs(a) * tolPct) / 100) return 0;
+  return b > a ? 1 : -1;
+}
+
+/** Label each swing against the previous swing of the same kind, then derive the state. Equal swings get no label. */
 export function classifyStructure(candles: Candle[], swings: Swing[]): StructureReport {
   const highs = swings.filter((s) => s.kind === "high");
   const lows = swings.filter((s) => s.kind === "low");
   const labelled: StructureReport["labelled"] = [];
   for (let i = 1; i < highs.length; i++) {
-    labelled.push({ label: highs[i].price > highs[i - 1].price ? "HH" : "LH", price: highs[i].price, time: highs[i].time });
+    const c = compareSwing(highs[i - 1].price, highs[i].price);
+    if (c !== 0) labelled.push({ label: c > 0 ? "HH" : "LH", price: highs[i].price, time: highs[i].time });
   }
   for (let i = 1; i < lows.length; i++) {
-    labelled.push({ label: lows[i].price > lows[i - 1].price ? "HL" : "LL", price: lows[i].price, time: lows[i].time });
+    const c = compareSwing(lows[i - 1].price, lows[i].price);
+    if (c !== 0) labelled.push({ label: c > 0 ? "HL" : "LL", price: lows[i].price, time: lows[i].time });
   }
   labelled.sort((a, b) => a.time - b.time);
   const recent = labelled.slice(-6);
@@ -61,10 +75,10 @@ export function classifyStructure(candles: Candle[], swings: Swing[]): Structure
   const lastTwoLows = lows.slice(-2);
   let state: StructureState = "Unclear";
   if (lastTwoHighs.length === 2 && lastTwoLows.length === 2) {
-    const hh = lastTwoHighs[1].price > lastTwoHighs[0].price;
-    const hl = lastTwoLows[1].price > lastTwoLows[0].price;
-    if (hh && hl) state = "Bullish";
-    else if (!hh && !hl) state = "Bearish";
+    const h = compareSwing(lastTwoHighs[0].price, lastTwoHighs[1].price);
+    const l = compareSwing(lastTwoLows[0].price, lastTwoLows[1].price);
+    if (h > 0 && l > 0) state = "Bullish";
+    else if (h < 0 && l < 0) state = "Bearish";
     else state = "Ranging";
   }
 

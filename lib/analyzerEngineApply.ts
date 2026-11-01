@@ -10,6 +10,7 @@
 // entry, stop or target in front of the user.
 
 import type { EngineResult, ReasonCode, Verdict } from "@/lib/analyzerEngine";
+import { RISK_NOTE, confirmedFacts, invalidationExplanation, momentumText, narrative, sanitizeModelText, uncertainFacts } from "@/lib/analyzerSanitize";
 
 export type Lang = "en" | "ar" | "fr";
 const L = (lang: string): Lang => (lang === "ar" ? "ar" : lang === "fr" ? "fr" : "en");
@@ -184,6 +185,7 @@ const LEVEL_LABEL: Record<"resistance" | "support" | "price", Record<Lang, strin
 const CONDITION_LABEL: Record<string, Record<Lang, string>> = {
   VALID_pullback: { en: "Pullback to support", ar: "تصحيح إلى الدعم", fr: "Repli vers le support" },
   VALID_breakout: { en: "Confirmed breakout", ar: "اختراق مؤكد", fr: "Cassure confirmée" },
+  VALID_retest: { en: "Breakout retest", ar: "إعادة اختبار الاختراق", fr: "Retest de cassure" },
   WAIT: { en: "Wait for confirmation", ar: "انتظر التأكيد", fr: "Attendre la confirmation" },
   NO_CLEAN: { en: "No clear setup", ar: "لا توجد فرصة واضحة", fr: "Aucun setup clair" },
   VISUAL: { en: "Visual read only", ar: "قراءة بصرية فقط", fr: "Lecture visuelle uniquement" },
@@ -369,15 +371,19 @@ export function applyEngineToAnalysis(parsed: Obj, engine: EngineResult, langRaw
   const m = engine.market;
   const visual = engine.verdict === "VISUAL_READ_ONLY";
 
-  // 1. Remove any model sentence that quotes a price the engine did not supply.
+  // 1. Remove any model sentence that quotes a price the engine did not supply,
+  //    cites an indicator Atlas does not compute, or states an RSI/MACD number the engine did not measure.
   if (m) scrubUnsupportedPrices(parsed, allowedNumbers(engine), m.price);
+  sanitizeModelText(parsed, engine);
+  // Explanations that must agree with the engine are written by the engine, not the model.
+  const story = narrative(engine, lang, fmtPrice);
 
   const reasons = reasonTexts(engine, lang);
 
   // 2. Structure & trend: engine only (the model keeps the explanations).
   if (m) {
-    parsed.marketStructure = { ...asObj(parsed.marketStructure), state: m.structure.state };
-    parsed.trend = { ...asObj(parsed.trend), direction: m.trend.direction, strength: m.trend.strength };
+    parsed.marketStructure = { ...asObj(parsed.marketStructure), state: m.structure.state, explanation: story.structure };
+    parsed.trend = { ...asObj(parsed.trend), direction: m.trend.direction, strength: m.trend.strength, explanation: story.trend };
     // 3. Key levels: engine zones only.
     const levels: { label: string; price: string }[] = [];
     [...m.resistance].reverse().forEach((z, i, arr) => {
@@ -394,7 +400,7 @@ export function applyEngineToAnalysis(parsed: Obj, engine: EngineResult, langRaw
   }
 
   const cond = asObj(parsed.currentCondition);
-  parsed.currentCondition = { ...cond, label: conditionLabel(engine, lang) };
+  parsed.currentCondition = { ...cond, label: conditionLabel(engine, lang), explanation: story.condition };
 
   const plan = engine.plan;
   const valid = engine.verdict === "VALID_SETUP" && plan;
@@ -402,17 +408,34 @@ export function applyEngineToAnalysis(parsed: Obj, engine: EngineResult, langRaw
   // 4. Scenario levels: only a valid plan has targets; WAIT/NO_CLEAN/VISUAL have none.
   const bull = parsed.bullishScenario ? asObj(parsed.bullishScenario) : null;
   const bear = parsed.bearishScenario ? asObj(parsed.bearishScenario) : null;
-  if (bull) bull.targets = valid ? plan.targets.map((t) => fmtPrice(t.price)) : [];
-  if (bear) bear.targets = valid && m ? m.support.map((z) => fmtPrice(z.mid)) : [];
+  if (bull) {
+    bull.targets = valid ? plan.targets.map((t) => fmtPrice(t.price)) : [];
+    if (!visual) bull.confirmation = story.bullConfirm;
+  }
+  if (bear) {
+    bear.targets = valid && m ? m.support.map((z) => fmtPrice(z.mid)) : [];
+    if (!visual) bear.confirmation = story.bearConfirm;
+  }
   parsed.bullishScenario = bull;
   parsed.bearishScenario = bear;
+
+  // With a verified market every claim-bearing sentence is engine-owned: "confirmed" are measurements,
+  // "uncertain" are measured conditions, momentum is the RSI/MACD/volume readings, and the model's own
+  // opinions (why / what to watch / momentum prose) are dropped. The model keeps only the generic teachMe text.
+  if (m) {
+    parsed.observations = { confirmed: confirmedFacts(engine, lang), uncertain: uncertainFacts(engine, lang) };
+    parsed.momentum = momentumText(engine, lang);
+    parsed.whatToWatch = [];
+    if (bull) bull.why = "";
+    if (bear) bear.why = "";
+  }
 
   // 5. Invalidation + trade plan.
   const inv = asObj(parsed.invalidation);
   const tp = asObj(parsed.tradePlan);
-  const riskNote = str(tp.riskNote) || "Structural analysis, not financial advice. Size positions by your own risk tolerance.";
+  const riskNote = m ? RISK_NOTE[lang] : str(tp.riskNote) || RISK_NOTE[lang];
   if (valid) {
-    parsed.invalidation = { ...inv, level: fmtPrice(plan.stopLoss) };
+    parsed.invalidation = { ...inv, level: fmtPrice(plan.stopLoss), explanation: invalidationExplanation(engine, lang, fmtPrice) };
     parsed.tradePlan = {
       direction: "Long",
       entryZone: `${fmtPrice(plan.entry.low)} - ${fmtPrice(plan.entry.high)}`,
@@ -423,7 +446,7 @@ export function applyEngineToAnalysis(parsed: Obj, engine: EngineResult, langRaw
     };
     parsed.noClearSetup = null;
   } else {
-    parsed.invalidation = { ...inv, level: "N/A" };
+    parsed.invalidation = { ...inv, level: "N/A", ...(m ? { explanation: invalidationExplanation(engine, lang, fmtPrice) } : {}) };
     parsed.tradePlan = {
       direction: WAIT_DIRECTION,
       entryZone: "N/A",

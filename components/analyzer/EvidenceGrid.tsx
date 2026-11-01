@@ -149,7 +149,7 @@ export default function EvidenceGrid({ data, engine }: { data: AnalysisData; eng
 
       {(confirmed.length > 0 || uncertain.length > 0) && (
         <div className="mt-4 grid gap-3 @2xl:grid-cols-2">
-          <FactList title={t("analyzerV2.evidence.confirmed")} items={confirmed} tone="bull" />
+          <FactList title={t(engine.verdict === "VISUAL_READ_ONLY" ? "analyzerV2.evidence.imageRead" : "analyzerV2.evidence.confirmed")} items={confirmed} tone="bull" />
           <FactList title={t("analyzerV2.evidence.uncertain")} items={uncertain} tone="gold" />
         </div>
       )}

@@ -3,7 +3,8 @@
 //   npm run test:live -- analyzerEngine.live
 // It prints, for real USDT pairs, the engine's inputs, verdict and validation
 // results, and asserts every plan invariant on the live data. It has NOT been
-// executed in the build sandbox (no route to Binance there).
+// executed in the build sandbox (no route to Binance there): when Binance cannot be reached it fails
+// with an explicit "NOT performed" message so an unreachable network can never look like a pass.
 import { describe, expect, it } from "vitest";
 import { getCandles } from "@/lib/marketData";
 import { ENGINE_CONFIG, analyzeCandles } from "@/lib/analyzerEngine";
@@ -15,12 +16,23 @@ const CASES: [string, Interval][] = [
   ["ETH", "4h"],
   ["SOL", "4h"],
   ["BNB", "1d"],
+  ["BTC", "1h"],
+  ["ETH", "1d"],
+  ["SOL", "1d"],
+  ["XRP", "4h"],
+  ["DOGE", "4h"],
+  ["LINK", "1d"],
 ];
 
 describe("live: analyzer engine on real Binance USDT candles", () => {
   for (const [base, interval] of CASES) {
     it(`${base}/USDT ${interval}`, async () => {
-      const res = await getCandles(base, interval, { limit: 250, quoteAsset: "USDT" });
+      let res: Awaited<ReturnType<typeof getCandles>>;
+      try {
+        res = await getCandles(base, interval, { limit: 250, quoteAsset: "USDT" });
+      } catch (err) {
+        throw new Error(`BINANCE UNREACHABLE - live validation NOT performed (network/upstream problem, not an engine result): ${err instanceof Error ? err.message : err}`);
+      }
       const forming = res.candles.filter((c) => c.status === "forming").length;
       const r = analyzeCandles({ candles: res.candles, interval, stale: res.stale, nowMs: Date.now() });
       const m = r.market;
