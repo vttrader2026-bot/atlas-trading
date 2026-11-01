@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
-import { getTicker24h, formatPrice, Ticker24h } from "@/lib/binance";
+import { getTicker24h, Ticker24h } from "@/lib/binance";
 import type { PublishedTrade } from "@/lib/tradeFeed";
+import { SignalCard } from "@/components/tradefeed/SignalCard";
 
 // Deterministic color per pair so each coin badge looks distinct without
 // needing a real logo asset for every symbol Atlas might publish.
@@ -31,47 +32,6 @@ function binanceSymbol(pair: string) {
 // there's enough real data to not look thin. Adjust to match the Journal's
 // actual threshold if it differs from this.
 const MIN_TRADES_FOR_STATS = 10;
-
-const TP_LABEL_EN: Record<string, string> = { TP1: "TP1", TP2: "TP2", TP3: "TP3" };
-const TP_LABEL_AR: Record<string, string> = {
-  TP1: "\u0627\u0644\u0647\u062F\u0641 \u0627\u0644\u0623\u0648\u0644",
-  TP2: "\u0627\u0644\u0647\u062F\u0641 \u0627\u0644\u062B\u0627\u0646\u064A",
-  TP3: "\u0627\u0644\u0647\u062F\u0641 \u0627\u0644\u062B\u0627\u0644\u062B",
-};
-
-function tradeStatus(trade: PublishedTrade, lang: string) {
-  const hitLevels = trade.hitLevels ?? [];
-  const status = trade.status ?? "open";
-  const last = hitLevels[hitLevels.length - 1];
-
-  if (status === "closed") {
-    if (last === "SL") {
-      return {
-        text: lang === "ar" ? "\u0645\u063A\u0644\u0642\u0629 \u2014 \u0648\u0642\u0641 \u062E\u0633\u0627\u0631\u0629" : "Closed \u2014 Stop Loss",
-        className: "border-bear/40 text-bear",
-      };
-    }
-    if (last && TP_LABEL_EN[last]) {
-      return {
-        text:
-          lang === "ar"
-            ? `\u0645\u063A\u0644\u0642\u0629 \u0628\u0631\u0628\u062D (${TP_LABEL_AR[last]})`
-            : `Closed \u2014 Profit (${TP_LABEL_EN[last]} Hit)`,
-        className: "border-bull/40 text-bull",
-      };
-    }
-    return { text: lang === "ar" ? "\u0645\u063A\u0644\u0642\u0629" : "Closed", className: "border-line text-text-muted" };
-  }
-
-  if (last && TP_LABEL_EN[last]) {
-    return {
-      text: lang === "ar" ? `\u062A\u062D\u0642\u0642 ${TP_LABEL_AR[last]}` : `${TP_LABEL_EN[last]} Hit`,
-      className: "border-bull/40 text-bull",
-    };
-  }
-
-  return { text: lang === "ar" ? "\u0646\u0634\u0637\u0629" : "Active", className: "border-gold/40 text-gold" };
-}
 
 function CoinBadge({ pair }: { pair: string }) {
   const base = pairBase(pair);
@@ -252,98 +212,29 @@ export default function TradeFeedPage() {
         )}
       </div>
 
-      <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="mt-4 grid sm:grid-cols-2 gap-4">
         {trades?.map((trade) => {
-          const isLong = trade.direction === "Long";
-          const sym = binanceSymbol(trade.pair);
-          const ticker = tickers[sym];
-          const targets = [trade.tp1, trade.tp2, trade.tp3].filter(Boolean);
-          const hitLevels = trade.hitLevels ?? [];
-          const hitAnyTp = hitLevels.some((h) => h.startsWith("TP"));
-          const hitSl = hitLevels.includes("SL");
-          // Only a clean TP close \u2014 never a trade that hit SL after a partial TP.
-          const showEliteNudge = trade.status === "closed" && hitAnyTp && !hitSl;
-          const status = tradeStatus(trade, lang);
+          const ticker = tickers[binanceSymbol(trade.pair)];
+          const live = ticker ? parseFloat(ticker.lastPrice) : NaN;
 
           return (
-            <article
+            <SignalCard
               key={trade.id}
-              className="rounded-2xl border border-line bg-surface p-5 shadow-[0_0_40px_rgba(227,162,61,0.08)]"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <CoinLogo pair={trade.pair} />
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-data text-base font-medium">{trade.pair}</span>
-                      <span
-                        className={
-                          "text-[11px] px-2 py-0.5 rounded-full border " +
-                          (isLong ? "border-bull/40 text-bull" : "border-bear/40 text-bear")
-                        }
-                      >
-                        {isLong ? t("risk.long") : t("risk.short")}
-                      </span>
-                      <span className={"text-[11px] px-2 py-0.5 rounded-full border " + status.className}>
-                        {status.text}
-                      </span>
-                    </div>
-                    {ticker && (
-                      <div className="font-data text-2xl font-bold mt-0.5">${formatPrice(ticker.lastPrice)}</div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1.5">
-                  {trade.timeframe && (
-                    <span className="text-[11px] text-text-muted font-data">{trade.timeframe}</span>
-                  )}
-                  <time className="text-[11px] text-text-muted">
-                    {new Date(trade.createdAt).toLocaleString(lang === "ar" ? "ar" : "en")}
-                  </time>
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => removeTrade(trade.id)}
-                      className="text-xs text-bear border border-bear/40 rounded-full px-3 py-1 hover:bg-bear/10"
-                    >
-                      {t("tradeFeed.remove")}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-line grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-[10px] text-text-muted uppercase tracking-wide">{t("tradePlan.entry")}</div>
-                  <div className="font-data text-sm mt-0.5">{trade.entryZone || "\u2014"}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-text-muted uppercase tracking-wide">{t("tradePlan.targets")}</div>
-                  <div className="font-data text-sm mt-0.5 text-bull">
-                    {targets.length > 0 ? targets.join(" / ") : "\u2014"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-text-muted uppercase tracking-wide">
-                    {t("tradeFeed.slLabel")}
-                  </div>
-                  <div className="font-data text-sm mt-0.5 text-bear">{trade.invalidation || "\u2014"}</div>
-                </div>
-              </div>
-
-              {trade.reasoning && (
-                <p className="mt-3 text-sm text-text-muted leading-relaxed whitespace-pre-line">
-                  {trade.reasoning}
-                </p>
-              )}
-              {showEliteNudge && (
-                <p className="mt-3 text-xs text-gold">
-                  {lang === "ar"
-                    ? "\u0623\u0639\u0636\u0627\u0621 Atlas Elite \u0631\u0635\u062F\u0648\u0627 \u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u0642\u0629 \u0642\u0628\u0644 \u062A\u062D\u0631\u0643\u0647\u0627."
-                    : "Elite members caught this before it moved."}
-                </p>
-              )}
-            </article>
+              trade={trade}
+              livePrice={Number.isFinite(live) && live > 0 ? live : null}
+              logo={<CoinLogo pair={trade.pair} />}
+              adminAction={
+                isAdmin ? (
+                  <button
+                    type="button"
+                    onClick={() => removeTrade(trade.id)}
+                    className="text-xs text-bear border border-bear/40 rounded-full px-3 py-1 hover:bg-bear/10"
+                  >
+                    {t("tradeFeed.remove")}
+                  </button>
+                ) : null
+              }
+            />
           );
         })}
       </div>
