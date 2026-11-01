@@ -20,8 +20,6 @@ export type Lesson = {
     href: string;
     ctaText: Localized;
   };
-  /** Optional partner referral card (button + code + disclosure). Only the Binance lesson uses it. */
-  referral?: { href: string; code: string };
   ready: boolean;
 };
 
@@ -36,41 +34,6 @@ export const SECTION_ORDER: AcademySection[] = ["basics", "technical", "risk", "
 
 export const lessons: Lesson[] = [
   // ───────── Basics ─────────
-  {
-    slug: "getting-started-with-binance",
-    section: "basics",
-    title: {
-      en: "Getting Started with Binance",
-      ar: "البدء مع Binance",
-      fr: "Débuter avec Binance",
-    },
-    summary: {
-      en: "What Binance is, how to open an account safely, and the security steps to take first.",
-      ar: "ما هي Binance، وكيف تفتح حسابًا بأمان، وخطوات الأمان التي تبدأ بها.",
-      fr: "Ce qu'est Binance, comment ouvrir un compte en sécurité et les premières mesures de sécurité à prendre.",
-    },
-    body: {
-      en: `Binance is one of the world's largest crypto exchanges — a platform where you can buy and sell cryptocurrencies such as Bitcoin and Ethereum against stablecoins like USDT. The spot pairs you see in Atlas tools (Radar, Analyzer, Trade Feed) are Binance USDT pairs, so a Binance account is the simplest place to follow along with them.
-
-Registration takes a few minutes: sign up with your email or phone, then complete the identity verification (KYC) the platform asks for. Binance is not available in every country, so check that it is permitted where you live before you register.
-
-Secure your account first: use a strong, unique password, turn on two-factor authentication with an authenticator app, set an anti-phishing code, and only log in through the official website or app — never through links sent in messages. Start small and never trade money you cannot afford to lose.`,
-      ar: `Binance هي واحدة من أكبر منصات تداول العملات الرقمية في العالم — منصة تشتري وتبيع عليها عملات مثل بيتكوين وإيثريوم مقابل عملات مستقرة مثل USDT. أزواج السوق الفوري التي تراها في أدوات أطلس (الرادار، المحلل، خلاصة الصفقات) هي أزواج USDT على Binance، لذلك فإن حساب Binance هو أبسط مكان لمتابعتها.
-
-التسجيل يستغرق دقائق: سجّل ببريدك الإلكتروني أو رقم هاتفك، ثم أكمل التحقق من الهوية (KYC) الذي تطلبه المنصة. Binance غير متاحة في كل الدول، فتأكد أنها مسموحة في بلدك قبل التسجيل.
-
-أمّن حسابك أولاً: استخدم كلمة مرور قوية وفريدة، فعّل المصادقة الثنائية عبر تطبيق مصادقة، اضبط رمز مكافحة التصيّد، ولا تسجّل الدخول إلا عبر الموقع أو التطبيق الرسمي — وليس عبر روابط تصلك في رسائل. ابدأ بمبلغ صغير ولا تتداول بمال لا تتحمل خسارته.`,
-      fr: `Binance est l'une des plus grandes plateformes d'échange de cryptomonnaies au monde — un endroit où l'on achète et vend des cryptos comme le Bitcoin et l'Ethereum contre des stablecoins comme l'USDT. Les paires spot que vous voyez dans les outils Atlas (Radar, Analyzer, Trade Feed) sont des paires USDT de Binance : un compte Binance est donc le moyen le plus simple de les suivre.
-
-L'inscription prend quelques minutes : créez votre compte avec votre e-mail ou votre téléphone, puis effectuez la vérification d'identité (KYC) demandée par la plateforme. Binance n'est pas disponible dans tous les pays ; vérifiez qu'elle est autorisée là où vous vivez avant de vous inscrire.
-
-Sécurisez d'abord votre compte : mot de passe fort et unique, authentification à deux facteurs avec une application d'authentification, code anti-hameçonnage, et connexion uniquement via le site ou l'application officiels — jamais via des liens reçus dans des messages. Commencez petit et ne tradez jamais de l'argent que vous ne pouvez pas vous permettre de perdre.`,
-    },
-    diagramId: "getting-started-with-binance",
-    hasDiagram: false,
-    referral: { href: "https://www.binance.com/register?ref=760440372", code: "760440372" },
-    ready: true,
-  },
   {
     slug: "what-is-crypto",
     section: "basics",

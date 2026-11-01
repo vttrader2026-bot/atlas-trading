@@ -5,7 +5,6 @@ import { useLanguage } from "@/lib/i18n";
 import { SECTION_LABELS, type Lesson } from "@/lib/academy-content";
 import LessonDiagram from "@/components/academy/LessonDiagram";
 import ToolCTA from "@/components/academy/ToolCTA";
-import ReferralCTA from "@/components/academy/ReferralCTA";
 
 export default function LessonView({ lesson }: { lesson: Lesson }) {
   const { lang, t } = useLanguage();
@@ -33,8 +32,6 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
           <p key={i}>{p}</p>
         ))}
       </div>
-
-      {lesson.referral && <ReferralCTA href={lesson.referral.href} code={lesson.referral.code} />}
 
       {lesson.linkedTool && (
         <ToolCTA href={lesson.linkedTool.href} ctaText={lesson.linkedTool.ctaText[lang]} />

@@ -41,7 +41,7 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-export default function ReferralCTA({ href, code }: { href: string; code: string }) {
+export default function ReferralCTA({ href, code, className }: { href: string; code: string; className?: string }) {
   const { lang } = useLanguage();
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,7 +56,7 @@ export default function ReferralCTA({ href, code }: { href: string; code: string
   }
 
   return (
-    <div className="mt-8 card card-accent p-5 sm:p-6">
+    <div className={className ?? "mt-8 card card-accent p-5 sm:p-6"}>
       <a
         href={href}
         target="_blank"

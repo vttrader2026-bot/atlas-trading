@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
+import BinanceResourceCard from "@/components/academy/BinanceResourceCard";
 import { SECTION_ORDER, SECTION_LABELS, lessonsBySection } from "@/lib/academy-content";
 
 // Page-level chrome strings live here (not in lib/i18n.tsx) so the Academy
@@ -93,6 +94,8 @@ export default function AcademyIndex() {
     <main className="max-w-5xl mx-auto px-6 py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{CHROME.title[lang]}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{CHROME.subtitle[lang]}</p>
+
+      <BinanceResourceCard />
 
       <div className="mt-8 card card-accent p-6">
         <div className="text-label text-gold">PDF</div>

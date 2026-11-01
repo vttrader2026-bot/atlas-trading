@@ -428,8 +428,7 @@ export async function notifyEducational(): Promise<{ sent: number; reason: strin
     return { sent: 0, reason: "already-sent-today" };
   }
 
-  // Partner-referral lessons are never sent as educational notifications.
-  const pool = lessons.filter((l) => l.ready && !l.referral);
+  const pool = lessons.filter((l) => l.ready);
   if (pool.length === 0) return { sent: 0, reason: "no-lessons-available" };
   const pick = pool[Math.floor(Math.random() * pool.length)];
 
