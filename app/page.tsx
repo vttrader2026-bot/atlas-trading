@@ -150,17 +150,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="max-w-6xl mx-auto px-6 pb-24">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{t("home.faq.heading")}</h2>
-        <div className="mt-8 border-t border-line">
-          <Faq q={t("home.faq.q1")} a={t("home.faq.a1")} />
-          <Faq q={t("home.faq.q2")} a={t("home.faq.a2")} />
-          <Faq q={t("home.faq.q3")} a={t("home.faq.a3")} />
-          <Faq q={t("home.faq.q4")} a={t("home.faq.a4")} />
-        </div>
-      </section>
-
       {/* 7. FINAL CTA */}
       <section className="max-w-6xl mx-auto px-6 pb-24 sm:pb-32">
         <div className="card card-accent px-6 py-14 sm:px-14 sm:py-20 text-center home-rise">
@@ -175,6 +164,17 @@ export default function Home() {
             )}
             <Link href="/radar" className="btn-secondary !px-8 !py-3.5 text-base">{t("homeV2.cta.explore")}</Link>
           </div>
+        </div>
+      </section>
+
+      {/* FAQ — ATLAS-FAQ-v2 */}
+      <section className="max-w-6xl mx-auto px-6 pb-24">
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{t("home.faq.heading")}</h2>
+        <div className="mt-8 border-t border-line">
+          <Faq q={t("home.faq.q1")} a={t("home.faq.a1")} />
+          <Faq q={t("home.faq.q2")} a={t("home.faq.a2")} />
+          <Faq q={t("home.faq.q3")} a={t("home.faq.a3")} />
+          <Faq q={t("home.faq.q4")} a={t("home.faq.a4")} />
         </div>
       </section>
     </main>
