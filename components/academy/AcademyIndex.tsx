@@ -8,6 +8,7 @@ import { SECTION_ORDER, SECTION_LABELS, lessonsBySection } from "@/lib/academy-c
 // Page-level chrome strings live here (not in lib/i18n.tsx) so the Academy
 // stays self-contained and doesn't add more edits to that shared, frequently
 // touched file.
+// ATLAS-COMMUNITY-v2
 const CHROME = {
   title: { en: "Academy", ar: "تعلّم", fr: "Académie" },
   subtitle: {
@@ -22,22 +23,22 @@ const CHROME = {
     fr: "Apprenez avec la communaut\u00E9",
   },
   communityBody: {
-    en: "Free Telegram and WhatsApp groups for market discussion, questions, and a weekly live education session on WhatsApp.",
-    ar: "\u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0645\u062C\u0627\u0646\u064A\u0629 \u0639\u0644\u0649 \u062A\u064A\u0644\u064A\u062C\u0631\u0627\u0645 \u0648\u0648\u0627\u062A\u0633\u0627\u0628 \u0644\u0646\u0642\u0627\u0634 \u0627\u0644\u0633\u0648\u0642 \u0648\u0627\u0644\u0623\u0633\u0626\u0644\u0629\u060C \u0628\u0627\u0644\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u062C\u0644\u0633\u0629 \u062A\u0639\u0644\u064A\u0645\u064A\u0629 \u0645\u0628\u0627\u0634\u0631\u0629 \u0623\u0633\u0628\u0648\u0639\u064A\u0629 \u0639\u0644\u0649 \u0648\u0627\u062A\u0633\u0627\u0628.",
-    fr: "Groupes Telegram et WhatsApp gratuits pour discuter du march\u00E9, poser des questions, et une session \u00E9ducative hebdomadaire en direct sur WhatsApp.",
+    en: "Join the Telegram community for market updates, news and the weekly Sunday video session, or the WhatsApp community for live discussions with experienced traders.",
+    ar: "انضم إلى مجتمع تيليجرام لتحديثات السوق والأخبار والجلسة التعليمية المرئية الأسبوعية كل يوم أحد، أو إلى مجتمع واتساب للنقاشات المباشرة مع متداولين ذوي خبرة.",
+    fr: "Rejoignez la communauté Telegram pour les actualités du marché, les nouvelles et la session vidéo hebdomadaire du dimanche, ou la communauté WhatsApp pour des discussions en direct avec des traders expérimentés.",
   },
   telegramTitle: { en: "Telegram", ar: "\u062A\u064A\u0644\u064A\u062C\u0631\u0627\u0645", fr: "Telegram" },
   telegramBody: {
-    en: "Live discussion, public calls, and platform updates.",
-    ar: "\u0646\u0642\u0627\u0634 \u0645\u0628\u0627\u0634\u0631\u060C \u062A\u0648\u0635\u064A\u0627\u062A \u0639\u0627\u0645\u0629\u060C \u0648\u062A\u062D\u062F\u064A\u062B\u0627\u062A \u0627\u0644\u0645\u0646\u0635\u0629.",
-    fr: "Discussion en direct, appels publics et mises \u00E0 jour de la plateforme.",
+    en: "Market updates, crypto news, educational tips, new signal notifications and platform updates. Weekly educational video session every Sunday.",
+    ar: "تحديثات السوق وأخبار العملات الرقمية ونصائح تعليمية وإشعارات الإشارات الجديدة وتحديثات المنصة. جلسة تعليمية مرئية أسبوعية كل يوم أحد.",
+    fr: "Actualités du marché et des cryptos, conseils éducatifs, notifications de nouveaux signaux et mises à jour de la plateforme. Session vidéo éducative hebdomadaire chaque dimanche.",
   },
   telegramCta: { en: "Join Telegram Community", ar: "\u0627\u0646\u0636\u0645 \u0625\u0644\u0649 \u0645\u062C\u062A\u0645\u0639 \u062A\u064A\u0644\u064A\u062C\u0631\u0627\u0645", fr: "Rejoindre la communaut\u00E9 Telegram" },
   whatsappTitle: { en: "WhatsApp", ar: "\u0648\u0627\u062A\u0633\u0627\u0628", fr: "WhatsApp" },
   whatsappBody: {
-    en: "Weekly live trading education session plus community updates.",
-    ar: "\u062C\u0644\u0633\u0629 \u062A\u0639\u0644\u064A\u0645\u064A\u0629 \u0645\u0628\u0627\u0634\u0631\u0629 \u0623\u0633\u0628\u0648\u0639\u064A\u0629 \u0628\u0627\u0644\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u062A\u062D\u062F\u064A\u062B\u0627\u062A \u0627\u0644\u0645\u062C\u062A\u0645\u0639.",
-    fr: "Session \u00E9ducative hebdomadaire en direct, plus les mises \u00E0 jour de la communaut\u00E9.",
+    en: "Live discussions with experienced traders, trading insights and tips, community discussions and ATLAS TRADING platform updates.",
+    ar: "نقاشات مباشرة مع متداولين ذوي خبرة، ورؤى ونصائح في التداول، ونقاشات المجتمع، وتحديثات منصة ATLAS TRADING.",
+    fr: "Discussions en direct avec des traders expérimentés, analyses et conseils de trading, échanges communautaires et mises à jour de la plateforme ATLAS TRADING.",
   },
   whatsappCta: { en: "Join WhatsApp Community", ar: "\u0627\u0646\u0636\u0645 \u0625\u0644\u0649 \u0645\u062C\u062A\u0645\u0639 \u0648\u0627\u062A\u0633\u0627\u0628", fr: "Rejoindre la communaut\u00E9 WhatsApp" },
 };
