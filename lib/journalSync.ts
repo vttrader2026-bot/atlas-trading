@@ -37,7 +37,7 @@ function schedulePush(trades: Trade[]) {
 }
 
 // First sync on a device: keep everything from both sides (matched by id, local wins).
-function mergeById(local: Trade[], server: Trade[]): Trade[] {
+export function mergeById(local: Trade[], server: Trade[]): Trade[] {
   const ids = new Set(local.map((t) => t.id));
   return [...local, ...server.filter((t) => !ids.has(t.id))].sort((a, b) =>
     (b.date || "").localeCompare(a.date || ""),

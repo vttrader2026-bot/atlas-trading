@@ -1,92 +1,105 @@
 "use client";
 
+// ATLAS-TRADEPLAN-v2
 import { useEffect, useId, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useLanguage } from "@/lib/i18n";
-import { TradePlanDraft, emptyDraft, loadDraft, saveDraft, clearDraft } from "@/lib/tradePlan";
-import { loadTrades, saveTrades, Trade } from "@/lib/journal";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
+import { useLanguage } from "@/lib/i18n";
+import { TradePlanDraft, emptyDraft, loadDraft, saveDraft, clearDraft } from "@/lib/tradePlan";
+import { loadTrades, saveTrades } from "@/lib/journal";
+import { computePlan } from "@/lib/planCalc";
+import { DEFAULT_BALANCE, DEFAULT_RISK, planToTrade } from "@/lib/planBridge";
+import { RISK_PRESETS, parseInput, type RiskError } from "@/lib/riskCalc";
+import { pct, price, qty, todayLocal, usd } from "@/components/journal/format";
 
 const ADMIN_KEY = "atlas-trading.adminSecret";
 
+const ERR_KEY: Record<RiskError, string> = {
+  stopNotBelowEntry: "risk.errStop",
+  targetNotAboveEntry: "risk.errTarget",
+  riskTooHigh: "risk.errRisk",
+  investmentTooHigh: "risk.errInvest",
+};
+
+function Num({ children, cls = "" }: { children: React.ReactNode; cls?: string }) {
+  return <span dir="ltr" className={`font-data ${cls}`} style={{ unicodeBidi: "isolate", display: "inline-block" }}>{children}</span>;
+}
+
 export default function TradePlanPage() {
   const { t } = useLanguage();
-  const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
   const [draft, setDraft] = useState<TradePlanDraft>(emptyDraft);
-  const [accountSize, setAccountSize] = useState("1000");
-  const [riskPct, setRiskPct] = useState("1");
-  const [saved, setSaved] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
   const [savingAccount, setSavingAccount] = useState(false);
   const [accountMsg, setAccountMsg] = useState<string | null>(null);
   const [showSignIn, setShowSignIn] = useState(false);
+  const [sendMsg, setSendMsg] = useState<string | null>(null);
+  const [journalHas, setJournalHas] = useState(false);
+  const [confirmPrice, setConfirmPrice] = useState("");
+  const [confirmDate, setConfirmDate] = useState("");
 
-  // Loading the saved draft only after mount avoids an SSR/client hydration
-  // mismatch — localStorage isn't available on the server.
+  // localStorage is client-only; loading after mount avoids a hydration mismatch.
   useEffect(() => {
     const stored = loadDraft();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored) setDraft(stored);
+    setConfirmDate(todayLocal());
+    setLoaded(true);
   }, []);
 
-  function update<K extends keyof TradePlanDraft>(key: K, value: TradePlanDraft[K]) {
-    const next = { ...draft, [key]: value };
+  useEffect(() => {
+    if (!loaded) return;
+    // Is the linked journal trade still there? (it may have been deleted in the Journal)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setJournalHas(!!draft.journalId && loadTrades().some((x) => x.id === draft.journalId));
+  }, [loaded, draft.journalId]);
+
+  function commit(next: TradePlanDraft) {
     setDraft(next);
     saveDraft(next);
   }
+  function update<K extends keyof TradePlanDraft>(key: K, value: TradePlanDraft[K]) {
+    commit({ ...draft, [key]: value, id: draft.id ?? crypto.randomUUID(), status: draft.status ?? "draft" });
+  }
 
-  const calc = useMemo(() => {
-    const acc = parseFloat(accountSize);
-    const risk = parseFloat(riskPct);
-    const entry = parseFloat(draft.entry);
-    const invalidation = parseFloat(draft.invalidation);
-    const tp1 = parseFloat(draft.tp1);
+  const balance = draft.balance ?? DEFAULT_BALANCE;
+  const riskPct = draft.riskPct ?? DEFAULT_RISK;
+  const entered = draft.status === "entered";
+  const calc = useMemo(
+    () => computePlan({ entry: draft.entry, invalidation: draft.invalidation, tp1: draft.tp1, tp2: draft.tp2, tp3: draft.tp3, balance, riskPct }),
+    [draft.entry, draft.invalidation, draft.tp1, draft.tp2, draft.tp3, balance, riskPct],
+  );
+  const bad = (s: string) => s.trim() !== "" && parseInput(s) === null;
 
-    if (![acc, risk, entry, invalidation].every((n) => !Number.isNaN(n) && n > 0)) return null;
-    const stopDistance = Math.abs(entry - invalidation);
-    if (stopDistance === 0) return null;
+  function confirmEntry() {
+    const px = confirmPrice.trim() === "" ? draft.entry : confirmPrice;
+    if (parseInput(px) === null) return;
+    commit({ ...draft, id: draft.id ?? crypto.randomUUID(), status: "entered", actualEntry: px, enteredAt: confirmDate || todayLocal() });
+  }
+  function revertDraft() {
+    commit({ ...draft, status: "draft", actualEntry: undefined, enteredAt: undefined });
+  }
 
-    const riskAmount = acc * (risk / 100);
-    const positionSize = riskAmount / stopDistance;
-    const notional = positionSize * entry;
-    let rr: number | null = null;
-    if (!Number.isNaN(tp1) && tp1 > 0) {
-      rr = Math.abs(tp1 - entry) / stopDistance;
+  function sendToJournal() {
+    setSendMsg(null);
+    const withId = { ...draft, id: draft.id ?? crypto.randomUUID() };
+    const r = planToTrade(withId, { id: crypto.randomUUID(), today: todayLocal() });
+    if (!r.ok) {
+      const key = r.error === "wait" ? "tradePlan.sendWait" : r.error === "pair" ? "tradePlan.sendPair" : r.error === "incomplete" ? "tradePlan.fillToCalculate" : ERR_KEY[r.error as RiskError];
+      return setSendMsg(t(key));
     }
-    return { riskAmount, positionSize, notional, rr };
-  }, [accountSize, riskPct, draft.entry, draft.invalidation, draft.tp1]);
-
-  function saveToJournal() {
-    const entry = parseFloat(draft.entry);
-    const stop = parseFloat(draft.invalidation);
-    const target = parseFloat(draft.tp1);
-    if (!draft.pair || Number.isNaN(entry) || Number.isNaN(stop) || !calc) return;
-
-    const trade: Trade = {
-      id: crypto.randomUUID(),
-      date: new Date().toISOString().slice(0, 10),
-      pair: draft.pair.replace("/", ""),
-      side: draft.direction === "Short" ? "Short" : "Long",
-      entry,
-      stop,
-      target: Number.isNaN(target) ? 0 : target,
-      exit: null,
-      size: calc.positionSize,
-      notes: draft.reasoning,
-    };
-    const trades = loadTrades();
-    saveTrades([trade, ...trades]);
-    clearDraft();
-    setSaved(true);
-    setTimeout(() => router.push("/journal"), 800);
+    saveTrades([r.trade, ...loadTrades()]);
+    commit({ ...withId, journalId: r.trade.id });
+    setSendMsg(entered ? t("tradePlan.sendOk") : `${t("tradePlan.sendOk")} ${t("tradePlan.sendUnconfirmed")}`);
   }
 
   function clearPlan() {
     setDraft(emptyDraft);
     clearDraft();
+    setSendMsg(null);
+    setConfirmPrice("");
   }
 
   async function saveToAccount() {
@@ -100,11 +113,7 @@ export default function TradePlanPage() {
     setSavingAccount(true);
     setAccountMsg(null);
     try {
-      const res = await fetch("/api/me/plans", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(draft),
-      });
+      const res = await fetch("/api/me/plans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft) });
       setAccountMsg(res.ok ? t("tradePlan.savedToAccount") : t("tradePlan.accountSaveError"));
     } catch {
       setAccountMsg(t("tradePlan.accountSaveError"));
@@ -114,7 +123,7 @@ export default function TradePlanPage() {
   }
 
   async function publishToFeed() {
-    if (!draft.pair || draft.direction === "Wait") return;
+    if (!draft.pair || draft.direction !== "Long") return;
     let secret = window.localStorage.getItem(ADMIN_KEY);
     if (!secret) {
       secret = window.prompt(t("tradePlan.enterAdminSecret"));
@@ -127,16 +136,9 @@ export default function TradePlanPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          secret,
-          pair: draft.pair,
-          direction: draft.direction,
-          timeframe: draft.timeframe,
-          entryZone: draft.entryZone || draft.entry,
-          invalidation: draft.invalidationText || draft.invalidation,
-          tp1: draft.tp1,
-          tp2: draft.tp2,
-          tp3: draft.tp3,
-          reasoning: draft.reasoning,
+          secret, pair: draft.pair, direction: draft.direction, timeframe: draft.timeframe,
+          entryZone: draft.entryZone || draft.entry, invalidation: draft.invalidationText || draft.invalidation,
+          tp1: draft.tp1, tp2: draft.tp2, tp3: draft.tp3, reasoning: draft.reasoning,
         }),
       });
       if (res.status === 401) {
@@ -145,9 +147,7 @@ export default function TradePlanPage() {
       } else if (res.ok) {
         window.localStorage.setItem(ADMIN_KEY, secret);
         setPublishMsg(t("tradePlan.publishSuccess"));
-      } else {
-        setPublishMsg(t("tradePlan.publishError"));
-      }
+      } else setPublishMsg(t("tradePlan.publishError"));
     } catch {
       setPublishMsg(t("tradePlan.publishError"));
     } finally {
@@ -155,186 +155,207 @@ export default function TradePlanPage() {
     }
   }
 
+  const v = calc.ok ? calc.value : null;
+  const calcErr = !calc.ok && calc.error !== "incomplete" ? calc.error : null;
+  const sent = journalHas;
+  const issueText = (code: "invalid" | "notAboveEntry" | "order") => t(code === "invalid" ? "tradePlan.errTpInvalid" : code === "order" ? "tradePlan.errTpOrder" : "tradePlan.errTpBelow");
+
   return (
     <main className="max-w-4xl mx-auto px-6 py-12 sm:py-14">
-      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("tradePlan.title")}</h1>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("tradePlan.title")}</h1>
+        <div className="flex gap-2 items-center mt-2">
+          <span className="tag tag-bull">{t("risk.spotLong")}</span>
+          <span className={`tag ${entered ? "tag-bull" : ""}`}>{entered ? t("tradePlan.enteredChip") : t("tradePlan.draftChip")}</span>
+        </div>
+      </div>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("tradePlan.subtitle")}</p>
 
       <div className="mt-8 grid sm:grid-cols-3 gap-4">
-        <Field label={t("tradePlan.pair")} value={draft.pair} onChange={(v) => update("pair", v)} placeholder="BTC/USDT" />
+        <Field label={t("tradePlan.pair")} value={draft.pair} onChange={(x) => update("pair", x)} placeholder="BTC/USDT" ltr />
         <div>
-          <label htmlFor="tp-direction" className="text-xs text-text-muted">
-            {t("tradePlan.direction")}
-          </label>
-          <select
-            id="tp-direction"
-            value={draft.direction}
-            onChange={(e) => update("direction", e.target.value as TradePlanDraft["direction"])}
-            className="input mt-1.5"
-          >
-            <option value="Long">{t("risk.long")}</option>
-            <option value="Short">{t("risk.short")}</option>
-            <option value="Wait">{t("tradePlan.wait")}</option>
-          </select>
+          <div className="text-xs text-text-muted">{t("tradePlan.direction")}</div>
+          <div role="radiogroup" aria-label={t("tradePlan.direction")} className="mt-1.5 flex rounded-md border border-line overflow-hidden w-fit">
+            {(["Long", "Wait"] as const).map((d) => (
+              <button key={d} type="button" role="radio" aria-checked={draft.direction === d} onClick={() => update("direction", d)}
+                className={`px-5 py-2 text-sm transition-colors ${draft.direction === d ? "bg-surface-raised text-text" : "text-text-muted hover:text-text"}`}>
+                {d === "Long" ? t("risk.long") : t("tradePlan.wait")}
+              </button>
+            ))}
+          </div>
+          {draft.direction === "Wait" && <p className="mt-1 text-xs text-text-muted">{t("tradePlan.waitHint")}</p>}
         </div>
-        <Field
-          label={t("tradePlan.timeframe")}
-          value={draft.timeframe}
-          onChange={(v) => update("timeframe", v)}
-          placeholder="4H"
-        />
+        <Field label={t("tradePlan.timeframe")} value={draft.timeframe} onChange={(x) => update("timeframe", x)} placeholder="4H" ltr />
       </div>
 
       <div className="mt-4 grid sm:grid-cols-2 gap-4">
-        <Field
-          label={t("tradePlan.entryZone")}
-          value={draft.entryZone}
-          onChange={(v) => update("entryZone", v)}
-          placeholder="e.g. 61,200 – 61,800"
-        />
-        <Field
-          label={t("tradePlan.invalidationText")}
-          value={draft.invalidationText}
-          onChange={(v) => update("invalidationText", v)}
-          placeholder="e.g. close below 60,500"
-        />
+        <Field label={t("tradePlan.entryZone")} value={draft.entryZone} onChange={(x) => update("entryZone", x)} placeholder="e.g. 61,200 – 61,800" />
+        <Field label={t("tradePlan.invalidationText")} value={draft.invalidationText} onChange={(x) => update("invalidationText", x)} placeholder="e.g. close below 60,500" />
       </div>
 
       <div className="mt-6 border-t border-line pt-6">
-        <div className="text-label mb-3">
-          {t("tradePlan.numbersHeading")}
-        </div>
+        <div className="text-label mb-3">{t("tradePlan.numbersHeading")}</div>
         <div className="grid sm:grid-cols-3 gap-3">
-          <Field
-            label={t("tradePlan.entry")}
-            value={draft.entry}
-            onChange={(v) => update("entry", v)}
-            numeric
-          />
-          <Field
-            label={t("tradePlan.invalidation")}
-            value={draft.invalidation}
-            onChange={(v) => update("invalidation", v)}
-            numeric
-          />
-          <Field label="TP1" value={draft.tp1} onChange={(v) => update("tp1", v)} numeric />
-          <Field label="TP2" value={draft.tp2} onChange={(v) => update("tp2", v)} numeric />
-          <Field label="TP3" value={draft.tp3} onChange={(v) => update("tp3", v)} numeric />
+          <Field label={t("tradePlan.entry")} value={draft.entry} onChange={(x) => update("entry", x)} numeric invalid={bad(draft.entry)} errorText={t("risk.errNumber")} />
+          <Field label={t("tradePlan.stopLoss")} value={draft.invalidation} onChange={(x) => update("invalidation", x)} numeric invalid={bad(draft.invalidation)} errorText={t("risk.errNumber")} />
+          <span className="hidden sm:block" />
+          <Field label="TP1" value={draft.tp1} onChange={(x) => update("tp1", x)} numeric invalid={bad(draft.tp1)} errorText={t("risk.errNumber")} />
+          <Field label="TP2" value={draft.tp2} onChange={(x) => update("tp2", x)} numeric invalid={bad(draft.tp2)} errorText={t("risk.errNumber")} />
+          <Field label="TP3" value={draft.tp3} onChange={(x) => update("tp3", x)} numeric invalid={bad(draft.tp3)} errorText={t("risk.errNumber")} />
         </div>
       </div>
 
       <div className="mt-6">
-        <label htmlFor="tp-reasoning" className="text-xs text-text-muted">
-          {t("tradePlan.reasoning")}
-        </label>
-        <textarea
-          id="tp-reasoning"
-          value={draft.reasoning}
-          onChange={(e) => update("reasoning", e.target.value)}
-          rows={3}
-          className="input mt-1.5 resize-none"
-          placeholder={t("tradePlan.reasoningPlaceholder")}
-        />
+        <label htmlFor="tp-reasoning" className="text-xs text-text-muted">{t("tradePlan.reasoning")}</label>
+        <textarea id="tp-reasoning" value={draft.reasoning} onChange={(e) => update("reasoning", e.target.value)} rows={3}
+          className="input mt-1.5 resize-none w-full" placeholder={t("tradePlan.reasoningPlaceholder")} />
       </div>
 
-      <div className="mt-8 card p-6">
-        <div className="text-label mb-3">
-          {t("tradePlan.riskHeading")}
+      <section className="mt-8 card card-accent p-5 sm:p-6" aria-live="polite">
+        <div className="text-label mb-4">{t("tradePlan.sizingHeading")}</div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label={t("risk.balance")} value={balance} onChange={(x) => update("balance", x)} numeric invalid={bad(balance)} errorText={t("risk.errNumber")} />
+          <div>
+            <Field label={t("risk.riskPct")} value={riskPct} onChange={(x) => update("riskPct", x)} numeric invalid={bad(riskPct)} errorText={t("risk.errNumber")} />
+            <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label={t("risk.presets")}>
+              <span className="text-xs text-text-muted">{t("risk.presets")}</span>
+              {RISK_PRESETS.map((p) => (
+                <button key={p} type="button" aria-pressed={parseInput(riskPct) === p} onClick={() => update("riskPct", String(p))}
+                  className={`font-data text-xs px-3 py-1 rounded-full border transition-colors ${parseInput(riskPct) === p ? "border-gold text-gold bg-gold/10" : "border-line text-text-muted hover:text-text hover:border-text-muted"}`}>
+                  <span dir="ltr">{p}%</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <Field label={t("risk.balance")} value={accountSize} onChange={setAccountSize} numeric />
-          <Field label={t("risk.riskPct")} value={riskPct} onChange={setRiskPct} numeric />
-        </div>
-        {calc ? (
-          <div className="mt-4 grid sm:grid-cols-2 gap-4">
-            <Stat label={t("risk.risking")} value={`$${calc.riskAmount.toFixed(2)}`} />
-            <Stat label={t("risk.positionSize")} value={`${calc.positionSize.toFixed(6)} ${t("risk.units")}`} />
-            <Stat label={t("risk.notional")} value={`$${calc.notional.toFixed(2)}`} />
-            <Stat
-              label={t("risk.rewardRisk")}
-              value={calc.rr !== null ? `${calc.rr.toFixed(2)}R` : t("risk.addTarget")}
-            />
+
+        {!v && !calcErr && <p className="mt-5 text-sm text-text-muted">{t("tradePlan.fillToCalculate")}</p>}
+        {calcErr && <p className="mt-5 text-sm text-bear">{t(ERR_KEY[calcErr as RiskError])}</p>}
+        {v && (
+          <div className="mt-6">
+            <div className="text-label text-bear">{t("risk.maxLoss")}</div>
+            <div className="mt-1"><Num cls="text-3xl sm:text-4xl font-bold text-bear">{usd(v.maxLoss)} <span className="text-base font-medium text-text-muted">USDT</span></Num></div>
+            <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-5">
+              <Stat label={t("risk.positionUsdt")} value={usd(v.positionUsdt)} />
+              <Stat label={t("risk.quantity")} value={qty(v.quantity)} />
+              <Stat label={t("risk.stopDistance")} value={pct(v.stopDistancePct)} />
+              <Stat label={t("tradePlan.plannedLoss")} value={usd(v.plannedLoss)} />
+              <Stat label={t("risk.lossPctBalance")} value={pct(v.lossPctOfBalance)} />
+            </div>
+            {v.capped && <p className="mt-4 text-sm text-bear">{t("tradePlan.cappedNote")}</p>}
+
+            {(v.targets.length > 0 || v.targetIssues.length > 0) && (
+              <div className="mt-6 pt-5 border-t border-line">
+                <div className="text-label mb-3">{t("tradePlan.targetsHeading")}</div>
+                {v.targets.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[20rem]">
+                      <thead className="text-text-muted">
+                        <tr>
+                          <th className="text-start font-normal py-2">{t("tradePlan.colTarget")}</th>
+                          <th className="text-end font-normal py-2">{t("tradePlan.colPrice")}</th>
+                          <th className="text-end font-normal py-2">{t("tradePlan.colProfit")}</th>
+                          <th className="text-end font-normal py-2">{t("tradePlan.colPctBalance")}</th>
+                          <th className="text-end font-normal py-2">{t("tradePlan.colRr")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {v.targets.map((x) => (
+                          <tr key={x.key} className="border-t border-line">
+                            <td className="py-2.5">{x.key}</td>
+                            <td className="py-2.5 text-end"><Num>{price(x.price)}</Num></td>
+                            <td className="py-2.5 text-end"><Num cls="text-bull">+{usd(x.profit)}</Num></td>
+                            <td className="py-2.5 text-end"><Num>{pct(x.profitPctOfBalance)}</Num></td>
+                            <td className="py-2.5 text-end"><Num>{x.rr.toFixed(2)}R</Num></td>
+                          </tr>
+                        ))}
+                        {v.blended && (
+                          <tr className="border-t border-line text-text-muted">
+                            <td className="py-2.5" colSpan={2}>{t("tradePlan.scaleOut")}</td>
+                            <td className="py-2.5 text-end"><Num cls="text-bull">+{usd(v.blended.profit)}</Num></td>
+                            <td className="py-2.5 text-end"><Num>{pct((v.blended.profit / (parseInput(balance) ?? 1)) * 100)}</Num></td>
+                            <td className="py-2.5 text-end"><Num>{v.blended.rr.toFixed(2)}R</Num></td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {v.targetIssues.map((i, k) => <p key={k} className="mt-2 text-xs text-bear">{i.key !== "order" ? `${i.key}: ` : ""}{issueText(i.code)}</p>)}
+                <p className="mt-3 text-xs text-text-muted">{t("tradePlan.fullPositionNote")}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Lifecycle: draft -> entered */}
+      <section className="mt-6 card p-5 sm:p-6">
+        {entered ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm">
+              <span className="text-text-muted">{t("tradePlan.enteredOn")} </span><Num>{draft.enteredAt}</Num>
+              <span className="text-text-muted"> · {t("tradePlan.actualEntry")} </span><Num>{draft.actualEntry}</Num>
+            </div>
+            <button type="button" onClick={revertDraft} className="btn-secondary">{t("tradePlan.revertDraft")}</button>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-text-muted">{t("tradePlan.fillToCalculate")}</p>
+          <>
+            <div className="font-semibold">{t("tradePlan.confirmHeading")}</div>
+            <p className="mt-1 text-xs text-text-muted">{t("tradePlan.confirmHint")}</p>
+            <div className="mt-4 grid sm:grid-cols-3 gap-3 items-end">
+              <Field label={t("tradePlan.actualEntry")} value={confirmPrice} onChange={setConfirmPrice} numeric placeholder={draft.entry} invalid={bad(confirmPrice)} errorText={t("risk.errNumber")} />
+              <Field label={t("tradePlan.entryDate")} value={confirmDate} onChange={setConfirmDate} type="date" ltr />
+              <button type="button" onClick={confirmEntry} disabled={parseInput(confirmPrice.trim() === "" ? draft.entry : confirmPrice) === null} className="btn-primary">{t("tradePlan.confirmEntry")}</button>
+            </div>
+          </>
         )}
-      </div>
+      </section>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <button
-          onClick={saveToJournal}
-          disabled={!calc || !draft.pair}
-          className="btn-primary"
-        >
-          {saved ? t("tradePlan.saved") : t("tradePlan.saveToJournal")}
-        </button>
-        <button
-          onClick={publishToFeed}
-          disabled={publishing || !draft.pair || draft.direction === "Wait"}
-          className="btn-secondary"
-        >
+        {sent ? (
+          <Link href={`/journal?trade=${draft.journalId}`} className="btn-primary">{t("tradePlan.openInJournal")}</Link>
+        ) : (
+          <button type="button" onClick={sendToJournal} disabled={!draft.pair || draft.direction === "Wait"} className="btn-primary">{t("tradePlan.sendToJournal")}</button>
+        )}
+        <button type="button" onClick={publishToFeed} disabled={publishing || !draft.pair || draft.direction !== "Long"} className="btn-secondary">
           {publishing ? t("tradePlan.publishing") : t("tradePlan.publishToFeed")}
         </button>
-        <button
-          onClick={saveToAccount}
-          disabled={savingAccount || !draft.pair}
-          className="btn-secondary"
-        >
+        <button type="button" onClick={saveToAccount} disabled={savingAccount || !draft.pair} className="btn-secondary">
           {savingAccount ? t("tradePlan.savingToAccount") : t("tradePlan.saveToAccount")}
         </button>
-        <button
-          onClick={clearPlan}
-          className="btn-secondary"
-        >
-          {t("tradePlan.clear")}
-        </button>
+        <button type="button" onClick={clearPlan} className="btn-secondary">{t("tradePlan.clear")}</button>
       </div>
+      {sent && <p className="mt-3 text-sm text-text-muted">{t("tradePlan.sentToJournal")}</p>}
+      {sendMsg && <p className="mt-3 text-sm text-text-muted" role="status">{sendMsg}</p>}
       {publishMsg && <p className="mt-3 text-sm text-text-muted">{publishMsg}</p>}
       {accountMsg && (
         <p className="mt-3 text-sm text-text-muted">
           {accountMsg}{" "}
-          {showSignIn && (
-            <Link href="/sign-in" className="underline">
-              {t("account.signIn")}
-            </Link>
-          )}
+          {showSignIn && <Link href="/sign-in" className="underline">{t("account.signIn")}</Link>}
         </p>
       )}
+      <p className="mt-3 text-xs text-text-muted">{t("tradePlan.autosaved")}</p>
 
-      <p className="mt-6 text-xs text-text-muted leading-relaxed max-w-xl">
-        {t("tradePlan.disclaimer")}
-      </p>
+      <p className="mt-6 text-xs text-text-muted leading-relaxed max-w-xl">{t("tradePlan.disclaimer")}</p>
+      <p className="mt-2 text-xs text-text-muted leading-relaxed max-w-xl">{t("risk.disclaimer")}</p>
     </main>
   );
 }
 
 function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  numeric,
+  label, value, onChange, placeholder, numeric, invalid, errorText, type, ltr,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  numeric?: boolean;
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; numeric?: boolean; invalid?: boolean; errorText?: string; type?: string; ltr?: boolean;
 }) {
   const id = useId();
   return (
     <div>
-      <label htmlFor={id} className="text-xs text-text-muted">
-        {label}
-      </label>
-      <input
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        inputMode={numeric ? "decimal" : undefined}
-        className={`input mt-1.5 ${numeric ? "font-data" : ""}`}
-      />
+      <label htmlFor={id} className="text-xs text-text-muted">{label}</label>
+      <input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        inputMode={numeric ? "decimal" : undefined} dir={numeric || ltr ? "ltr" : undefined} aria-invalid={invalid || undefined}
+        className={`input mt-1.5 w-full ${numeric ? "font-data" : ""} ${invalid ? "!border-bear" : ""}`} />
+      {invalid && errorText && <p className="mt-1 text-xs text-bear">{errorText}</p>}
     </div>
   );
 }
@@ -343,7 +364,8 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div className="text-xs text-text-muted">{label}</div>
-      <div className="font-data text-lg mt-1">{value}</div>
+      <div className="mt-1"><Num cls="text-xl">{value}</Num></div>
     </div>
   );
 }
+

@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { journalEn, journalFr, journalAr, planEn, planFr, planAr } from "@/lib/i18nJournal";
 
 export type Lang = "en" | "ar" | "fr";
 
@@ -468,6 +469,7 @@ const en: Dict = {
     worstPair: "Worst pair",
     insightsNote: "Computed only from your own closed trades — nothing here is estimated or fabricated.",
     insightsEmpty: "Log a few closed trades (with an exit price) to see real insights here.",
+    ...journalEn,
   },
   analyzer: {
     title: "Chart analyzer",
@@ -761,6 +763,7 @@ const en: Dict = {
     riskNote: "Risk note",
     disclaimer:
       "This plan is built from your own numbers (or transferred from an Analyzer read you can edit) — not a signal, not financial advice.",
+    ...planEn,
   },
   radar: {
     title: "Market Radar",
@@ -1404,6 +1407,7 @@ const ar: Dict = {
     worstPair: "أسوأ زوج",
     insightsNote: "محسوبة فقط من صفقاتك المغلقة الفعلية — لا شيء هنا مقدّر أو مختلق.",
     insightsEmpty: "سجّل بضع صفقات مغلقة (بسعر خروج) لرؤية رؤى حقيقية هنا.",
+    ...journalAr,
   },
   analyzer: {
     title: "محلل الشارت",
@@ -1696,6 +1700,7 @@ const ar: Dict = {
     riskNote: "ملاحظة المخاطرة",
     disclaimer:
       "هذه الخطة مبنية على أرقامك الخاصة (أو منقولة من قراءة المحلل ويمكنك تعديلها) — وليست توصية أو نصيحة مالية.",
+    ...planAr,
   },
   radar: {
     title: "رادار السوق",
@@ -2340,6 +2345,7 @@ const fr: Dict = {
     worstPair: "Pire paire",
     insightsNote: "Calculé uniquement à partir de vos propres trades clôturés — rien ici n'est estimé ou inventé.",
     insightsEmpty: "Enregistrez quelques trades clôturés (avec un prix de sortie) pour voir de vraies statistiques ici.",
+    ...journalFr,
   },
   analyzer: {
     title: "Analyseur de graphique",
@@ -2633,6 +2639,7 @@ const fr: Dict = {
     riskNote: "Note de risque",
     disclaimer:
       "Ce plan est construit à partir de vos propres chiffres (ou transféré depuis une lecture de l'Analyseur que vous pouvez modifier) — pas un signal, pas un conseil financier.",
+    ...planFr,
   },
   radar: {
     title: "Radar du marché",

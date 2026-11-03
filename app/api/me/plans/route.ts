@@ -32,7 +32,8 @@ export async function POST(req: Request) {
   }
   const b = (typeof body === "object" && body !== null ? body : {}) as Record<string, unknown>;
   const dir = b.direction;
-  const direction = dir === "Long" || dir === "Short" || dir === "Wait" ? dir : null;
+  // Spot only: a legacy "Short" is stored as "Wait".
+  const direction = dir === "Long" ? "Long" : dir === "Wait" || dir === "Short" ? "Wait" : null;
   const pair = clean(b.pair, 30).toUpperCase();
   if (!pair || !direction) {
     return NextResponse.json({ error: "Pair and direction are required" }, { status: 400 });
@@ -56,6 +57,11 @@ export async function POST(req: Request) {
       tp2: clean(b.tp2, 50),
       tp3: clean(b.tp3, 50),
       reasoning: clean(b.reasoning, 2000),
+      status: b.status === "entered" ? "entered" : "draft",
+      balance: clean(b.balance, 50),
+      riskPct: clean(b.riskPct, 20),
+      enteredAt: clean(b.enteredAt, 20),
+      actualEntry: clean(b.actualEntry, 50),
     };
     await ctx.redis.hset(key(ctx.userId), { [plan.id]: plan });
     return NextResponse.json({ plan }, { status: 201 });

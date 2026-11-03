@@ -1,74 +1,137 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+// ATLAS-JOURNAL-v2
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Trade, loadTrades, saveTrades, tradePnl, tradesToCsv, computeJournalStats } from "@/lib/journal";
+import { Trade, computeDashboard, filterAndSort, loadTrades, saveTrades, statusOf, tradesToCsv, unrealizedPnl } from "@/lib/journal";
 import { useLanguage } from "@/lib/i18n";
+import { loadDraft } from "@/lib/tradePlan";
+import { planToTrade } from "@/lib/planBridge";
+import { getTicker24h } from "@/lib/binance";
+import Overview from "@/components/journal/Overview";
+import History, { Query } from "@/components/journal/History";
+import TradeDetails from "@/components/journal/TradeDetails";
+import TradeForm, { tradeToForm } from "@/components/journal/TradeForm";
+import { todayLocal } from "@/components/journal/format";
 
-const empty: Omit<Trade, "id"> = {
-  date: new Date().toISOString().slice(0, 10),
-  pair: "",
-  side: "Long",
-  entry: 0,
-  stop: 0,
-  target: 0,
-  exit: null,
-  size: 0,
-  notes: "",
-};
-
-function InsightStat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: "bull" | "bear";
-}) {
-  const color = tone === "bull" ? "text-bull" : tone === "bear" ? "text-bear" : "text-text";
-  return (
-    <div>
-      <div className="text-xs text-text-muted">{label}</div>
-      <div className={`font-data text-xl mt-1 ${color}`}>{value}</div>
-    </div>
-  );
-}
+type Editing = { base: Trade | null; initial: ReturnType<typeof tradeToForm>; key: number } | null;
 
 export default function JournalPage() {
   const { t } = useLanguage();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [mounted, setMounted] = useState(false);
-  const [form, setForm] = useState(empty);
+  const [editing, setEditing] = useState<Editing>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [highlight, setHighlight] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [prices, setPrices] = useState<Record<string, number>>({});
+  const pendingPlan = useRef<null | { planId: string; source: "plan" }>(null);
+  const [q, setQ] = useState<Query>({ query: "", status: "all", sort: "date", desc: true });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     setTrades(loadTrades());
-
     const refresh = () => setTrades(loadTrades());
     window.addEventListener("atlas-journal-updated", refresh);
+    const id = new URLSearchParams(window.location.search).get("trade");
+    if (id) {
+      setHighlight(id);
+      setSelected(id);
+    }
     return () => window.removeEventListener("atlas-journal-updated", refresh);
   }, []);
 
-  const stats = useMemo(() => computeJournalStats(trades), [trades]);
+  // Live prices for open trades only (best effort: Binance may be unreachable; manual price is the fallback).
+  const openPairs = useMemo(() => Array.from(new Set(trades.filter((x) => statusOf(x) === "open").map((x) => x.pair))).sort().join(","), [trades]);
+  useEffect(() => {
+    if (!openPairs) return;
+    let off = false;
+    const load = async () => {
+      const next: Record<string, number> = {};
+      await Promise.all(
+        openPairs.split(",").map(async (sym) => {
+          try {
+            const p = parseFloat((await getTicker24h(sym)).lastPrice);
+            if (Number.isFinite(p) && p > 0) next[sym] = p;
+          } catch {
+            /* offline or unknown symbol */
+          }
+        }),
+      );
+      if (!off) setPrices((prev) => ({ ...prev, ...next }));
+    };
+    load();
+    const iv = setInterval(load, 60_000);
+    return () => {
+      off = true;
+      clearInterval(iv);
+    };
+  }, [openPairs]);
 
-  function addTrade() {
-    if (!form.pair || !form.entry || !form.stop || !form.size) return;
-    const next: Trade[] = [{ ...form, id: crypto.randomUUID() }, ...trades];
+  const persist = useCallback((next: Trade[]) => {
     setTrades(next);
     saveTrades(next);
-    setForm(empty);
+  }, []);
+
+  const dash = useMemo(() => computeDashboard(trades), [trades]);
+  const unrealized = useMemo(() => {
+    const vals = trades.map((x) => unrealizedPnl(x, prices[x.pair] ?? x.markPrice ?? null)).filter((v): v is number => v !== null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
+  }, [trades, prices]);
+  const rows = useMemo(() => filterAndSort(trades, q), [trades, q]);
+  const current = trades.find((x) => x.id === selected) ?? null;
+
+  function startNew() {
+    setMsg(null);
+    setEditing({ base: null, initial: tradeToForm(null), key: Date.now() });
+  }
+  function startEdit(tr: Trade, closeIt: boolean) {
+    const initial = tradeToForm(tr);
+    if (closeIt) {
+      initial.status = "closed";
+      initial.exitDate = initial.exitDate || todayLocal();
+    }
+    setSelected(null);
+    setMsg(null);
+    setEditing({ base: tr, initial, key: Date.now() });
   }
 
-  function removeTrade(id: string) {
-    const next = trades.filter((t) => t.id !== id);
-    setTrades(next);
-    saveTrades(next);
+  function importFromPlan() {
+    const draft = loadDraft();
+    if (!draft || !draft.pair) return setMsg(t("journal.importNone"));
+    if (draft.direction === "Wait") return setMsg(t("journal.importWait"));
+    if ((draft.id && trades.some((x) => x.planId === draft.id)) || (draft.journalId && trades.some((x) => x.id === draft.journalId))) {
+      return setMsg(t("journal.importDup"));
+    }
+    const r = planToTrade(draft, { id: crypto.randomUUID(), today: todayLocal() });
+    if (!r.ok) return setMsg(t("journal.importIncomplete"));
+    setEditing({ base: null, initial: { ...tradeToForm(r.trade) }, key: Date.now() });
+    // keep the plan link on save
+    pendingPlan.current = { planId: draft.id ?? "", source: "plan" };
+    setMsg(t("journal.importOk"));
+  }
+
+  function onSave(tr: Trade) {
+    const link = !editing?.base ? pendingPlan.current : null;
+    const finalTrade = link ? { ...tr, source: link.source, ...(link.planId ? { planId: link.planId } : {}) } : tr;
+    pendingPlan.current = null;
+    const exists = trades.some((x) => x.id === finalTrade.id);
+    persist(exists ? trades.map((x) => (x.id === finalTrade.id ? finalTrade : x)) : [finalTrade, ...trades]);
+    setEditing(null);
+    setMsg(t("journal.saved"));
+    setHighlight(finalTrade.id);
+  }
+
+  function onDelete() {
+    if (!current) return;
+    persist(trades.filter((x) => x.id !== current.id));
+    setSelected(null);
+    setMsg(t("journal.deleted"));
   }
 
   function exportCsv() {
-    const csv = tradesToCsv(trades);
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob(["﻿" + tradesToCsv(trades)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -82,163 +145,52 @@ export default function JournalPage() {
   return (
     <main className="max-w-5xl mx-auto px-6 py-12 sm:py-14">
       <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
+        <div className="max-w-xl">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("journal.title")}</h1>
           <p className="text-text-muted text-sm mt-1">{t("journal.subtitle")}</p>
-          <Link
-            href="/academy/trading-journal-habit"
-            className="inline-block mt-2 text-xs text-gold hover:opacity-80 transition-opacity"
-          >
-            لا تعرف كيف تكتب يوميات تداول جيدة؟
+          <Link href="/academy/trading-journal-habit" className="inline-block mt-2 text-xs text-gold hover:opacity-80 transition-opacity">
+            {t("journal.guideLink")}
           </Link>
         </div>
-        <button
-          onClick={exportCsv}
-          disabled={trades.length === 0}
-          className="btn-secondary"
-        >
-          {t("journal.exportCsv")}
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" onClick={importFromPlan} className="btn-secondary">{t("journal.importPlan")}</button>
+          <button type="button" onClick={exportCsv} disabled={trades.length === 0} className="btn-secondary">{t("journal.exportCsv")}</button>
+          <button type="button" onClick={startNew} className="btn-primary">{t("journal.addTrade")}</button>
+        </div>
       </div>
 
-      <div className="mt-6 card p-5">
-        <div className="grid sm:grid-cols-3 md:grid-cols-6 gap-3">
-          <input
-            className="input"
-            placeholder={t("journal.pairPlaceholder")}
-            value={form.pair}
-            onChange={(e) => setForm({ ...form, pair: e.target.value.toUpperCase() })}
-          />
-          <select
-            className="input"
-            value={form.side}
-            onChange={(e) => setForm({ ...form, side: e.target.value as "Long" | "Short" })}
-          >
-            <option value="Long">{t("risk.long")}</option>
-            <option value="Short">{t("risk.short")}</option>
-          </select>
-          <input
-            className="input font-data"
-            placeholder={t("journal.entryPlaceholder")}
-            inputMode="decimal"
-            value={form.entry || ""}
-            onChange={(e) => setForm({ ...form, entry: parseFloat(e.target.value) || 0 })}
-          />
-          <input
-            className="input font-data"
-            placeholder={t("journal.stopPlaceholder")}
-            inputMode="decimal"
-            value={form.stop || ""}
-            onChange={(e) => setForm({ ...form, stop: parseFloat(e.target.value) || 0 })}
-          />
-          <input
-            className="input font-data"
-            placeholder={t("journal.targetPlaceholder")}
-            inputMode="decimal"
-            value={form.target || ""}
-            onChange={(e) => setForm({ ...form, target: parseFloat(e.target.value) || 0 })}
-          />
-          <input
-            className="input font-data"
-            placeholder={t("journal.sizePlaceholder")}
-            inputMode="decimal"
-            value={form.size || ""}
-            onChange={(e) => setForm({ ...form, size: parseFloat(e.target.value) || 0 })}
-          />
-        </div>
-        <div className="mt-3 grid sm:grid-cols-3 gap-3">
-          <input
-            className="input font-data"
-            placeholder={t("journal.exitPlaceholder")}
-            inputMode="decimal"
-            value={form.exit ?? ""}
-            onChange={(e) => setForm({ ...form, exit: e.target.value ? parseFloat(e.target.value) : null })}
-          />
-          <input
-            className="input sm:col-span-2"
-            placeholder={t("journal.notesPlaceholder")}
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-          />
-        </div>
-        <button onClick={addTrade} className="btn-primary mt-4">
-          {t("journal.logTrade")}
-        </button>
-      </div>
+      {msg && <p className="mt-4 text-sm text-text-muted" role="status">{msg}</p>}
 
-      {stats ? (
-        <div className="mt-8 card p-6">
-          <div className="text-label mb-3">{t("journal.insightsTitle")}</div>
-          <div className="grid sm:grid-cols-3 gap-4">
-            <InsightStat label={t("journal.winRate")} value={`${stats.winRate.toFixed(0)}%`} />
-            <InsightStat label={t("journal.avgWinner")} value={`+${stats.avgWinner.toFixed(2)}`} tone="bull" />
-            <InsightStat label={t("journal.avgLoser")} value={stats.avgLoser.toFixed(2)} tone="bear" />
-            <InsightStat label={t("journal.avgRisk")} value={`${stats.avgRiskPct.toFixed(1)}%`} />
-            {stats.bestPair && <InsightStat label={t("journal.bestPair")} value={stats.bestPair.pair} tone="bull" />}
-            {stats.worstPair && <InsightStat label={t("journal.worstPair")} value={stats.worstPair.pair} tone="bear" />}
-          </div>
-          <p className="mt-4 text-xs text-text-muted leading-relaxed">
-            {t("journal.insightsNote")}
-          </p>
-        </div>
-      ) : (
-        <p className="mt-8 text-sm text-text-muted">{t("journal.insightsEmpty")}</p>
+      {editing && (
+        <TradeForm
+          key={editing.key}
+          initial={editing.initial}
+          base={editing.base}
+          onSave={onSave}
+          onCancel={() => { pendingPlan.current = null; setEditing(null); }}
+          t={t}
+          title={editing.base ? t("journal.editTrade") : t("journal.addTrade")}
+        />
       )}
 
-      <div className="mt-8 card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-surface text-text-muted">
-            <tr>
-              <th className="text-left px-4 py-3 font-normal">{t("journal.date")}</th>
-              <th className="text-left px-4 py-3 font-normal">{t("journal.pair")}</th>
-              <th className="text-left px-4 py-3 font-normal">{t("journal.side")}</th>
-              <th className="text-right px-4 py-3 font-normal">{t("journal.entry")}</th>
-              <th className="text-right px-4 py-3 font-normal">{t("journal.stop")}</th>
-              <th className="text-right px-4 py-3 font-normal">{t("journal.exit")}</th>
-              <th className="text-right px-4 py-3 font-normal">{t("journal.pnl")}</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {trades.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center py-10 text-text-muted">
-                  {t("journal.noTrades")}
-                </td>
-              </tr>
-            ) : (
-              trades.map((tr) => {
-                const pnl = tradePnl(tr);
-                return (
-                  <tr key={tr.id} className="border-t border-line">
-                    <td className="px-4 py-3 text-text-muted">{tr.date}</td>
-                    <td className="px-4 py-3 font-data">{tr.pair}</td>
-                    <td className="px-4 py-3">{tr.side === "Long" ? t("risk.long") : t("risk.short")}</td>
-                    <td className="px-4 py-3 font-data text-right">{tr.entry}</td>
-                    <td className="px-4 py-3 font-data text-right">{tr.stop}</td>
-                    <td className="px-4 py-3 font-data text-right">{tr.exit ?? "—"}</td>
-                    <td
-                      className={`px-4 py-3 font-data text-right ${
-                        pnl === null ? "text-text-muted" : pnl >= 0 ? "text-bull" : "text-bear"
-                      }`}
-                    >
-                      {pnl === null ? t("journal.open") : `${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => removeTrade(tr.id)}
-                        className="text-text-muted hover:text-bear text-xs"
-                      >
-                        {t("journal.remove")}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Overview d={dash} unrealized={unrealized} t={t} />
+
+      {trades.length === 0 ? (
+        <div className="mt-8 card p-10 text-center text-text-muted text-sm">{t("journal.noTrades")}</div>
+      ) : (
+        <History rows={rows} q={q} setQ={setQ} prices={prices} onOpen={setSelected} highlight={highlight} t={t} />
+      )}
+
+      {current && (
+        <TradeDetails
+          trade={current}
+          livePrice={prices[current.pair] ?? null}
+          onClose={() => setSelected(null)}
+          onEdit={(closeIt) => startEdit(current, closeIt)}
+          onDelete={onDelete}
+          t={t}
+        />
+      )}
     </main>
   );
 }
