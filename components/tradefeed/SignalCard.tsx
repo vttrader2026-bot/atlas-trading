@@ -56,12 +56,15 @@ export function SignalCard({
   livePrice,
   logo,
   adminAction,
+  actions,
 }: {
   trade: PublishedTrade;
   /** Latest Binance last price (already fetched by the page), or null when unavailable. */
   livePrice: number | null;
   logo: ReactNode;
   adminAction?: ReactNode;
+  /** Connected-workflow actions (Create Trade Plan / I Took This Trade / Watch Signal). */
+  actions?: ReactNode;
 }) {
   const { t, lang } = useLanguage();
   const isLong = trade.direction === "Long";
@@ -280,6 +283,7 @@ export function SignalCard({
             </p>
           )}
         </footer>
+        {actions}
       </div>
     </article>
   );

@@ -62,6 +62,7 @@ export async function POST(req: Request) {
       riskPct: clean(b.riskPct, 20),
       enteredAt: clean(b.enteredAt, 20),
       actualEntry: clean(b.actualEntry, 50),
+      ...(clean(b.signalId, 80) ? { signalId: clean(b.signalId, 80) } : {}),
     };
     await ctx.redis.hset(key(ctx.userId), { [plan.id]: plan });
     return NextResponse.json({ plan }, { status: 201 });

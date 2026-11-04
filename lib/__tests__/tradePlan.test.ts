@@ -90,7 +90,7 @@ describe("normalizeDraft (spot only)", () => {
 });
 
 describe("Send to Journal (plan -> trade)", () => {
-  const draft: TradePlanDraft = { ...emptyDraft, id: "plan-1", pair: "BTC/USDT", timeframe: "4H", entryZone: "99 - 101", invalidationText: "close below 95", entry: "100", invalidation: "95", tp1: "110", tp2: "120", tp3: "130", reasoning: "Reclaim of range high", balance: "1000", riskPct: "1" };
+  const draft: TradePlanDraft = { ...emptyDraft, id: "plan-1", pair: "BTC/USDT", timeframe: "4H", entryZone: "99 - 101", invalidationText: "close below 95", entry: "100", invalidation: "95", tp1: "110", tp2: "120", tp3: "130", reasoning: "Reclaim of range high", balance: "1000", riskPct: "1", status: "entered" };
   const ctx = { id: "trade-1", today: "2026-11-02", now: 1 };
   it("creates an Open spot long with sizing, targets, links and the plan text", () => {
     const r = planToTrade(draft, ctx);
@@ -114,6 +114,10 @@ describe("Send to Journal (plan -> trade)", () => {
     const r = planToTrade({ ...draft, riskPct: "2", invalidation: "99.9" }, ctx);
     if (!r.ok) throw new Error(r.error);
     expect(r.trade.invested).toBeLessThanOrEqual(1000 + 1e-9);
+  });
+  it("never creates a trade for a plan whose entry is not confirmed", () => {
+    expect(planToTrade({ ...draft, status: "draft" }, ctx)).toEqual({ ok: false, error: "notEntered" });
+    expect(planToTrade({ ...draft, status: undefined }, ctx)).toEqual({ ok: false, error: "notEntered" });
   });
   it("refuses Wait plans, missing pair and unusable levels", () => {
     expect(planToTrade({ ...draft, direction: "Wait" }, ctx)).toEqual({ ok: false, error: "wait" });

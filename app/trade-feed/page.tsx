@@ -7,6 +7,13 @@ import { useLanguage } from "@/lib/i18n";
 import { getTicker24h, Ticker24h } from "@/lib/binance";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 import { SignalCard } from "@/components/tradefeed/SignalCard";
+import { SignalActions } from "@/components/tradefeed/SignalActions";
+import { loadTrades } from "@/lib/journal";
+import { loadDraft } from "@/lib/tradePlan";
+import { normalizeWatch, type Watched } from "@/lib/signalLink";
+import { DRAFT_EVENT, JOURNAL_EVENT, syncLocalRecords } from "@/lib/signalSync";
+
+const nowMs = () => Date.now();
 
 // Deterministic color per pair so each coin badge looks distinct without
 // needing a real logo asset for every symbol Atlas might publish.
@@ -74,6 +81,78 @@ export default function TradeFeedPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [tickers, setTickers] = useState<Record<string, Ticker24h>>({});
+  // Connected workflow: which signals the user follows, and which are already in their Journal / plan draft.
+  const [watched, setWatched] = useState<Watched[]>([]);
+  const [watchBusy, setWatchBusy] = useState<string | null>(null);
+  const [journalBySignal, setJournalBySignal] = useState<Record<string, string>>({});
+  const [planSignalId, setPlanSignalId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const refresh = () => {
+      const map: Record<string, string> = {};
+      for (const tr of loadTrades()) if (tr.signalId) map[tr.signalId] = tr.id;
+      setJournalBySignal(map);
+      setPlanSignalId(loadDraft()?.signalId ?? null);
+    };
+    refresh();
+    window.addEventListener(JOURNAL_EVENT, refresh);
+    window.addEventListener(DRAFT_EVENT, refresh);
+    return () => {
+      window.removeEventListener(JOURNAL_EVENT, refresh);
+      window.removeEventListener(DRAFT_EVENT, refresh);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    let cancelled = false;
+    fetch("/api/me/signals", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) setWatched(normalizeWatch(d).items);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, isSignedIn]);
+
+  // Keep the official link on the user's linked Journal trades / plan up to date (personal data is never touched).
+  useEffect(() => {
+    if (trades) syncLocalRecords(trades);
+  }, [trades]);
+
+  async function watchOp(body: Record<string, unknown>, optimistic: Watched[]) {
+    const before = watched;
+    setWatched(optimistic);
+    setWatchBusy(String(body.id));
+    setMessage(null);
+    try {
+      const res = await fetch("/api/me/signals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data) setWatched(normalizeWatch(data).items);
+      else {
+        setWatched(before);
+        setMessage(res.status === 409 ? t("tradeFeed.watchLimit") : t("tradeFeed.watchErr"));
+      }
+    } catch {
+      setWatched(before);
+      setMessage(t("tradeFeed.watchErr"));
+    } finally {
+      setWatchBusy(null);
+    }
+  }
+  function toggleWatch(tr: PublishedTrade) {
+    const cur = watched.find((w) => w.id === tr.id);
+    if (cur) return watchOp({ op: "unwatch", id: tr.id }, watched.filter((w) => w.id !== tr.id));
+    const w: Watched = { id: tr.id, pair: tr.pair, at: nowMs(), status: tr.status === "closed" ? "closed" : "open", hitLevels: tr.hitLevels ?? [] };
+    return watchOp({ op: "watch", id: tr.id, pair: tr.pair, status: w.status, hitLevels: w.hitLevels }, [w, ...watched]);
+  }
+  function markSeen(tr: PublishedTrade) {
+    const status = tr.status === "closed" ? "closed" : "open";
+    const hit = tr.hitLevels ?? [];
+    return watchOp({ op: "seen", id: tr.id, status, hitLevels: hit }, watched.map((w) => (w.id === tr.id ? { ...w, status, hitLevels: hit } : w)));
+  }
 
   // Real counts from the actual feed \u2014 never shown until there's enough data.
   const publishedCount = trades?.length ?? 0;
@@ -223,6 +302,19 @@ export default function TradeFeedPage() {
               trade={trade}
               livePrice={Number.isFinite(live) && live > 0 ? live : null}
               logo={<CoinLogo pair={trade.pair} />}
+              actions={
+                <SignalActions
+                  signal={trade}
+                  livePrice={Number.isFinite(live) && live > 0 ? live : null}
+                  journalTradeId={journalBySignal[trade.id] ?? null}
+                  hasPlan={planSignalId === trade.id}
+                  watched={watched.find((w) => w.id === trade.id) ?? null}
+                  watchBusy={watchBusy === trade.id}
+                  onToggleWatch={() => toggleWatch(trade)}
+                  onSeen={() => markSeen(trade)}
+                  onTook={() => window.dispatchEvent(new Event(JOURNAL_EVENT))}
+                />
+              }
               adminAction={
                 isAdmin ? (
                   <button

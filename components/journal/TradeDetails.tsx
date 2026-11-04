@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Trade, feesOf, grossPnl, investedOf, plannedLoss, pnlPct, realizedPnl, roiPct, statusOf, unrealizedPnl } from "@/lib/journal";
+import { signalChanges } from "@/lib/signalLink";
 import { price, qty, signedPct, signedUsd, tone, usd } from "./format";
 
 function Num({ children, cls = "" }: { children: React.ReactNode; cls?: string }) {
@@ -58,6 +59,7 @@ export default function TradeDetails({
               <span className={`tag ${closed ? "tag-bull" : ""}`}>{closed ? t("journal.statusClosed") : t("journal.statusOpen")}</span>
               {trade.side === "Short" && <span className="tag">{t("journal.legacyShort")}</span>}
               {trade.source === "plan" && <span className="tag">{t("journal.fromPlan")}</span>}
+              {trade.source === "signal" && <span className="tag">{t("journal.fromSignal")}</span>}
             </div>
           </div>
           <button type="button" onClick={onClose} className="btn-secondary">{t("journal.close")}</button>
@@ -78,6 +80,42 @@ export default function TradeDetails({
         <div className="mt-4 grid grid-cols-3 gap-4">
           {tps.map((v, i) => <Row key={i} label={`TP${i + 1}`}><Num>{v ? price(v) : "—"}</Num></Row>)}
         </div>
+
+        {trade.signal && (
+          <section className="mt-5 rounded-lg border border-line p-4" aria-label={t("journal.signalSection")}>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-label">{t("journal.signalSection")}</span>
+              <span className={`tag ${trade.signal.status === "closed" ? "" : "tag-bull"}`}>{trade.signal.status === "closed" ? t("journal.statusClosed") : t("journal.statusOpen")}</span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-4">
+              <Row label={t("journal.signalIdLabel")}><Num>{trade.signal.tradeId || trade.signal.id.slice(0, 8)}</Num></Row>
+              <Row label={t("journal.signalHit")}><Num>{trade.signal.hitLevels.length ? trade.signal.hitLevels.join(", ") : t("journal.signalNoHit")}</Num></Row>
+            </div>
+            <div className="mt-3 grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-1 text-sm items-baseline">
+              <span />
+              <span className="text-xs text-text-muted">{t("journal.signalOfficial")}</span>
+              <span className="text-xs text-text-muted">{t("journal.signalYours")}</span>
+              <span className="text-xs text-text-muted">{t("journal.fStop")}</span>
+              <Num>{trade.signal.latest.invalidation || "—"}</Num>
+              <Num>{trade.stop ? price(trade.stop) : "—"}</Num>
+              {tps.map((mine, i) => {
+                const off = [trade.signal!.latest.tp1, trade.signal!.latest.tp2, trade.signal!.latest.tp3][i];
+                return (
+                  <span key={i} className="contents">
+                    <span className="text-xs text-text-muted">TP{i + 1}</span>
+                    <Num>{off || "—"}</Num>
+                    <Num>{mine ? price(mine) : "—"}</Num>
+                  </span>
+                );
+              })}
+            </div>
+            {signalChanges(trade.signal).length > 0 && (
+              <p className="mt-3 text-xs text-gold">
+                {t("journal.signalChanged")}. {t("journal.signalChangedNote")}
+              </p>
+            )}
+          </section>
+        )}
 
         <div className="mt-5 pt-5 border-t border-line grid grid-cols-2 sm:grid-cols-3 gap-4">
           {closed && realized !== null && trade.exit !== null ? (

@@ -8,10 +8,12 @@ import type { TradePlanDraft } from "@/lib/tradePlan";
 export const DEFAULT_BALANCE = "1000";
 export const DEFAULT_RISK = "1";
 
-export type BridgeResult = { ok: true; trade: Trade } | { ok: false; error: PlanError | "wait" | "pair" };
+export type BridgeResult = { ok: true; trade: Trade } | { ok: false; error: PlanError | "wait" | "pair" | "notEntered" };
 
 export function planToTrade(draft: TradePlanDraft, ctx: { id: string; today: string; now?: number }): BridgeResult {
   if (draft.direction === "Wait") return { ok: false, error: "wait" };
+  // An executed trade only exists once the user confirms they entered.
+  if (draft.status !== "entered") return { ok: false, error: "notEntered" };
   const pair = draft.pair.replace("/", "").trim().toUpperCase();
   if (!pair) return { ok: false, error: "pair" };
 
@@ -66,6 +68,7 @@ export function planToTrade(draft: TradePlanDraft, ctx: { id: string; today: str
       lessons: "",
       planId: draft.id,
       source: "plan",
+      ...(draft.signal ? { signalId: draft.signal.id, signal: draft.signal } : {}),
       updatedAt: ctx.now ?? Date.now(),
     },
   };

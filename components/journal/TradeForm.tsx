@@ -64,9 +64,9 @@ const ISSUE_KEY: Record<string, string> = {
 };
 
 export default function TradeForm({
-  initial, base, onSave, onCancel, t, title,
+  initial, base, onSave, onCancel, t, title, entryHint,
 }: {
-  initial: F; base: Trade | null; onSave: (t: Trade) => void; onCancel: () => void; t: (k: string) => string; title: string;
+  initial: F; base: Trade | null; onSave: (t: Trade) => void; onCancel: () => void; t: (k: string) => string; title: string; entryHint?: string;
 }) {
   const [f, setF] = useState<F>(initial);
   const [issues, setIssues] = useState<TradeIssueField[]>([]);
@@ -141,7 +141,7 @@ export default function TradeForm({
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {field("pair", t("journal.fPair"), { ph: t("journal.phPair") })}
         {field("date", t("journal.fEntryDate"), { type: "date" })}
-        {field("entry", t("journal.fEntryPrice"), { num: true })}
+        {field("entry", t("journal.fEntryPrice"), { num: true, hint: entryHint })}
         {field("stop", t("journal.fStop"), { num: true })}
         {field("invested", t("journal.fInvested"), { num: true, hint: t("journal.hintInvested") })}
         {field("size", t("journal.fQuantity"), { num: true })}

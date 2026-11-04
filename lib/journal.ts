@@ -5,6 +5,8 @@
 // records saved by older versions load unchanged and older cached bundles can still read newer ones.
 // `size` stays the coin quantity and `date` stays the entry date.
 
+import type { SignalLink } from "@/lib/signalLink";
+
 export type TradeStatus = "open" | "closed";
 
 export type Trade = {
@@ -39,7 +41,10 @@ export type Trade = {
   markPrice?: number | null;
   /** Trade Plan this trade came from. */
   planId?: string;
-  source?: "manual" | "plan";
+  source?: "manual" | "plan" | "signal";
+  /** Atlas signal this trade is linked to (Signal ID). Official data lives in `signal`, never in the personal fields. */
+  signalId?: string;
+  signal?: SignalLink;
   updatedAt?: number;
 };
 
@@ -305,7 +310,7 @@ export function filterAndSort(
   const rows = trades.filter((t) => {
     if (opts.status !== "all" && statusOf(t) !== opts.status) return false;
     if (!q) return true;
-    return [t.pair, t.strategy, t.entryReason, t.notes, t.lessons, t.date, t.exitDate]
+    return [t.pair, t.strategy, t.entryReason, t.notes, t.lessons, t.date, t.exitDate, t.signalId, t.signal?.tradeId]
       .map((x) => (x ?? "").toLowerCase())
       .some((s) => s.includes(q));
   });
@@ -358,6 +363,7 @@ export const CSV_COLUMNS = [
   "notes",
   "lessons",
   "source",
+  "signal_id",
 ] as const;
 
 /** Text cell: quote it, double inner quotes, and defuse spreadsheet formulas (=, +, -, @, tab, CR). */
@@ -398,6 +404,7 @@ export function tradesToCsv(trades: Trade[]): string {
       textCell(t.notes),
       textCell(t.lessons),
       t.source ?? "manual",
+      textCell(t.signalId),
     ].join(",");
   });
   return [CSV_COLUMNS.join(","), ...rows].join("\n");

@@ -13,8 +13,15 @@ import History, { Query } from "@/components/journal/History";
 import TradeDetails from "@/components/journal/TradeDetails";
 import TradeForm, { tradeToForm } from "@/components/journal/TradeForm";
 import { todayLocal } from "@/components/journal/format";
+import { fetchFeed, syncLocalRecords } from "@/lib/signalSync";
+import { isLiveSignal, isLongSignal, signalToTrade, type SignalLink } from "@/lib/signalLink";
+import type { PublishedTrade } from "@/lib/tradeFeed";
 
-type Editing = { base: Trade | null; initial: ReturnType<typeof tradeToForm>; key: number } | null;
+const nowMs = () => Date.now();
+
+type Editing = { base: Trade | null; initial: ReturnType<typeof tradeToForm>; key: number; entryHint?: string } | null;
+type Pending = { source: "plan" | "signal"; planId?: string; signalId?: string; signal?: SignalLink } | null;
+type Picker = { loading: boolean; list: PublishedTrade[]; error: string | null } | null;
 
 export default function JournalPage() {
   const { t } = useLanguage();
@@ -25,7 +32,8 @@ export default function JournalPage() {
   const [highlight, setHighlight] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [prices, setPrices] = useState<Record<string, number>>({});
-  const pendingPlan = useRef<null | { planId: string; source: "plan" }>(null);
+  const pendingPlan = useRef<Pending>(null);
+  const [picker, setPicker] = useState<Picker>(null);
   const [q, setQ] = useState<Query>({ query: "", status: "all", sort: "date", desc: true });
 
   useEffect(() => {
@@ -41,6 +49,20 @@ export default function JournalPage() {
     }
     return () => window.removeEventListener("atlas-journal-updated", refresh);
   }, []);
+
+  // Keep the OFFICIAL link of signal-linked trades fresh (status, hit levels, official SL/TPs).
+  // Personal entry, stop, targets, exit and notes are never written by this.
+  useEffect(() => {
+    if (!mounted || !loadTrades().some((x) => x.signal)) return;
+    let off = false;
+    fetchFeed().then((f) => {
+      if (off || !f.ok) return;
+      if (syncLocalRecords(f.trades).journal) setTrades(loadTrades());
+    });
+    return () => {
+      off = true;
+    };
+  }, [mounted]);
 
   // Live prices for open trades only (best effort: Binance may be unreachable; manual price is the fallback).
   const openPairs = useMemo(() => Array.from(new Set(trades.filter((x) => statusOf(x) === "open").map((x) => x.pair))).sort().join(","), [trades]);
@@ -105,16 +127,46 @@ export default function JournalPage() {
       return setMsg(t("journal.importDup"));
     }
     const r = planToTrade(draft, { id: crypto.randomUUID(), today: todayLocal() });
-    if (!r.ok) return setMsg(t("journal.importIncomplete"));
+    if (!r.ok) return setMsg(t(r.error === "notEntered" ? "journal.importPlanNotEntered" : "journal.importIncomplete"));
     setEditing({ base: null, initial: { ...tradeToForm(r.trade) }, key: Date.now() });
-    // keep the plan link on save
-    pendingPlan.current = { planId: draft.id ?? "", source: "plan" };
+    // keep the plan (and signal) links on save
+    pendingPlan.current = { source: "plan", planId: draft.id ?? "", signalId: draft.signal?.id, signal: draft.signal };
     setMsg(t("journal.importOk"));
+  }
+
+  async function openSignalPicker() {
+    setMsg(null);
+    setPicker({ loading: true, list: [], error: null });
+    const f = await fetchFeed();
+    if (!f.ok) return setPicker({ loading: false, list: [], error: t(f.reason === "auth" ? "journal.signalSignIn" : "journal.signalLoadErr") });
+    const taken = new Set(trades.map((x) => x.signalId).filter(Boolean));
+    setPicker({ loading: false, list: f.trades.filter((x) => isLongSignal(x) && isLiveSignal(x) && !taken.has(x.id)), error: null });
+  }
+
+  // Importing a signal only PRE-FILLS the form. The entry price is left blank on purpose: nothing is
+  // recorded until the user types the price they actually paid and saves.
+  function importSignal(sig: PublishedTrade) {
+    const draftTrade = signalToTrade(sig, { id: crypto.randomUUID(), date: todayLocal(), entry: 0 });
+    const initial = tradeToForm(draftTrade);
+    initial.entry = "";
+    initial.invested = "";
+    initial.size = "";
+    setEditing({ base: null, initial, key: nowMs(), entryHint: `${t("journal.signalZoneHint")} ${sig.entryZone || "—"}` });
+    pendingPlan.current = { source: "signal", signalId: sig.id, signal: draftTrade.signal };
+    setPicker(null);
+    setMsg(t("journal.signalImportHint"));
   }
 
   function onSave(tr: Trade) {
     const link = !editing?.base ? pendingPlan.current : null;
-    const finalTrade = link ? { ...tr, source: link.source, ...(link.planId ? { planId: link.planId } : {}) } : tr;
+    const finalTrade: Trade = link
+      ? {
+          ...tr,
+          source: link.source,
+          ...(link.planId ? { planId: link.planId } : {}),
+          ...(link.signalId && link.signal ? { signalId: link.signalId, signal: link.signal } : {}),
+        }
+      : tr;
     pendingPlan.current = null;
     const exists = trades.some((x) => x.id === finalTrade.id);
     persist(exists ? trades.map((x) => (x.id === finalTrade.id ? finalTrade : x)) : [finalTrade, ...trades]);
@@ -154,12 +206,36 @@ export default function JournalPage() {
         </div>
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={importFromPlan} className="btn-secondary">{t("journal.importPlan")}</button>
+          <button type="button" onClick={openSignalPicker} className="btn-secondary">{t("journal.importSignal")}</button>
           <button type="button" onClick={exportCsv} disabled={trades.length === 0} className="btn-secondary">{t("journal.exportCsv")}</button>
           <button type="button" onClick={startNew} className="btn-primary">{t("journal.addTrade")}</button>
         </div>
       </div>
 
       {msg && <p className="mt-4 text-sm text-text-muted" role="status">{msg}</p>}
+
+      {picker && (
+        <section className="mt-4 card p-4 sm:p-5" aria-label={t("journal.signalPickTitle")}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-label">{t("journal.signalPickTitle")}</div>
+            <button type="button" onClick={() => setPicker(null)} className="btn-secondary">{t("journal.cancelPick")}</button>
+          </div>
+          {picker.loading && <p className="mt-3 text-sm text-text-muted">{t("tradePlan.signalLoading")}</p>}
+          {picker.error && <p className="mt-3 text-sm text-bear">{picker.error}</p>}
+          {!picker.loading && !picker.error && picker.list.length === 0 && <p className="mt-3 text-sm text-text-muted">{t("journal.signalNone")}</p>}
+          <ul className="mt-3 space-y-2">
+            {picker.list.map((sg) => (
+              <li key={sg.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line px-3 py-2">
+                <div className="min-w-0 text-sm">
+                  <span dir="ltr" className="font-data font-semibold" style={{ unicodeBidi: "isolate" }}>{sg.pair}</span>{" "}
+                  <span dir="ltr" className="font-data text-text-muted text-xs" style={{ unicodeBidi: "isolate" }}>{sg.timeframe} · {sg.entryZone}</span>
+                </div>
+                <button type="button" onClick={() => importSignal(sg)} className="btn-primary !py-1.5">{t("journal.importSignal")}</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {editing && (
         <TradeForm
@@ -170,6 +246,7 @@ export default function JournalPage() {
           onCancel={() => { pendingPlan.current = null; setEditing(null); }}
           t={t}
           title={editing.base ? t("journal.editTrade") : t("journal.addTrade")}
+          entryHint={editing.entryHint}
         />
       )}
 

@@ -11,6 +11,8 @@ import { computePlan } from "@/lib/planCalc";
 import { DEFAULT_BALANCE, DEFAULT_RISK, planToTrade } from "@/lib/planBridge";
 import { RISK_PRESETS, parseInput, type RiskError } from "@/lib/riskCalc";
 import { pct, price, qty, todayLocal, usd } from "@/components/journal/format";
+import { applyOfficialLevels, signalChanges, signalToDraft } from "@/lib/signalLink";
+import { fetchFeed, syncLocalRecords } from "@/lib/signalSync";
 
 const ADMIN_KEY = "atlas-trading.adminSecret";
 
@@ -39,14 +41,52 @@ export default function TradePlanPage() {
   const [journalHas, setJournalHas] = useState(false);
   const [confirmPrice, setConfirmPrice] = useState("");
   const [confirmDate, setConfirmDate] = useState("");
+  // Signal import: a pending replacement of an in-progress draft, and any import message.
+  const [incoming, setIncoming] = useState<TradePlanDraft | null>(null);
+  const [signalMsg, setSignalMsg] = useState<string | null>(null);
 
   // localStorage is client-only; loading after mount avoids a hydration mismatch.
+  // Also handles /trade-plan?signal=<Signal ID> (from the Trade Feed) and keeps a linked signal's
+  // official data fresh. Only the official `signal` link is ever refreshed, never the user's numbers.
   useEffect(() => {
     const stored = loadDraft();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored) setDraft(stored);
     setConfirmDate(todayLocal());
     setLoaded(true);
+    const sid = new URLSearchParams(window.location.search).get("signal");
+    if (!sid && !stored?.signal) return;
+    let off = false;
+    (async () => {
+      if (sid) setSignalMsg(t("tradePlan.signalLoading"));
+      const feed = await fetchFeed();
+      if (off) return;
+      if (!feed.ok) {
+        setSignalMsg(sid ? t(feed.reason === "auth" ? "tradePlan.signalSignIn" : "journal.signalLoadErr") : null);
+        return;
+      }
+      syncLocalRecords(feed.trades);
+      const fresh = loadDraft();
+      if (fresh) setDraft(fresh);
+      if (!sid) return;
+      window.history.replaceState(null, "", window.location.pathname);
+      const sig = feed.trades.find((x) => x.id === sid);
+      if (!sig) return setSignalMsg(t("tradePlan.signalNotFound"));
+      if (fresh?.signalId === sid) return setSignalMsg(null); // already planning this signal: keep the user's draft
+      const r = signalToDraft(sig, { id: crypto.randomUUID() });
+      if (!r.ok) return setSignalMsg(t("tradePlan.signalShort"));
+      const hasWork = !!fresh && [fresh.pair, fresh.entry, fresh.invalidation, fresh.tp1, fresh.entryZone, fresh.reasoning].some((v) => v.trim() !== "");
+      setSignalMsg(null);
+      if (hasWork) setIncoming(r.draft);
+      else {
+        setDraft(r.draft);
+        saveDraft(r.draft);
+      }
+    })();
+    return () => {
+      off = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -87,12 +127,23 @@ export default function TradePlanPage() {
     const withId = { ...draft, id: draft.id ?? crypto.randomUUID() };
     const r = planToTrade(withId, { id: crypto.randomUUID(), today: todayLocal() });
     if (!r.ok) {
-      const key = r.error === "wait" ? "tradePlan.sendWait" : r.error === "pair" ? "tradePlan.sendPair" : r.error === "incomplete" ? "tradePlan.fillToCalculate" : ERR_KEY[r.error as RiskError];
+      const key = r.error === "notEntered" ? "tradePlan.confirmFirst" : r.error === "wait" ? "tradePlan.sendWait" : r.error === "pair" ? "tradePlan.sendPair" : r.error === "incomplete" ? "tradePlan.fillToCalculate" : ERR_KEY[r.error as RiskError];
       return setSendMsg(t(key));
     }
     saveTrades([r.trade, ...loadTrades()]);
     commit({ ...withId, journalId: r.trade.id });
-    setSendMsg(entered ? t("tradePlan.sendOk") : `${t("tradePlan.sendOk")} ${t("tradePlan.sendUnconfirmed")}`);
+    setSendMsg(t("tradePlan.sendOk"));
+  }
+
+  function replaceWithSignal() {
+    if (!incoming) return;
+    setDraft(incoming);
+    saveDraft(incoming);
+    setIncoming(null);
+    setSendMsg(null);
+  }
+  function useOfficial() {
+    commit(applyOfficialLevels(draft));
   }
 
   function clearPlan() {
@@ -170,6 +221,48 @@ export default function TradePlanPage() {
         </div>
       </div>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("tradePlan.subtitle")}</p>
+
+      {signalMsg && <p className="mt-4 text-sm text-text-muted" role="status">{signalMsg}</p>}
+      {incoming && (
+        <div className="mt-4 card card-accent p-4" role="alertdialog" aria-label={t("tradePlan.replaceTitle")}>
+          <div className="font-semibold">{t("tradePlan.replaceTitle")}</div>
+          <p className="mt-1 text-sm text-text-muted">{t("tradePlan.replaceBody")} <Num>{incoming.pair}</Num></p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button type="button" onClick={replaceWithSignal} className="btn-primary">{t("tradePlan.replace")}</button>
+            <button type="button" onClick={() => setIncoming(null)} className="btn-secondary">{t("tradePlan.keepCurrent")}</button>
+          </div>
+        </div>
+      )}
+
+      {draft.signal && (
+        <section className="mt-6 card p-4 sm:p-5" aria-label={t("tradePlan.fromSignal")}>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="tag tag-bull">{t("tradePlan.fromSignal")}</span>
+            <span className={`tag ${draft.signal.status === "closed" ? "" : "tag-bull"}`}>{draft.signal.status === "closed" ? t("journal.statusClosed") : t("journal.statusOpen")}</span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+            <div><div className="text-xs text-text-muted">{t("tradeFeed.signalId")}</div><Num>{draft.signal.tradeId || draft.signal.id.slice(0, 8)}</Num></div>
+            <div><div className="text-xs text-text-muted">{t("tradePlan.levelsHit")}</div><Num>{draft.signal.hitLevels.length ? draft.signal.hitLevels.join(", ") : t("tradePlan.noneYet")}</Num></div>
+          </div>
+          {(!draft.entry || !draft.invalidation) && (
+            <p className="mt-3 text-xs text-text-muted">{!draft.entry && t("tradePlan.entryUnreadable")} {!draft.invalidation && t("tradePlan.stopUnreadable")}</p>
+          )}
+          {signalChanges(draft.signal).length > 0 && (
+            <div className="mt-4 rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm">
+              <div className="font-semibold text-gold">{t("tradePlan.officialChanged")}</div>
+              <ul className="mt-2 space-y-1">
+                {signalChanges(draft.signal).map((c) => (
+                  <li key={c.field}>
+                    {c.field === "invalidation" ? t("tradePlan.stopLoss") : c.field.toUpperCase()}: <Num cls="text-text-muted">{c.from || "—"}</Num> → <Num>{c.to || "—"}</Num>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-text-muted">{t("tradePlan.officialKept")}</p>
+              <button type="button" onClick={useOfficial} className="btn-secondary mt-3">{t("tradePlan.useOfficial")}</button>
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="mt-8 grid sm:grid-cols-3 gap-4">
         <Field label={t("tradePlan.pair")} value={draft.pair} onChange={(x) => update("pair", x)} placeholder="BTC/USDT" ltr />
@@ -316,7 +409,7 @@ export default function TradePlanPage() {
         {sent ? (
           <Link href={`/journal?trade=${draft.journalId}`} className="btn-primary">{t("tradePlan.openInJournal")}</Link>
         ) : (
-          <button type="button" onClick={sendToJournal} disabled={!draft.pair || draft.direction === "Wait"} className="btn-primary">{t("tradePlan.sendToJournal")}</button>
+          <button type="button" onClick={sendToJournal} disabled={!draft.pair || draft.direction === "Wait" || !entered} className="btn-primary">{t("tradePlan.sendToJournal")}</button>
         )}
         <button type="button" onClick={publishToFeed} disabled={publishing || !draft.pair || draft.direction !== "Long"} className="btn-secondary">
           {publishing ? t("tradePlan.publishing") : t("tradePlan.publishToFeed")}
@@ -326,6 +419,7 @@ export default function TradePlanPage() {
         </button>
         <button type="button" onClick={clearPlan} className="btn-secondary">{t("tradePlan.clear")}</button>
       </div>
+      {!sent && !entered && draft.direction === "Long" && <p className="mt-3 text-xs text-text-muted">{t("tradePlan.confirmFirst")}</p>}
       {sent && <p className="mt-3 text-sm text-text-muted">{t("tradePlan.sentToJournal")}</p>}
       {sendMsg && <p className="mt-3 text-sm text-text-muted" role="status">{sendMsg}</p>}
       {publishMsg && <p className="mt-3 text-sm text-text-muted">{publishMsg}</p>}

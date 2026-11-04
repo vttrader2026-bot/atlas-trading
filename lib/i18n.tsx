@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { journalEn, journalFr, journalAr, planEn, planFr, planAr } from "@/lib/i18nJournal";
+import { feedEn, feedFr, feedAr, sigJournalEn, sigJournalFr, sigJournalAr, sigPlanEn, sigPlanFr, sigPlanAr } from "@/lib/i18nSignals";
 
 export type Lang = "en" | "ar" | "fr";
 
@@ -470,6 +471,7 @@ const en: Dict = {
     insightsNote: "Computed only from your own closed trades — nothing here is estimated or fabricated.",
     insightsEmpty: "Log a few closed trades (with an exit price) to see real insights here.",
     ...journalEn,
+    ...sigJournalEn,
   },
   analyzer: {
     title: "Chart analyzer",
@@ -764,6 +766,7 @@ const en: Dict = {
     disclaimer:
       "This plan is built from your own numbers (or transferred from an Analyzer read you can edit) — not a signal, not financial advice.",
     ...planEn,
+    ...sigPlanEn,
   },
   radar: {
     title: "Market Radar",
@@ -874,6 +877,7 @@ const en: Dict = {
     msgCompleted: "Trade closed in profit.",
     msgStopped: "Stop loss was hit. This setup is invalidated.",
     msgClosed: "This trade is closed.",
+    ...feedEn,
   },
   watchlist: {
     title: "Watchlist",
@@ -1408,6 +1412,7 @@ const ar: Dict = {
     insightsNote: "محسوبة فقط من صفقاتك المغلقة الفعلية — لا شيء هنا مقدّر أو مختلق.",
     insightsEmpty: "سجّل بضع صفقات مغلقة (بسعر خروج) لرؤية رؤى حقيقية هنا.",
     ...journalAr,
+    ...sigJournalAr,
   },
   analyzer: {
     title: "محلل الشارت",
@@ -1701,6 +1706,7 @@ const ar: Dict = {
     disclaimer:
       "هذه الخطة مبنية على أرقامك الخاصة (أو منقولة من قراءة المحلل ويمكنك تعديلها) — وليست توصية أو نصيحة مالية.",
     ...planAr,
+    ...sigPlanAr,
   },
   radar: {
     title: "رادار السوق",
@@ -1811,6 +1817,7 @@ const ar: Dict = {
     msgCompleted: "أُغلقت الصفقة بربح.",
     msgStopped: "تم ضرب وقف الخسارة. هذا الإعداد لم يعد صالحًا.",
     msgClosed: "هذه الصفقة مغلقة.",
+    ...feedAr,
   },
   watchlist: {
     title: "قائمة المتابعة",
@@ -2346,6 +2353,7 @@ const fr: Dict = {
     insightsNote: "Calculé uniquement à partir de vos propres trades clôturés — rien ici n'est estimé ou inventé.",
     insightsEmpty: "Enregistrez quelques trades clôturés (avec un prix de sortie) pour voir de vraies statistiques ici.",
     ...journalFr,
+    ...sigJournalFr,
   },
   analyzer: {
     title: "Analyseur de graphique",
@@ -2640,6 +2648,7 @@ const fr: Dict = {
     disclaimer:
       "Ce plan est construit à partir de vos propres chiffres (ou transféré depuis une lecture de l'Analyseur que vous pouvez modifier) — pas un signal, pas un conseil financier.",
     ...planFr,
+    ...sigPlanFr,
   },
   radar: {
     title: "Radar du marché",
@@ -2750,6 +2759,7 @@ const fr: Dict = {
     msgCompleted: "Trade clôturé en profit.",
     msgStopped: "Le stop-loss a été touché. Ce setup est invalidé.",
     msgClosed: "Ce trade est clôturé.",
+    ...feedFr,
   },
   watchlist: {
     title: "Liste de suivi",

@@ -1,3 +1,5 @@
+import { normalizeLink, type SignalLink } from "@/lib/signalLink";
+
 export type PlanStatus = "draft" | "entered";
 
 export type TradePlanDraft = {
@@ -27,6 +29,9 @@ export type TradePlanDraft = {
   actualEntry?: string;
   /** Journal trade created from this plan. */
   journalId?: string;
+  /** Atlas signal this plan was created from (Signal ID) and the official data linked to it. */
+  signalId?: string;
+  signal?: SignalLink;
 };
 
 const STORAGE_KEY = "atlas-trading.tradeplan.v1";
@@ -73,6 +78,12 @@ export function normalizeDraft(raw: unknown): TradePlanDraft {
   if (r.status === "draft" || r.status === "entered") d.status = r.status;
   for (const k of ["balance", "riskPct", "enteredAt", "actualEntry", "journalId"] as const) {
     if (typeof r[k] === "string" && r[k]) d[k] = r[k] as string;
+  }
+  if (typeof r.signalId === "string" && r.signalId) d.signalId = r.signalId;
+  const link = normalizeLink(r.signal);
+  if (link) {
+    d.signal = link;
+    d.signalId = link.id;
   }
   return d;
 }
