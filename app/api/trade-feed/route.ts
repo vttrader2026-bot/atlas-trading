@@ -2,9 +2,11 @@ import { NextResponse, after } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { Redis } from "@upstash/redis";
 import { timingSafeEqual, randomUUID } from "crypto";
-import type { PublishedTrade } from "@/lib/tradeFeed";
+import { tradeTier, visibleTrades, type PublishedTrade } from "@/lib/tradeFeed";
+import { getUserPlan } from "@/lib/plan";
 import { notifyTradeSubscribers, notifyTpSlSubscribers, notifyTradeClosedSubscribers } from "@/lib/push";
 
+// ELITE-TIER-v1
 export const dynamic = "force-dynamic";
 
 const FEED_KEY = "atlas:trade-feed";
@@ -30,9 +32,23 @@ function clean(value: unknown, max = 500): string {
   return "";
 }
 
-export async function GET() {
+/**
+ * Who may read Elite-tier signals: the admin (valid ADMIN_SECRET in the x-admin-secret header) or a
+ * signed-in user whose Clerk plan is "elite". Free, Analyzer-only, expired/unknown plans and any
+ * lookup failure (getUserPlan fails closed to "free") get FREE signals only.
+ */
+async function viewerAccess(req: Request, userId: string | null): Promise<{ admin: boolean; elite: boolean }> {
+  const adminSecret = process.env.ADMIN_SECRET;
+  const header = req.headers.get("x-admin-secret") ?? "";
+  if (adminSecret && header && safeEqual(header, adminSecret)) return { admin: true, elite: true };
+  if (!userId) return { admin: false, elite: false };
+  return { admin: false, elite: (await getUserPlan(userId)) === "elite" };
+}
+
+export async function GET(req: Request) {
   const { userId } = await auth();
-  if (!userId) {
+  const access = await viewerAccess(req, userId);
+  if (!userId && !access.admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const redis = getRedis();
@@ -41,7 +57,15 @@ export async function GET() {
     return NextResponse.json({ trades: [] }, { status: 500 });
   }
   try {
-    const trades = await redis.lrange<PublishedTrade>(FEED_KEY, 0, MAX_TRADES - 1);
+    const stored = await redis.lrange<PublishedTrade>(FEED_KEY, 0, MAX_TRADES - 1);
+    // Filter BEFORE anything is serialised: an unauthorised client never receives Elite data.
+    // The tier field itself is only sent to the admin, so FREE/Elite viewers see the same card data as before.
+    const trades = visibleTrades(stored, access.elite).map((t) => {
+      if (access.admin) return { ...t, tier: tradeTier(t) };
+      const { tier: _tier, ...publicTrade } = t;
+      void _tier;
+      return publicTrade;
+    });
     return NextResponse.json({ trades }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("trade-feed GET failed:", err);
@@ -72,6 +96,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // The website Trade Plan labels its publishes (source: "trade-plan"). Such a publish must be authenticated
+  // as the admin so it can only ever become ELITE. If it arrives with the bot's secret (e.g. a wrong secret
+  // saved in the browser) it is refused instead of being silently stored as a FREE, publicly visible signal.
+  if (body.source === "trade-plan" && !isAdmin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const dir = body.direction;
   const direction = dir === "Long" || dir === "Short" ? dir : null;
   const pair = clean(body.pair, 30).toUpperCase();
@@ -92,6 +123,11 @@ export async function POST(req: Request) {
     tp3: clean(body.tp3, 50),
     reasoning: clean(body.reasoning, 2000),
     status: "open",
+    // Tier comes from WHO published, never from the body (there is no selector): the website Trade
+    // Plan publishes with the admin secret => elite; the Telegram bot's secret => free. If both
+    // secrets were ever identical the website cannot be told apart from the bot, so admin wins
+    // (fail closed: nothing Elite can leak).
+    tier: isAdmin ? "elite" : "free",
   };
   const tradeId = clean(body.tradeId, 20);
   if (tradeId) trade.tradeId = tradeId;
@@ -99,7 +135,9 @@ export async function POST(req: Request) {
   try {
     await redis.lpush(FEED_KEY, trade);
     await redis.ltrim(FEED_KEY, 0, MAX_TRADES - 1);
-    after(() => notifyTradeSubscribers(trade));
+    // Push notifications go to every subscriber, so Elite signals must not trigger them (notification
+    // targeting by tier is a later phase).
+    if (trade.tier === "free") after(() => notifyTradeSubscribers(trade));
     return NextResponse.json({ ok: true, trade }, { status: 201 });
   } catch (err) {
     console.error("trade-feed POST failed:", err);
@@ -139,7 +177,9 @@ export async function PATCH(req: Request) {
 
   try {
     const trades = await redis.lrange<PublishedTrade>(FEED_KEY, 0, MAX_TRADES - 1);
-    const index = trades.findIndex((t) => t.tradeId === tradeId);
+    // The bot only ever updates FREE signals. An Elite signal is reported as "Not found" even if it carries
+    // the same tradeId, so the bot can neither modify it nor learn that it exists.
+    const index = trades.findIndex((t) => t.tradeId === tradeId && tradeTier(t) === "free");
     if (index === -1) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -152,12 +192,13 @@ export async function PATCH(req: Request) {
     };
     await redis.lset(FEED_KEY, index, updated);
 
+    const isFree = tradeTier(updated) === "free"; // never push Elite updates to the general subscriber list
     let closedViaLevel = false;
     if (hitLevels) {
       const newlyHit = hitLevels.filter((level) => !previousLevels.includes(level));
       closedViaLevel = newlyHit.length > 0;
       for (const level of newlyHit) {
-        after(() => notifyTpSlSubscribers(updated, level));
+        if (isFree) after(() => notifyTpSlSubscribers(updated, level));
       }
     }
 
@@ -165,7 +206,7 @@ export async function PATCH(req: Request) {
     // being manually closed/cancelled with no new level hit. Only the latter
     // gets its own notification, so the two never double-fire for one trade.
     const justClosed = status === "closed" && previousStatus !== "closed";
-    if (justClosed && !closedViaLevel) {
+    if (justClosed && !closedViaLevel && isFree) {
       after(() => notifyTradeClosedSubscribers(updated));
     }
 

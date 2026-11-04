@@ -187,7 +187,7 @@ export default function TradePlanPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          secret, pair: draft.pair, direction: draft.direction, timeframe: draft.timeframe,
+          secret, source: "trade-plan", pair: draft.pair, direction: draft.direction, timeframe: draft.timeframe,
           entryZone: draft.entryZone || draft.entry, invalidation: draft.invalidationText || draft.invalidation,
           tp1: draft.tp1, tp2: draft.tp2, tp3: draft.tp3, reasoning: draft.reasoning,
         }),

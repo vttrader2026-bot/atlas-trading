@@ -16,4 +16,23 @@ export type PublishedTrade = {
   status?: "open" | "closed";
   /** Which TP/SL levels have fired, e.g. ["TP1", "TP2"]. */
   hitLevels?: string[];
+  /**
+   * Who may see this signal. Server-side only: assigned from the publisher's credential, never from
+   * the request body. Anything stored without a tier (every signal published before this field
+   * existed) is "free". The API strips this field for everyone except the admin.
+   */
+  tier?: SignalTier;
 };
+
+export type SignalTier = "free" | "elite";
+
+/** Effective tier of a stored trade. Missing = "free" (backward compatible). Any unrecognised value fails closed to "elite". */
+export function tradeTier(t: { tier?: unknown }): SignalTier {
+  if (t.tier === undefined || t.tier === null || t.tier === "free") return "free";
+  return "elite";
+}
+
+/** Can a viewer see this trade? Elite-tier signals need `canSeeElite`; everything else is public to signed-in users. */
+export function visibleTrades<T extends { tier?: unknown }>(trades: T[], canSeeElite: boolean): T[] {
+  return canSeeElite ? trades : trades.filter((t) => tradeTier(t) === "free");
+}

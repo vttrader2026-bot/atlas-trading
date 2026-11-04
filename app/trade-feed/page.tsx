@@ -168,7 +168,17 @@ export default function TradeFeedPage() {
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
     let cancelled = false;
-    fetch("/api/trade-feed", { cache: "no-store" })
+    // Admin mode (?admin=1) sends the admin secret the Trade Plan page already stores, so the admin sees both tiers.
+    const headers: Record<string, string> = {};
+    try {
+      if (new URLSearchParams(window.location.search).get("admin") === "1") {
+        const adminSecret = window.localStorage.getItem("atlas-trading.adminSecret");
+        if (adminSecret) headers["x-admin-secret"] = adminSecret;
+      }
+    } catch {
+      /* storage unavailable: fall back to the normal plan-based view */
+    }
+    fetch("/api/trade-feed", { cache: "no-store", headers })
       .then((res) => {
         if (!res.ok) throw new Error("bad status");
         return res.json();
@@ -332,20 +342,6 @@ export default function TradeFeedPage() {
       </div>
 
         </>
-      )}
-
-      {trades && trades.length > 0 && (
-        <div className="mt-8 rounded-2xl border border-line bg-surface p-6 text-center shadow-[0_0_40px_-14px_color-mix(in_srgb,var(--gold)_45%,transparent)]">
-          <div className="text-label text-gold">{"\u269C Atlas Elite"}</div>
-          <p className="mt-2 text-sm text-text-muted max-w-md mx-auto">
-            {lang === "ar"
-              ? "\u0647\u0630\u0647 \u0625\u0634\u0627\u0631\u0627\u062A \u0639\u0627\u0645\u0629. \u0623\u0639\u0636\u0627\u0621 Elite \u064A\u062D\u0635\u0644\u0648\u0646 \u0639\u0644\u0649 \u0625\u0634\u0627\u0631\u0627\u062A \u062E\u0627\u0635\u0629\u060C \u0648\u0635\u0648\u0644 \u0623\u0628\u0643\u0631\u060C \u0648\u062A\u062D\u062F\u064A\u062B\u0627\u062A \u0643\u0627\u0645\u0644\u0629 \u0644\u0644\u0635\u0641\u0642\u0629."
-              : "These are the public signals. Elite members get private signals, earlier access, and full trade management."}
-          </p>
-          <Link href="/elite" className="btn-primary mt-4 inline-flex">
-            {lang === "ar" ? "\u0627\u0646\u0636\u0645 \u0625\u0644\u0649 Atlas Elite" : "Join Atlas Elite"}
-          </Link>
-        </div>
       )}
     </main>
   );

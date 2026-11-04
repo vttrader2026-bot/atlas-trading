@@ -69,9 +69,6 @@ export function SignalCard({
   const { t, lang } = useLanguage();
   const isLong = trade.direction === "Long";
   const hit = trade.hitLevels ?? [];
-  const hitSl = hit.includes("SL");
-  const hitAnyTp = hit.some((h) => h.startsWith("TP"));
-  const showEliteNudge = trade.status === "closed" && hitAnyTp && !hitSl;
 
   const { state, lastTp } = deriveState(trade, livePrice);
   const meta = STATE_META[state];
@@ -275,13 +272,6 @@ export function SignalCard({
 
         <footer className="mt-auto flex flex-col gap-1.5">
           <p className={"text-sm font-medium " + TONE_TEXT[meta.tone]}>{msg}</p>
-          {showEliteNudge && (
-            <p className="text-xs text-gold">
-              {lang === "ar"
-                ? "أعضاء Atlas Elite رصدوا هذه الصفقة قبل تحركها."
-                : "Elite members caught this before it moved."}
-            </p>
-          )}
         </footer>
         {actions}
       </div>
