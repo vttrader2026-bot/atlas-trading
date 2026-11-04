@@ -37,12 +37,13 @@ function clean(value: unknown, max = 500): string {
  * signed-in user whose Clerk plan is "elite". Free, Analyzer-only, expired/unknown plans and any
  * lookup failure (getUserPlan fails closed to "free") get FREE signals only.
  */
-async function viewerAccess(req: Request, userId: string | null): Promise<{ admin: boolean; elite: boolean }> {
+async function viewerAccess(req: Request, userId: string | null): Promise<{ admin: boolean; elite: boolean; member: boolean }> {
   const adminSecret = process.env.ADMIN_SECRET;
   const header = req.headers.get("x-admin-secret") ?? "";
-  if (adminSecret && header && safeEqual(header, adminSecret)) return { admin: true, elite: true };
-  if (!userId) return { admin: false, elite: false };
-  return { admin: false, elite: (await getUserPlan(userId)) === "elite" };
+  const admin = !!adminSecret && !!header && safeEqual(header, adminSecret);
+  // `member` = an active ELITE plan on the signed-in account (the only people who may Confirm Trade).
+  const member = userId ? (await getUserPlan(userId)) === "elite" : false;
+  return { admin, elite: admin || member, member };
 }
 
 export async function GET(req: Request) {
@@ -59,14 +60,16 @@ export async function GET(req: Request) {
   try {
     const stored = await redis.lrange<PublishedTrade>(FEED_KEY, 0, MAX_TRADES - 1);
     // Filter BEFORE anything is serialised: an unauthorised client never receives Elite data.
-    // The tier field itself is only sent to the admin, so FREE/Elite viewers see the same card data as before.
+    // The tier field is only sent to viewers who may see Elite signals (members and the admin), so the
+    // card can offer Confirm Trade; FREE viewers get exactly the card data they always got.
     const trades = visibleTrades(stored, access.elite).map((t) => {
-      if (access.admin) return { ...t, tier: tradeTier(t) };
+      if (access.elite) return { ...t, tier: tradeTier(t) };
       const { tier: _tier, ...publicTrade } = t;
       void _tier;
       return publicTrade;
     });
-    return NextResponse.json({ trades }, { headers: { "Cache-Control": "no-store" } });
+    // canConfirm is only ever true for an active ELITE member; the Confirm API re-checks it server-side.
+    return NextResponse.json(access.member ? { trades, canConfirm: true } : { trades }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("trade-feed GET failed:", err);
     return NextResponse.json({ trades: [] }, { status: 500 });

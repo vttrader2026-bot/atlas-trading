@@ -78,6 +78,8 @@ export default function TradeFeedPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const [trades, setTrades] = useState<PublishedTrade[] | null>(null);
   const [failed, setFailed] = useState(false);
+  // True only for an active ELITE member (set by the server); enables Confirm Trade on ELITE signals.
+  const [canConfirm, setCanConfirm] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [tickers, setTickers] = useState<Record<string, Ticker24h>>({});
@@ -184,7 +186,10 @@ export default function TradeFeedPage() {
         return res.json();
       })
       .then((data) => {
-        if (!cancelled) setTrades(Array.isArray(data.trades) ? data.trades : []);
+        if (!cancelled) {
+          setTrades(Array.isArray(data.trades) ? data.trades : []);
+          setCanConfirm(data.canConfirm === true);
+        }
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -323,6 +328,7 @@ export default function TradeFeedPage() {
                   onToggleWatch={() => toggleWatch(trade)}
                   onSeen={() => markSeen(trade)}
                   onTook={() => window.dispatchEvent(new Event(JOURNAL_EVENT))}
+                  confirmable={canConfirm && trade.tier === "elite"}
                 />
               }
               adminAction={

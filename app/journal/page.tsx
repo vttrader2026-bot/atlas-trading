@@ -14,6 +14,7 @@ import TradeDetails from "@/components/journal/TradeDetails";
 import TradeForm, { tradeToForm } from "@/components/journal/TradeForm";
 import { todayLocal } from "@/components/journal/format";
 import { fetchFeed, syncLocalRecords } from "@/lib/signalSync";
+import { confirmPlanIfElite, outcomeText } from "@/lib/eliteConfirmClient";
 import { isLiveSignal, isLongSignal, signalToTrade, type SignalLink } from "@/lib/signalLink";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 
@@ -119,7 +120,7 @@ export default function JournalPage() {
     setEditing({ base: tr, initial, key: Date.now() });
   }
 
-  function importFromPlan() {
+  async function importFromPlan() {
     const draft = loadDraft();
     if (!draft || !draft.pair) return setMsg(t("journal.importNone"));
     if (draft.direction === "Wait") return setMsg(t("journal.importWait"));
@@ -128,7 +129,14 @@ export default function JournalPage() {
     }
     const r = planToTrade(draft, { id: crypto.randomUUID(), today: todayLocal() });
     if (!r.ok) return setMsg(t(r.error === "notEntered" ? "journal.importPlanNotEntered" : "journal.importIncomplete"));
-    setEditing({ base: null, initial: { ...tradeToForm(r.trade) }, key: Date.now() });
+    // ELITE-CONFIRM-v1: a plan built on an ELITE signal goes through the server check instead of the local form.
+    const elite = await confirmPlanIfElite(draft, r.trade);
+    if (elite) {
+      if (!elite.ok) return setMsg(outcomeText(elite, t));
+      setTrades(loadTrades());
+      return setMsg(t("tradeFeed.cfDone"));
+    }
+    setEditing({ base: null, initial: { ...tradeToForm(r.trade) }, key: nowMs() });
     // keep the plan (and signal) links on save
     pendingPlan.current = { source: "plan", planId: draft.id ?? "", signalId: draft.signal?.id, signal: draft.signal };
     setMsg(t("journal.importOk"));
@@ -140,7 +148,7 @@ export default function JournalPage() {
     const f = await fetchFeed();
     if (!f.ok) return setPicker({ loading: false, list: [], error: t(f.reason === "auth" ? "journal.signalSignIn" : "journal.signalLoadErr") });
     const taken = new Set(trades.map((x) => x.signalId).filter(Boolean));
-    setPicker({ loading: false, list: f.trades.filter((x) => isLongSignal(x) && isLiveSignal(x) && !taken.has(x.id)), error: null });
+    setPicker({ loading: false, list: f.trades.filter((x) => isLongSignal(x) && isLiveSignal(x) && !taken.has(x.id) && x.tier !== "elite"), error: null });
   }
 
   // Importing a signal only PRE-FILLS the form. The entry price is left blank on purpose: nothing is

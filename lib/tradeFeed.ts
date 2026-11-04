@@ -19,7 +19,7 @@ export type PublishedTrade = {
   /**
    * Who may see this signal. Server-side only: assigned from the publisher's credential, never from
    * the request body. Anything stored without a tier (every signal published before this field
-   * existed) is "free". The API strips this field for everyone except the admin.
+   * existed) is "free". The API only sends this field to viewers who may see Elite signals (active Elite members and the admin).
    */
   tier?: SignalTier;
 };
@@ -36,3 +36,6 @@ export function tradeTier(t: { tier?: unknown }): SignalTier {
 export function visibleTrades<T extends { tier?: unknown }>(trades: T[], canSeeElite: boolean): T[] {
   return canSeeElite ? trades : trades.filter((t) => tradeTier(t) === "free");
 }
+
+/** Redis list that holds the published feed (shared by the feed API and the Confirm Trade API). */
+export const TRADE_FEED_KEY = "atlas:trade-feed";

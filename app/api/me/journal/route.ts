@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/userStore";
+import { splitUnconfirmedEliteTrades } from "@/lib/eliteConfirmServer";
 
 export const dynamic = "force-dynamic";
 
@@ -40,8 +41,11 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Journal too large" }, { status: 413 });
   }
   try {
-    await ctx.redis.set(key(ctx.userId), trades);
-    return NextResponse.json({ ok: true, count: trades.length });
+    // ELITE-CONFIRM-v1: a trade linked to an ELITE signal is only stored if it came from a server-side
+    // confirmation (fresh-price entry-zone check + duplicate guard). Everything else is refused, whatever route made it.
+    const { kept, rejected } = await splitUnconfirmedEliteTrades(ctx.redis, ctx.userId, trades as Array<Record<string, unknown>>);
+    await ctx.redis.set(key(ctx.userId), kept);
+    return NextResponse.json({ ok: true, count: kept.length, ...(rejected.length ? { rejected } : {}) });
   } catch (err) {
     console.error("journal PUT failed:", err);
     return NextResponse.json({ error: "Could not save journal" }, { status: 500 });

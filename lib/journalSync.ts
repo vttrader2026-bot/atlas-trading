@@ -15,13 +15,22 @@ function setDirty(dirty: boolean) {
   }
 }
 
-async function push(trades: Trade[]): Promise<boolean> {
+export async function push(trades: Trade[]): Promise<boolean> {
   try {
     const res = await fetch("/api/me/journal", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ trades }),
     });
+    if (res.ok) {
+      // The server refuses ELITE-linked trades that were not confirmed (fresh-price entry-zone check). Drop them here too.
+      const data = await res.json().catch(() => null);
+      const rejected: string[] = Array.isArray(data?.rejected) ? data.rejected : [];
+      if (rejected.length) {
+        writeLocalTrades(loadTrades().filter((t) => !rejected.includes(t.id)));
+        window.dispatchEvent(new Event(JOURNAL_UPDATED_EVENT));
+      }
+    }
     return res.ok;
   } catch {
     return false;

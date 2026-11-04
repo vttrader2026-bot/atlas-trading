@@ -13,6 +13,7 @@ import { loadTrades, saveTrades, validateTrade } from "@/lib/journal";
 import { parseInput } from "@/lib/riskCalc";
 import { isLiveSignal, isLongSignal, numericLevels, linkFromSignal, signalToTrade, watchUpdates, type Watched } from "@/lib/signalLink";
 import { JOURNAL_EVENT } from "@/lib/signalSync";
+import { ConfirmTradeDialog } from "@/components/tradefeed/ConfirmTradeDialog";
 import { plain, todayLocal } from "@/components/journal/format";
 
 const ISSUE_KEY: Record<string, string> = {
@@ -24,7 +25,7 @@ const pill = "inline-flex items-center justify-center rounded-full border px-3 p
 const pillIdle = "border-line text-text-muted hover:text-text hover:border-text-muted";
 
 export function SignalActions({
-  signal, livePrice, journalTradeId, hasPlan, watched, watchBusy, onToggleWatch, onSeen, onTook,
+  signal, livePrice, journalTradeId, hasPlan, watched, watchBusy, onToggleWatch, onSeen, onTook, confirmable = false,
 }: {
   signal: PublishedTrade;
   livePrice: number | null;
@@ -37,9 +38,14 @@ export function SignalActions({
   onToggleWatch: () => void;
   onSeen: () => void;
   onTook: () => void;
+  /** Active ELITE member looking at an ELITE signal: offers Confirm Trade (server-checked) instead of I Took This Trade. */
+  confirmable?: boolean;
 }) {
   const { t } = useLanguage();
   const [dialog, setDialog] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(false);
+  // ELITE signals can only enter the Journal through Confirm Trade (fresh-price entry-zone check).
+  const elite = signal.tier === "elite";
   const long = isLongSignal(signal);
   const live = isLiveSignal(signal);
   const upd = watched ? watchUpdates(watched, signal) : null;
@@ -69,11 +75,16 @@ export function SignalActions({
             ✓ {t("tradeFeed.actInJournal")}
           </Link>
         ) : (
-          long && live && (
+          long && live && !elite && (
             <button type="button" onClick={() => setDialog(true)} className={`${pill} border-gold/50 bg-gold/10 text-gold hover:bg-gold/20`}>
               {t("tradeFeed.actTook")}
             </button>
           )
+        )}
+        {long && live && elite && confirmable && !journalTradeId && (
+          <button type="button" onClick={() => setConfirmDialog(true)} className={`${pill} border-gold/50 bg-gold/10 text-gold hover:bg-gold/20`}>
+            {t("tradeFeed.actConfirm")}
+          </button>
         )}
         {(live || watched) && (
           <button
@@ -92,6 +103,7 @@ export function SignalActions({
         {t("tradeFeed.signalId")}: <span dir="ltr" className="font-data" style={{ unicodeBidi: "isolate" }} title={signal.id}>{label}</span>
       </p>
 
+      {confirmDialog && <ConfirmTradeDialog signal={signal} onClose={() => setConfirmDialog(false)} onDone={onTook} />}
       {dialog && <TookDialog signal={signal} livePrice={livePrice} onClose={() => setDialog(false)} onDone={onTook} />}
     </div>
   );

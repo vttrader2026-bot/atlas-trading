@@ -13,6 +13,7 @@ import { RISK_PRESETS, parseInput, type RiskError } from "@/lib/riskCalc";
 import { pct, price, qty, todayLocal, usd } from "@/components/journal/format";
 import { applyOfficialLevels, signalChanges, signalToDraft } from "@/lib/signalLink";
 import { fetchFeed, syncLocalRecords } from "@/lib/signalSync";
+import { confirmPlanIfElite, outcomeText } from "@/lib/eliteConfirmClient";
 
 const ADMIN_KEY = "atlas-trading.adminSecret";
 
@@ -122,13 +123,21 @@ export default function TradePlanPage() {
     commit({ ...draft, status: "draft", actualEntry: undefined, enteredAt: undefined });
   }
 
-  function sendToJournal() {
+  async function sendToJournal() {
     setSendMsg(null);
     const withId = { ...draft, id: draft.id ?? crypto.randomUUID() };
     const r = planToTrade(withId, { id: crypto.randomUUID(), today: todayLocal() });
     if (!r.ok) {
       const key = r.error === "notEntered" ? "tradePlan.confirmFirst" : r.error === "wait" ? "tradePlan.sendWait" : r.error === "pair" ? "tradePlan.sendPair" : r.error === "incomplete" ? "tradePlan.fillToCalculate" : ERR_KEY[r.error as RiskError];
       return setSendMsg(t(key));
+    }
+    // ELITE-CONFIRM-v1: a plan built on an ELITE signal becomes a Journal trade only through the server's
+    // fresh-price entry-zone check and duplicate guard. FREE plans (confirmPlanIfElite returns null) are unchanged.
+    const elite = await confirmPlanIfElite(withId, r.trade);
+    if (elite) {
+      if (!elite.ok) return setSendMsg(outcomeText(elite, t));
+      commit({ ...withId, journalId: elite.trade.id });
+      return setSendMsg(t("tradePlan.sendOk"));
     }
     saveTrades([r.trade, ...loadTrades()]);
     commit({ ...withId, journalId: r.trade.id });

@@ -129,11 +129,23 @@ describe("GET /api/trade-feed - who sees which tier", () => {
     h.list.push(trade({ id: "weird", tier: "vip" }));
     expect(await ids(await getFeed())).toEqual(["free1", "legacy"]);
   });
-  it("Elite viewers get the same card fields as before (no tier badge data)", async () => {
+  it("Elite members get the tier (so the card can offer Confirm Trade) and canConfirm; Free viewers get neither", async () => {
     h.metadata = { plan: "elite" };
-    const t = (await (await getFeed()).json()).trades.find((x: { id: string }) => x.id === "elite1");
-    expect(t.tier).toBeUndefined();
+    const elite = await (await getFeed()).json();
+    expect(elite.canConfirm).toBe(true);
+    const t = elite.trades.find((x: { id: string }) => x.id === "elite1");
+    expect(t.tier).toBe("elite");
     expect(t.pair).toBe("SOLUSDT");
+    for (const plan of [undefined, "free", "analyzer", "expired"]) {
+      h.metadata = { plan };
+      const free = await (await getFeed()).json();
+      expect(free.canConfirm).toBeUndefined();
+      expect(JSON.stringify(free)).not.toContain("tier");
+    }
+  });
+  it("the admin (not a member) sees both tiers but gets no canConfirm", async () => {
+    const body = await (await getFeed({ "x-admin-secret": ADMIN })).json();
+    expect(body.canConfirm).toBeUndefined();
   });
 });
 
