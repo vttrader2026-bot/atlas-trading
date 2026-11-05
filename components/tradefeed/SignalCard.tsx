@@ -272,6 +272,11 @@ export function SignalCard({
 
         <footer className="mt-auto flex flex-col gap-1.5">
           <p className={"text-sm font-medium " + TONE_TEXT[meta.tone]}>{msg}</p>
+          {typeof trade.confirmations === "number" && (
+            <p className="text-xs text-text-muted">
+              {t("tradeFeed.confirmations")}: <Num className="text-text">{trade.confirmations}</Num>
+            </p>
+          )}
         </footer>
         {actions}
       </div>

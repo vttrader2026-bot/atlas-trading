@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
 import { getTicker24h, Ticker24h } from "@/lib/binance";
-import type { PublishedTrade } from "@/lib/tradeFeed";
+import type { LockedSignal, PublishedTrade } from "@/lib/tradeFeed";
 import { SignalCard } from "@/components/tradefeed/SignalCard";
+import { LockedSignalCard } from "@/components/tradefeed/LockedSignalCard";
 import { SignalActions } from "@/components/tradefeed/SignalActions";
 import { loadTrades } from "@/lib/journal";
 import { loadDraft } from "@/lib/tradePlan";
@@ -73,10 +74,17 @@ function CoinLogo({ pair }: { pair: string }) {
   );
 }
 
+/** Full signals and locked previews in one newest-first list. */
+function mixed(trades: PublishedTrade[], locked: LockedSignal[]): Array<PublishedTrade | LockedSignal> {
+  return [...trades, ...locked].sort((a, b) => b.createdAt - a.createdAt);
+}
+
 export default function TradeFeedPage() {
   const { t, lang } = useLanguage();
   const { isLoaded, isSignedIn } = useAuth();
   const [trades, setTrades] = useState<PublishedTrade[] | null>(null);
+  // Open ELITE signals the viewer cannot access: server-built previews with no levels (ELITE-LOCKED-v1).
+  const [locked, setLocked] = useState<LockedSignal[]>([]);
   const [failed, setFailed] = useState(false);
   // True only for an active ELITE member (set by the server); enables Confirm Trade on ELITE signals.
   const [canConfirm, setCanConfirm] = useState(false);
@@ -157,8 +165,8 @@ export default function TradeFeedPage() {
   }
 
   // Real counts from the actual feed \u2014 never shown until there's enough data.
-  const publishedCount = trades?.length ?? 0;
-  const activeCount = trades?.filter((x) => (x.status ?? "open") !== "closed").length ?? 0;
+  const publishedCount = (trades?.length ?? 0) + locked.length;
+  const activeCount = (trades?.filter((x) => (x.status ?? "open") !== "closed").length ?? 0) + locked.length;
   const hasEnoughDataForStats = trades !== null && publishedCount >= MIN_TRADES_FOR_STATS;
 
   useEffect(() => {
@@ -188,6 +196,7 @@ export default function TradeFeedPage() {
       .then((data) => {
         if (!cancelled) {
           setTrades(Array.isArray(data.trades) ? data.trades : []);
+          setLocked(Array.isArray(data.locked) ? data.locked : []);
           setCanConfirm(data.canConfirm === true);
         }
       })
@@ -245,6 +254,30 @@ export default function TradeFeedPage() {
       }
     } catch {
       setMessage(t("tradeFeed.removeError"));
+    }
+  }
+
+  // CLOSE-ELITE-v1 (admin mode only; the API checks the admin secret).
+  async function closeEliteTrade(id: string) {
+    const outcome = window.prompt(t("tradeFeed.closePrompt"))?.trim().toUpperCase();
+    if (!outcome) return;
+    const reason = window.prompt(t("tradeFeed.closeReason")) ?? "";
+    let secret = "";
+    try {
+      secret = window.localStorage.getItem("atlas-trading.adminSecret") ?? "";
+    } catch {
+      /* storage unavailable */
+    }
+    secret = secret || window.prompt(t("tradePlan.enterAdminSecret")) || "";
+    if (!secret) return;
+    setMessage(null);
+    try {
+      const res = await fetch("/api/trade-feed/close", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ secret, id, outcome, reason }) });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.trade) setTrades((prev) => (prev ? prev.map((x) => (x.id === id ? { ...x, ...data.trade } : x)) : prev));
+      else setMessage(res.status === 401 ? t("tradePlan.publishUnauthorized") : res.status === 409 ? t("tradeFeed.closeDone") : t("tradeFeed.closeErr"));
+    } catch {
+      setMessage(t("tradeFeed.closeErr"));
     }
   }
 
@@ -308,13 +341,17 @@ export default function TradeFeedPage() {
         {!failed && trades === null && (
           <p className="text-text-muted text-sm">{t("tradeFeed.loading")}</p>
         )}
-        {trades !== null && trades.length === 0 && (
+        {trades !== null && trades.length === 0 && locked.length === 0 && (
           <p className="text-text-muted text-sm">{t("tradeFeed.empty")}</p>
         )}
       </div>
 
       <div className="mt-4 grid sm:grid-cols-2 gap-4">
-        {trades?.map((trade) => {
+        {trades && mixed(trades, locked).map((item) => {
+          if ("locked" in item) {
+            return <LockedSignalCard key={item.id} signal={item} logo={<CoinLogo pair={item.pair} />} />;
+          }
+          const trade = item;
           const ticker = tickers[binanceSymbol(trade.pair)];
           const live = ticker ? parseFloat(ticker.lastPrice) : NaN;
 
@@ -327,7 +364,6 @@ export default function TradeFeedPage() {
               actions={
                 <SignalActions
                   signal={trade}
-                  livePrice={Number.isFinite(live) && live > 0 ? live : null}
                   journalTradeId={journalBySignal[trade.id] ?? null}
                   hasPlan={planSignalId === trade.id}
                   watched={watched.find((w) => w.id === trade.id) ?? null}
@@ -335,18 +371,29 @@ export default function TradeFeedPage() {
                   onToggleWatch={() => toggleWatch(trade)}
                   onSeen={() => markSeen(trade)}
                   onTook={() => window.dispatchEvent(new Event(JOURNAL_EVENT))}
-                  confirmable={canConfirm && trade.tier === "elite"}
+                  confirmable={trade.tier === "elite" ? canConfirm : true}
                 />
               }
               adminAction={
                 isAdmin ? (
-                  <button
-                    type="button"
-                    onClick={() => removeTrade(trade.id)}
-                    className="text-xs text-bear border border-bear/40 rounded-full px-3 py-1 hover:bg-bear/10"
-                  >
-                    {t("tradeFeed.remove")}
-                  </button>
+                  <div className="flex flex-col items-end gap-1.5">
+                    {trade.tier === "elite" && trade.status !== "closed" && (
+                      <button
+                        type="button"
+                        onClick={() => closeEliteTrade(trade.id)}
+                        className="text-xs text-gold border border-gold/40 rounded-full px-3 py-1 hover:bg-gold/10"
+                      >
+                        {t("tradeFeed.closeSignal")}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeTrade(trade.id)}
+                      className="text-xs text-bear border border-bear/40 rounded-full px-3 py-1 hover:bg-bear/10"
+                    >
+                      {t("tradeFeed.remove")}
+                    </button>
+                  </div>
                 ) : null
               }
             />

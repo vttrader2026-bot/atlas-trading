@@ -66,16 +66,17 @@ export function outcomeText(o: { key: string; price?: number; zone?: { low: numb
 }
 
 /**
- * For a Trade Plan linked to a signal: if that signal is an ELITE signal, creates the Journal trade through the
+ * For a Trade Plan linked to a signal: if that signal is in the feed (FREE or ELITE), creates the Journal trade through the
  * server check (using the plan's own entry, size, stop and targets from `planTrade`) and returns the outcome.
- * Returns null when the signal is not ELITE (or has no link), so the normal FREE flow carries on unchanged.
+ * Returns null when the plan has no signal in the feed, so the normal FREE flow carries on unchanged.
  */
 export async function confirmPlanIfElite(draft: TradePlanDraft, planTrade: Trade): Promise<ConfirmOutcome | null> {
   const signalId = draft.signal?.id ?? draft.signalId;
   if (!signalId) return null;
   const feed = await fetchFeed();
-  // Only viewers allowed to see ELITE signals receive their tier; anyone else never gets here with an ELITE signal.
-  if (!feed.ok || feed.trades.find((x) => x.id === signalId)?.tier !== "elite") return null;
+  // Any signal the viewer can see in the feed (FREE or ELITE) goes through the server check. A plan with no
+  // feed signal behind it (or an unreadable feed) is not a signal confirmation and carries on as before.
+  if (!feed.ok || !feed.trades.some((x) => x.id === signalId)) return null;
   return postConfirm({
     signalId,
     entry: planTrade.entry,

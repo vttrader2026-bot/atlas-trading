@@ -31,6 +31,13 @@ const fakeRedis = () => ({
     m.set(f, structuredClone(v));
     return 1;
   },
+  hincrby: async (k: string, f: string, n: number) => {
+    const m = h.hashes.get(k) ?? new Map();
+    h.hashes.set(k, m);
+    const v = Number(m.get(f) ?? 0) + n;
+    m.set(f, v);
+    return v;
+  },
   hdel: async (k: string, f: string) => (h.hashes.get(k)?.delete(f) ? 1 : 0),
 });
 vi.mock("@/lib/userStore", () => ({
@@ -169,13 +176,25 @@ describe("Trade Plan -> Send to Journal for an ELITE signal", () => {
   });
 });
 
-describe("FREE trade plans behave exactly as before", () => {
-  it("a plan from a FREE signal is not routed to the server: the normal local flow carries on", async () => {
+describe("FREE signals use the same secure workflow; plans without a signal are untouched", () => {
+  it("a plan from a FREE signal goes through the server check and creates the Journal trade", async () => {
+    h.ticker.mockResolvedValue(price(10.5));
     const free = h.feed[1] as unknown as PublishedTrade;
     const draft = enteredPlan(free, "10.5", { invalidation: "9", tp1: "13" });
-    expect(await confirmPlanIfElite(draft, planTrade(draft))).toBeNull();
-    expect(h.ticker).not.toHaveBeenCalled();
-    expect(journalOf()).toEqual([]);
+    const out = await confirmPlanIfElite(draft, planTrade(draft));
+    expect(out?.ok).toBe(true);
+    expect(h.ticker).toHaveBeenCalledTimes(1);
+    expect(journalOf()).toHaveLength(1);
+    expect(journalOf()[0]).toMatchObject({ signalId: "sig-free", entry: 10.5, source: "plan" });
+  });
+  it("...and is blocked when the fresh price is outside the FREE signal's zone, or already confirmed", async () => {
+    const free = h.feed[1] as unknown as PublishedTrade;
+    const draft = enteredPlan(free, "10.5", { invalidation: "9", tp1: "13" });
+    expect(await confirmPlanIfElite(draft, planTrade(draft))).toMatchObject({ ok: false, key: "tradeFeed.cfAbove" }); // price 105 vs zone 10-11
+    h.ticker.mockResolvedValue(price(10.5));
+    expect((await confirmPlanIfElite(draft, planTrade(draft)))?.ok).toBe(true);
+    expect(await confirmPlanIfElite(draft, planTrade(draft))).toMatchObject({ ok: false, key: "tradeFeed.cfDuplicate" });
+    expect(journalOf()).toHaveLength(1);
   });
   it("a plan with no signal link is untouched", async () => {
     const draft: TradePlanDraft = { ...enteredPlan(sig()), signal: undefined, signalId: undefined };

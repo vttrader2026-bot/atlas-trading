@@ -8,6 +8,7 @@ const h = vi.hoisted(() => ({
   metadata: {} as Record<string, unknown>,
   clerkFails: false,
   after: [] as Array<() => unknown>,
+  counts: {} as Record<string, number>,
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({
@@ -24,6 +25,7 @@ vi.mock("@clerk/nextjs/server", () => ({
 vi.mock("@upstash/redis", () => ({
   Redis: class {
     async lrange() { return [...h.list]; }
+    async hgetall() { return { ...h.counts }; }
     async lpush(_k: string, v: Record<string, unknown>) { h.list.unshift(v); return h.list.length; }
     async ltrim() { return "OK"; }
     async lset(_k: string, i: number, v: Record<string, unknown>) { h.list[i] = v; return "OK"; }
@@ -66,12 +68,13 @@ beforeEach(() => {
   h.list = [
     trade({ id: "legacy", tradeId: "T001" }), // stored before tiers existed: no tier field
     trade({ id: "free1", tier: "free", tradeId: "T002" }),
-    trade({ id: "elite1", tier: "elite", pair: "SOLUSDT" }),
+    trade({ id: "elite1", tier: "elite", pair: "SOLUSDT", entryZone: "777-888", invalidation: "666", tp1: "901", tp2: "902", tp3: "903", reasoning: "SECRET-REASON" }),
   ];
   h.userId = "u1";
   h.metadata = {};
   h.clerkFails = false;
   h.after = [];
+  h.counts = {};
   push.trade.mockClear(); push.tpsl.mockClear(); push.closed.mockClear();
 });
 
@@ -115,21 +118,52 @@ describe("GET /api/trade-feed - who sees which tier", () => {
   it("a wrong admin secret grants nothing extra", async () => {
     expect(await ids(await getFeed({ "x-admin-secret": "nope" }))).toEqual(["free1", "legacy"]);
   });
-  it("no Elite trace in the unauthorised response body: no pair, id, count, tier field", async () => {
+  it("OPEN ELITE signal for non-members: a locked preview with NO levels anywhere in the response", async () => {
+    h.counts = { elite1: 3 };
     for (const plan of [undefined, "free", "analyzer", "expired"]) {
       h.metadata = { plan };
       const raw = await (await getFeed()).text();
-      expect(raw).not.toContain("elite");
-      expect(raw).not.toContain("SOLUSDT");
-      expect(raw).not.toContain("tier");
-      expect(JSON.parse(raw).trades).toHaveLength(2);
+      for (const secret of ["777", "888", "666", "901", "902", "903", "SECRET-REASON"]) expect(raw, `${plan}:${secret}`).not.toContain(secret);
+      const body = JSON.parse(raw);
+      expect(body.trades.map((t: { id: string }) => t.id).sort()).toEqual(["free1", "legacy"]);
+      for (const key of ["entryZone", "invalidation", "tp1", "tp2", "tp3", "reasoning", "hitLevels", "direction", "tradeId"]) expect(JSON.stringify(body.locked), key).not.toContain(key);
+      expect(body.locked).toEqual([{ id: "elite1", createdAt: 1, pair: "SOLUSDT", timeframe: "4H", status: "open", tier: "elite", locked: true, confirmations: 3 }]);
     }
+  });
+  it("members and the admin get the full ELITE signal, not a preview", async () => {
+    h.metadata = { plan: "elite" };
+    const body = await (await getFeed()).json();
+    expect(body.locked).toBeUndefined();
+    expect(body.trades.find((t: { id: string }) => t.id === "elite1")).toMatchObject({ entryZone: "777-888", invalidation: "666", tp1: "901" });
+    const admin = await (await getFeed({ "x-admin-secret": ADMIN })).json();
+    expect(admin.locked).toBeUndefined();
+    expect(admin.trades.find((t: { id: string }) => t.id === "elite1").entryZone).toBe("777-888");
+  });
+  it("CLOSED ELITE signal: the full official record (levels and result) is revealed to FREE viewers too", async () => {
+    h.list[2] = { ...(h.list[2] as Record<string, unknown>), status: "closed", hitLevels: ["TP1", "TP2"] };
+    for (const plan of [undefined, "free", "expired"]) {
+      h.metadata = { plan };
+      const body = await (await getFeed()).json();
+      expect(body.locked).toBeUndefined();
+      expect(body.trades.find((t: { id: string }) => t.id === "elite1")).toMatchObject({ tier: "elite", status: "closed", entryZone: "777-888", invalidation: "666", tp1: "901", tp2: "902", tp3: "903", hitLevels: ["TP1", "TP2"] });
+    }
+  });
+  it("confirmation counts are plain numbers per Signal ID (default 0); no member data is ever in the response", async () => {
+    h.counts = { free1: 2, elite1: 5, legacy: "junk" as unknown as number };
+    h.metadata = { plan: "elite" };
+    const body = await (await getFeed()).json();
+    const byId = Object.fromEntries(body.trades.map((t: { id: string; confirmations: number }) => [t.id, t.confirmations]));
+    expect(byId).toEqual({ free1: 2, elite1: 5, legacy: 0 });
+    expect(JSON.stringify(body)).not.toMatch(/user_|member|email/i);
+  });
+  it("the feed answers with no-store, so a locked or full view is never cached for another viewer", async () => {
+    expect((await getFeed()).headers.get("cache-control")).toBe("no-store");
   });
   it("an unrecognised tier value fails closed (hidden from non-Elite)", async () => {
     h.list.push(trade({ id: "weird", tier: "vip" }));
     expect(await ids(await getFeed())).toEqual(["free1", "legacy"]);
   });
-  it("Elite members get the tier (so the card can offer Confirm Trade) and canConfirm; Free viewers get neither", async () => {
+  it("Elite members get canConfirm; Free viewers do not", async () => {
     h.metadata = { plan: "elite" };
     const elite = await (await getFeed()).json();
     expect(elite.canConfirm).toBe(true);
@@ -140,7 +174,6 @@ describe("GET /api/trade-feed - who sees which tier", () => {
       h.metadata = { plan };
       const free = await (await getFeed()).json();
       expect(free.canConfirm).toBeUndefined();
-      expect(JSON.stringify(free)).not.toContain("tier");
     }
   });
   it("the admin (not a member) sees both tiers but gets no canConfirm", async () => {
@@ -274,8 +307,8 @@ describe("REGRESSION: a FREE account must never retrieve Trade Plan (ELITE) sign
     for (const [name, metadata] of viewers) {
       h.metadata = metadata;
       const raw = await (await getFeed()).text();
-      expect(raw, name).not.toContain(published.id as string);
-      expect(raw, name).not.toContain("entryZone\":\"100-101");
+      expect(raw, name).not.toContain("100-101");
+      expect(raw, name).not.toContain("\"tp3\":\"120\"");
     }
     h.metadata = { plan: "elite" };
     expect(await ids(await getFeed())).toContain(published.id);

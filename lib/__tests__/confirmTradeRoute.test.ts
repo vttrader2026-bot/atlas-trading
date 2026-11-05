@@ -32,6 +32,14 @@ const fakeRedis = () => ({
     m.set(f, structuredClone(v));
     return 1;
   },
+  hgetall: async (k: string) => { const m = h.hashes.get(k); return m ? structuredClone(Object.fromEntries(m)) : null; },
+  hincrby: async (k: string, f: string, n: number) => {
+    const m = h.hashes.get(k) ?? new Map();
+    h.hashes.set(k, m);
+    const v = Number(m.get(f) ?? 0) + n;
+    m.set(f, v);
+    return v;
+  },
   hdel: async (k: string, f: string) => (h.hashes.get(k)?.delete(f) ? 1 : 0),
 });
 vi.mock("@/lib/userStore", () => ({
@@ -67,19 +75,60 @@ beforeEach(() => {
   h.ticker.mockResolvedValue(price(105));
 });
 
-describe("access: active ELITE members only", () => {
+describe("access: signed-in members; ELITE signals need an active ELITE plan", () => {
   it("signed-out is 401", async () => {
     h.userId = null;
     expect((await confirm()).status).toBe(401);
   });
-  it("FREE, Analyzer Pro, expired and unknown plans are refused (403) and nothing is created", async () => {
+  it("FREE, expired and unknown plans cannot confirm an ELITE signal (404, same as an unknown id) and nothing is created", async () => {
     for (const u of ["free_user", "analyzer_user", "expired_user", "nobody"]) {
       h.userId = u;
-      expect((await confirm()).status, u).toBe(403);
+      const res = await confirm();
+      expect(res.status, u).toBe(404);
+      expect(((await res.json()) as { error: string }).error).toBe("signal_not_found");
       expect(journalOf(u)).toEqual([]);
       expect(confirmationsOf(u)).toBeUndefined();
     }
     expect(h.ticker).not.toHaveBeenCalled();
+    expect(h.hashes.get("atlas:signal-confirmations")).toBeUndefined();
+  });
+  it("a FREE-plan member CAN confirm a FREE signal, through the same price / zone / duplicate checks", async () => {
+    h.userId = "free_user";
+    const ok = await confirm({ signalId: "sig-free" });
+    expect(ok.status).toBe(201);
+    expect(journalOf("free_user")[0]).toMatchObject({ signalId: "sig-free", entry: 105, invested: 500, status: "open" });
+    expect((await confirm({ signalId: "sig-free" })).status).toBe(409);
+    h.userId = "member_b";
+    h.ticker.mockResolvedValue(price(111)); // above the zone
+    expect((await confirm({ signalId: "sig-free" })).status).toBe(422);
+    h.ticker.mockResolvedValue({ lastPrice: "105" }); // no timestamp: unavailable
+    expect((await confirm({ signalId: "sig-free" })).status).toBe(503);
+    expect(journalOf("member_b")).toEqual([]);
+  });
+});
+
+describe("confirmation count (unique per signal, no member data)", () => {
+  const counts = () => h.hashes.get("atlas:signal-confirmations");
+  it("counts one per member and signal; duplicates and blocked attempts do not count", async () => {
+    await confirm();
+    expect(counts()?.get("sig-elite")).toBe(1);
+    expect((await confirm()).status).toBe(409);
+    expect(counts()?.get("sig-elite")).toBe(1);
+    h.userId = "member_b";
+    h.ticker.mockResolvedValue(price(111));
+    expect((await confirm()).status).toBe(422);
+    expect(counts()?.get("sig-elite")).toBe(1);
+    h.ticker.mockResolvedValue(price(105));
+    expect((await confirm()).status).toBe(201);
+    expect(counts()?.get("sig-elite")).toBe(2);
+  });
+  it("two simultaneous confirmations by one member count once", async () => {
+    await Promise.all([confirm(), confirm()]);
+    expect(counts()?.get("sig-elite")).toBe(1);
+  });
+  it("the stored count is a bare number: no member id, name or trade data", async () => {
+    await confirm();
+    expect(JSON.stringify([...(counts() ?? [])])).toBe('[["sig-elite",1]]');
   });
 });
 
@@ -184,13 +233,12 @@ describe("required amounts", () => {
 });
 
 describe("which signals can be confirmed", () => {
-  it("FREE-tier, legacy untiered and unknown signals are not found here", async () => {
-    for (const id of ["sig-free", "sig-legacy", "nope"]) {
-      const res = await confirm({ signalId: id });
-      expect(res.status).toBe(404);
-      expect(((await res.json()) as { error: string }).error).toBe("signal_not_found");
-    }
-    expect(journalOf()).toEqual([]);
+  it("FREE-tier and legacy untiered signals are confirmable; an unknown id is not found", async () => {
+    for (const id of ["sig-free", "sig-legacy"]) expect((await confirm({ signalId: id })).status, id).toBe(201);
+    const res = await confirm({ signalId: "nope" });
+    expect(res.status).toBe(404);
+    expect(((await res.json()) as { error: string }).error).toBe("signal_not_found");
+    expect(journalOf()).toHaveLength(2);
   });
   it("closed or stopped-out signals cannot be confirmed", async () => {
     h.feed = [signal({ status: "closed" })];

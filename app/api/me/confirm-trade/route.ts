@@ -1,12 +1,12 @@
 // ELITE-CONFIRM-v1
 // "Confirm Trade" for ELITE signals (also used by Send to Journal from a Trade Plan built on an ELITE signal).
 // Everything that matters is decided on the server in lib/eliteConfirmServer.ts:
-//   active ELITE member (requireElite -> Clerk plan), open ELITE Long signal, a FRESH price fetched now,
+//   signed-in member (ELITE signals: active ELITE plan from Clerk), open Long signal, a FRESH price fetched now,
 //   price inside the official entry zone (both boundaries included), one confirmation per member and signal.
 // The official signal is only read. The member's own entry/investment live in the Journal trade.
 import { NextResponse } from "next/server";
-import { requireElite } from "@/lib/plan";
-import { getRedis } from "@/lib/userStore";
+import { getUserPlan } from "@/lib/plan";
+import { getRedis, requireUser } from "@/lib/userStore";
 import { getTicker24h } from "@/lib/binance";
 import { parseInput } from "@/lib/riskCalc";
 import { confirmEliteTrade, parsePlanExtras } from "@/lib/eliteConfirmServer";
@@ -19,8 +19,10 @@ function toNumber(v: unknown): unknown {
 }
 
 export async function POST(req: Request) {
-  const gate = await requireElite();
+  const gate = await requireUser();
   if (gate instanceof NextResponse) return gate;
+  // FREE signals: any signed-in member. ELITE signals: only an active ELITE plan (checked here, from Clerk).
+  const canSeeElite = (await getUserPlan(gate.userId)) === "elite";
   const redis = getRedis();
   if (!redis) {
     console.error("confirm-trade: Upstash env vars are missing");
@@ -36,7 +38,7 @@ export async function POST(req: Request) {
   if (!signalId) return NextResponse.json({ error: "missing_signal" }, { status: 400 });
   try {
     const r = await confirmEliteTrade(
-      { redis, userId: gate.userId, getTicker: getTicker24h },
+      { redis, userId: gate.userId, canSeeElite, getTicker: getTicker24h },
       { signalId, entry: toNumber(body.entry), invested: toNumber(body.invested), plan: parsePlanExtras(body.plan) },
     );
     return NextResponse.json(r.body, { status: r.status });

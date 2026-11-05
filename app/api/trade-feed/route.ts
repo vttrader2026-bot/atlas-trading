@@ -2,7 +2,7 @@ import { NextResponse, after } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { Redis } from "@upstash/redis";
 import { timingSafeEqual, randomUUID } from "crypto";
-import { tradeTier, visibleTrades, type PublishedTrade } from "@/lib/tradeFeed";
+import { tradeTier, feedForViewer, CONFIRM_COUNTS_KEY, type PublishedTrade } from "@/lib/tradeFeed";
 import { getUserPlan } from "@/lib/plan";
 import { notifyTradeSubscribers, notifyTpSlSubscribers, notifyTradeClosedSubscribers } from "@/lib/push";
 
@@ -59,17 +59,20 @@ export async function GET(req: Request) {
   }
   try {
     const stored = await redis.lrange<PublishedTrade>(FEED_KEY, 0, MAX_TRADES - 1);
-    // Filter BEFORE anything is serialised: an unauthorised client never receives Elite data.
-    // The tier field is only sent to viewers who may see Elite signals (members and the admin), so the
-    // card can offer Confirm Trade; FREE viewers get exactly the card data they always got.
-    const trades = visibleTrades(stored, access.elite).map((t) => {
-      if (access.elite) return { ...t, tier: tradeTier(t) };
-      const { tier: _tier, ...publicTrade } = t;
-      void _tier;
-      return publicTrade;
-    });
+    // ELITE-LOCKED-v1: build the viewer's feed BEFORE anything is serialised. Open ELITE signals reach non-members
+    // only as locked previews (no levels); closed ELITE signals are public records. See feedForViewer().
+    let counts: Record<string, unknown> = {};
+    try {
+      counts = (await redis.hgetall<Record<string, unknown>>(CONFIRM_COUNTS_KEY)) ?? {};
+    } catch (err) {
+      console.error("trade-feed: confirmation counts unavailable", err); // the feed still works, counts show 0
+    }
+    const { trades, locked } = feedForViewer(stored, access.elite, counts);
     // canConfirm is only ever true for an active ELITE member; the Confirm API re-checks it server-side.
-    return NextResponse.json(access.member ? { trades, canConfirm: true } : { trades }, { headers: { "Cache-Control": "no-store" } });
+    const body: Record<string, unknown> = { trades };
+    if (locked.length) body.locked = locked;
+    if (access.member) body.canConfirm = true;
+    return NextResponse.json(body, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("trade-feed GET failed:", err);
     return NextResponse.json({ trades: [] }, { status: 500 });

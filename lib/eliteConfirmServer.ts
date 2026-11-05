@@ -6,7 +6,7 @@
 // The price is fetched here, never taken from the client.
 import { randomUUID } from "crypto";
 import type { Redis } from "@upstash/redis";
-import { TRADE_FEED_KEY, tradeTier, type PublishedTrade } from "@/lib/tradeFeed";
+import { TRADE_FEED_KEY, CONFIRM_COUNTS_KEY, tradeTier, type PublishedTrade } from "@/lib/tradeFeed";
 import { checkEntryZone, evaluateFreshPrice, exchangeSymbol, validateAmounts, type Confirmation } from "@/lib/eliteConfirm";
 import { isLiveSignal, isLongSignal, signalToTrade } from "@/lib/signalLink";
 import { validateTrade, type Trade } from "@/lib/journal";
@@ -59,7 +59,7 @@ export function parsePlanExtras(raw: unknown): PlanExtras | undefined {
 }
 
 export async function confirmEliteTrade(
-  d: { redis: Redis; userId: string; getTicker: (symbol: string) => Promise<Ticker>; now?: () => number },
+  d: { redis: Redis; userId: string; /** The caller's plan is ELITE (decided by the route from Clerk). */ canSeeElite: boolean; getTicker: (symbol: string) => Promise<Ticker>; now?: () => number },
   input: ConfirmInput,
 ): Promise<ConfirmResult> {
   const { redis, userId } = d;
@@ -69,8 +69,8 @@ export async function confirmEliteTrade(
 
   const feed = await redis.lrange<PublishedTrade>(TRADE_FEED_KEY, 0, MAX_FEED - 1);
   const signal = feed.find((s) => s.id === signalId);
-  // Only ELITE signals can be confirmed here. A FREE or unknown id looks the same to the caller.
-  if (!signal || tradeTier(signal) !== "elite") return fail("signal_not_found", 404);
+  // An unknown id and an ELITE signal the caller may not see look the same: nothing is revealed.
+  if (!signal || (tradeTier(signal) === "elite" && !d.canSeeElite)) return fail("signal_not_found", 404);
   if (!isLongSignal(signal)) return fail("long_only", 400);
   if (!isLiveSignal(signal)) return fail("signal_closed", 409);
 
@@ -142,6 +142,12 @@ export async function confirmEliteTrade(
     console.error("confirm-trade: journal write failed, releasing claim", err);
     await redis.hdel(confirmationsKey(userId), signalId).catch(() => {});
     return fail("save_failed", 500);
+  }
+  // Unique confirmation counter (one per member and signal: the claim above is what makes it unique). Best effort.
+  try {
+    await redis.hincrby(CONFIRM_COUNTS_KEY, signalId, 1);
+  } catch (err) {
+    console.error("confirm-trade: could not update the confirmation count", err);
   }
   return { status: 201, body: { ok: true, trade, checkedPrice: price.price, zone: zone.zone } };
 }
