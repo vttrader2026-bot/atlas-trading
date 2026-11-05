@@ -113,6 +113,7 @@ export async function confirmEliteTrade(
     ...(x && x.stop !== undefined ? { stop: x.stop } : {}),
     now,
   });
+  if (trade.date === today) trade.watchFrom = now; // AUTO-SL-v1: the Journal watches candles from this moment
   if (x) {
     // A Trade Plan carries the member's own stop and targets; they replace the signal's defaults.
     for (const k of ["tp1", "tp2", "tp3"] as const) if (x[k] !== undefined) trade[k] = x[k];

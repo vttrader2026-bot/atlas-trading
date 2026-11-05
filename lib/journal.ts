@@ -46,6 +46,23 @@ export type Trade = {
   signalId?: string;
   signal?: SignalLink;
   updatedAt?: number;
+  /** AUTO-SL-v1: where the exit came from. "auto-sl" = the Journal closed it at the stop price (an ESTIMATE, not a fill). */
+  exitSource?: "manual" | "auto-sl";
+  /** Record of the automatic stop-loss exit. Kept for good, so a trade is never auto-closed twice (even if reopened). */
+  autoSl?: AutoSlRecord;
+  /** The Journal only looks at candles from this time on (ms). Set when the trade starts today or its stop is edited. */
+  watchFrom?: number;
+};
+
+export type AutoSlRecord = {
+  /** When the Journal noticed the touch (ms). */
+  detectedAt: number;
+  /** Open time (ms) of the 1-minute (or hourly, for old trades) candle whose low touched the stop. */
+  touchedAt: number;
+  /** That candle's low. */
+  low: number;
+  /** The exit price used: the trade's own stop. Estimated; real fills can differ. */
+  estimatedExit: number;
 };
 
 export const KEY = "atlas-trading.journal.v1";

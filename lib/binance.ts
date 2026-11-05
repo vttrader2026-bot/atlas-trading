@@ -116,6 +116,17 @@ export async function getKlines(symbol: string, interval: string, limit: number)
   }));
 }
 
+/** Candles starting at `startTime` (ms), oldest first. Used by the Journal's automatic stop-loss check. */
+export async function getKlinesFrom(symbol: string, interval: string, startTime: number, limit = 1000): Promise<Kline[]> {
+  const res = await fetch(`${BASE}/klines?symbol=${symbol}&interval=${interval}&startTime=${Math.floor(startTime)}&limit=${limit}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load klines for ${symbol}`);
+  const raw = (await res.json()) as Array<Array<string | number>>;
+  return raw.map((k) => ({
+    openTime: Number(k[0]), open: parseFloat(String(k[1])), high: parseFloat(String(k[2])), low: parseFloat(String(k[3])),
+    close: parseFloat(String(k[4])), volume: parseFloat(String(k[5])), closeTime: Number(k[6]), quoteVolume: parseFloat(String(k[7])),
+  }));
+}
+
 export function formatPrice(value: string | number, digits = 2): string {
   const n = typeof value === "string" ? parseFloat(value) : value;
   // A genuine $0 price on a live USDT pair never happens — a literal 0 here

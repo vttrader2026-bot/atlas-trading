@@ -49,7 +49,7 @@ export function buildJournalReport(trades: Trade[]): JournalReport {
       TP1: fmtPrice(t.tp1 ?? (t.target > 0 ? t.target : null)),
       TP2: fmtPrice(t.tp2),
       TP3: fmtPrice(t.tp3),
-      Exit: closed ? fmtPrice(t.exit) : DASH,
+      Exit: closed ? fmtPrice(t.exit) + (t.exitSource === "auto-sl" ? "*" : "") : DASH,
       Invested: fmtMoney(investedOf(t)),
       Size: fmtSize(t.size),
       PnL: pnl === null ? DASH : fmtMoney(pnl, true),
@@ -199,7 +199,7 @@ export async function renderJournalPdf(trades: Trade[], generatedAt = new Date()
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(...MUTED);
-    doc.text("Atlas Trading - for personal record keeping only. Not financial advice. PnL is net of the fees entered.", mx, H - 20);
+    doc.text("Atlas Trading - for personal record keeping only. Not financial advice. PnL is net of the fees entered." + (report.rows.some((r) => r.Exit.endsWith("*")) ? " * Estimated automatic stop-loss exit, not an actual fill." : ""), mx, H - 20);
     doc.text(`Page ${p} of ${pages}`, W - mx, H - 20, { align: "right" });
   }
   return doc;

@@ -30,6 +30,22 @@ const reqNum = (s: string): number => parseInput(s) ?? 0;
 
 /** Form -> Trade. Unknown/legacy fields of `base` are preserved. Invalid text becomes NaN-free values the validator rejects. */
 export function formToTrade(f: F, base: Trade | null, id: string): Trade {
+  const out = buildTrade(f, base, id);
+  // AUTO-SL-v1: automatic-exit bookkeeping. The Journal only watches candles from when the trade started today or its stop last changed.
+  if (base === null) {
+    if (f.date === todayLocal()) out.watchFrom = Date.now();
+  } else if (base.stop !== out.stop || (base.status === "closed" && out.status === "open")) {
+    out.watchFrom = Date.now();
+  }
+  if (base?.exitSource === "auto-sl" && !(out.status === "closed" && out.exit === base.exit)) {
+    // The member changed the exit or reopened the trade: it is no longer the automatic estimate.
+    if (out.status === "closed") out.exitSource = "manual";
+    else delete out.exitSource;
+  }
+  return out;
+}
+
+function buildTrade(f: F, base: Trade | null, id: string): Trade {
   const bad = (s: string) => s.trim() !== "" && parseInput(s) === null;
   const closed = f.status === "closed";
   const tp1 = optNum(f.tp1);

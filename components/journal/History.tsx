@@ -88,7 +88,7 @@ export default function History({
                       <td className="px-4 py-3"><Num>{tr.pair}</Num></td>
                       <td className="px-4 py-3"><StatusTag trade={tr} t={t} /></td>
                       <td className="px-4 py-3 text-end"><Num>{price(tr.entry)}</Num></td>
-                      <td className="px-4 py-3 text-end"><Num>{statusOf(tr) === "closed" ? price(tr.exit) : "—"}</Num></td>
+                      <td className="px-4 py-3 text-end"><Num>{statusOf(tr) === "closed" ? price(tr.exit) : "—"}</Num>{statusOf(tr) === "closed" && tr.exitSource === "auto-sl" && <span className="tag ms-1" title={t("journal.autoSlNote")}>{t("journal.autoSlTag")}</span>}</td>
                       <td className="px-4 py-3 text-end"><Num>{usd(investedOf(tr))}</Num></td>
                       <td className={`px-4 py-3 text-end ${c.live ? "opacity-80" : ""}`}>
                         <Num cls={tone(c.value)}>{c.value === null ? "—" : signedUsd(c.value)}</Num>

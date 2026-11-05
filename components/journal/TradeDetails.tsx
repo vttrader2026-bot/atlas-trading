@@ -70,7 +70,13 @@ export default function TradeDetails({
           <Row label={t("journal.fEntryPrice")}><Num>{price(trade.entry)}</Num></Row>
           <Row label={t("journal.fStop")}><Num>{trade.stop ? price(trade.stop) : "—"}</Num></Row>
           {closed && <Row label={t("journal.fExitDate")}><Num>{trade.exitDate || "—"}</Num></Row>}
-          {closed && <Row label={t("journal.fExitPrice")}><Num>{price(trade.exit)}</Num></Row>}
+          {closed && <Row label={t("journal.fExitPrice")}><Num>{price(trade.exit)}</Num>{trade.exitSource === "auto-sl" && <span className="tag ms-2">{t("journal.autoSlTag")}</span>}</Row>}
+          {closed && trade.exitSource === "auto-sl" && (
+            <div className="col-span-full rounded-lg border border-gold/40 bg-gold/10 p-3 text-xs text-text-muted">
+              {t("journal.autoSlNote")}
+              {trade.autoSl && <> <Num>{new Date(trade.autoSl.detectedAt).toISOString().slice(0, 16).replace("T", " ")} UTC</Num></>}
+            </div>
+          )}
           <Row label={t("journal.fInvested")}><Num>{usd(inv)}</Num></Row>
           <Row label={t("journal.fQuantity")}><Num>{qty(trade.size)}</Num></Row>
           <Row label={t("journal.fFees")}><Num>{feesOf(trade) ? usd(feesOf(trade)) : "—"}</Num></Row>

@@ -7,7 +7,8 @@ import { Trade, computeDashboard, filterAndSort, loadTrades, saveTrades, statusO
 import { useLanguage } from "@/lib/i18n";
 import { loadDraft } from "@/lib/tradePlan";
 import { planToTrade } from "@/lib/planBridge";
-import { getTicker24h } from "@/lib/binance";
+import { getKlinesFrom, getTicker24h } from "@/lib/binance";
+import { applyAutoSl, findAutoSlTouches, newMonitorState } from "@/lib/autoSl";
 import Overview from "@/components/journal/Overview";
 import History, { Query } from "@/components/journal/History";
 import TradeDetails from "@/components/journal/TradeDetails";
@@ -65,6 +66,30 @@ export default function JournalPage() {
     };
   }, [mounted]);
 
+  const persist = useCallback((next: Trade[]) => {
+    setTrades(next);
+    saveTrades(next);
+  }, []);
+
+  // AUTO-SL-v1: in the same 60-second loop, close open trades whose stop was touched by a 1-minute candle low.
+  // Only this page triggers it, and only from the trade's own data (never from the official signal's status).
+  const autoSl = useRef(newMonitorState());
+  const checkAutoSl = useCallback(async () => {
+    const touches = await findAutoSlTouches(loadTrades(), async (sym, interval, start, limit) => getKlinesFrom(sym, interval, start, limit), Date.now(), autoSl.current);
+    if (!touches.size) return;
+    const now = Date.now();
+    const closed: string[] = [];
+    const next = loadTrades().map((x) => {
+      const hit = touches.get(x.id);
+      const c = hit ? applyAutoSl(x, hit, now) : null; // null when it is no longer an open, unprocessed trade: never applied twice
+      if (c) closed.push(c.pair);
+      return c ?? x;
+    });
+    if (!closed.length) return;
+    persist(next);
+    setMsg(`${t("journal.autoSlClosed")} ${closed.join(", ")}`);
+  }, [persist, t]);
+
   // Live prices for open trades only (best effort: Binance may be unreachable; manual price is the fallback).
   const openPairs = useMemo(() => Array.from(new Set(trades.filter((x) => statusOf(x) === "open").map((x) => x.pair))).sort().join(","), [trades]);
   useEffect(() => {
@@ -83,6 +108,7 @@ export default function JournalPage() {
         }),
       );
       if (!off) setPrices((prev) => ({ ...prev, ...next }));
+      if (!off) await checkAutoSl();
     };
     load();
     const iv = setInterval(load, 60_000);
@@ -90,12 +116,7 @@ export default function JournalPage() {
       off = true;
       clearInterval(iv);
     };
-  }, [openPairs]);
-
-  const persist = useCallback((next: Trade[]) => {
-    setTrades(next);
-    saveTrades(next);
-  }, []);
+  }, [openPairs, checkAutoSl]);
 
   const dash = useMemo(() => computeDashboard(trades), [trades]);
   const unrealized = useMemo(() => {

@@ -70,6 +70,8 @@ export function planToTrade(draft: TradePlanDraft, ctx: { id: string; today: str
       source: "plan",
       ...(draft.signal ? { signalId: draft.signal.id, signal: draft.signal } : {}),
       updatedAt: ctx.now ?? Date.now(),
+      // AUTO-SL-v1: a trade that starts today is watched from now on
+      ...((draft.enteredAt || ctx.today) === ctx.today ? { watchFrom: ctx.now ?? Date.now() } : {}),
     },
   };
 }
