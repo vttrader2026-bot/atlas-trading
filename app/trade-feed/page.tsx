@@ -250,8 +250,15 @@ export default function TradeFeedPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
-      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("tradeFeed.title")}</h1>
-      <p className="text-text-muted text-sm mt-1 max-w-xl">{t("tradeFeed.subtitle")}</p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("tradeFeed.title")}</h1>
+          <p className="text-text-muted text-sm mt-1 max-w-xl">{t("tradeFeed.subtitle")}</p>
+        </div>
+        {isLoaded && isSignedIn && (
+          <Link href="/journal" className="btn-secondary shrink-0">{t("tradeFeed.myJournal")}</Link>
+        )}
+      </div>
 
       {isLoaded && !isSignedIn && (
         <div className="mt-6 rounded-2xl border border-line bg-surface p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
@@ -16,6 +16,7 @@ import {
   IconAcademy,
   IconWatchlist,
   IconTradeFeed,
+  IconJournal,
 } from "@/components/icons";
 
 const LANG_OPTIONS: { code: "en" | "ar" | "fr"; label: string }[] = [
@@ -89,11 +90,111 @@ function CommandNavLink({
   );
 }
 
+const isOn = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+// NAV-TRADE-MGMT-v1
+// Desktop "Trade Management" dropdown (Trade Plan, Journal, Risk Calculator). The command bar scrolls
+// horizontally, which would clip an absolutely positioned menu, so the menu is fixed-positioned from the
+// button's rectangle when opened. Closes on outside click, Escape, scroll, resize or choosing an item.
+function TradeManagementMenu({ label, items, pathname }: { label: string; items: { href: string; label: string }[]; pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const active = items.some((i) => isOn(pathname, i.href));
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    };
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (!menuRef.current?.contains(target) && !btnRef.current?.contains(target)) setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [open]);
+
+  function toggle() {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) {
+      const width = 224;
+      const rtl = document.documentElement.dir === "rtl";
+      const left = Math.min(Math.max(8, rtl ? r.right - width : r.left), window.innerWidth - width - 8);
+      setPos({ top: r.bottom + 8, left });
+    }
+    setOpen((v) => !v);
+  }
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={label}
+        className={`group relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 lg:px-1 xl:px-2.5 py-[7px] text-[13px] lg:text-[12.5px] xl:text-[13px] font-medium transition-colors duration-150 ${
+          active || open ? "bg-gold/10 text-text" : "text-text-muted hover:bg-surface-raised/70 hover:text-text"
+        }`}
+      >
+        <span className={`flex shrink-0 items-center lg:hidden transition-colors duration-150 ${active ? "text-gold" : "text-text-muted group-hover:text-text"}`}>
+          <IconJournal className="w-[18px] h-[18px]" />
+        </span>
+        <span className="hidden lg:inline">{label}</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" className={`hidden lg:block transition-transform ${open ? "rotate-180" : ""}`}>
+          <path d="M2 3.5l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {active && <span className="pointer-events-none absolute inset-x-2 -bottom-[5px] h-[1.5px] rounded-full bg-gold" aria-hidden="true" />}
+      </button>
+      {open && (
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label={label}
+          style={{ position: "fixed", top: pos.top, left: pos.left, width: 224 }}
+          className="z-50 rounded-lg border border-line bg-surface p-1 shadow-lg"
+        >
+          {items.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              aria-current={isOn(pathname, item.href) ? "page" : undefined}
+              className={`block rounded-md px-3 py-2 text-sm transition-colors ${
+                isOn(pathname, item.href) ? "bg-gold/10 text-text" : "text-text-muted hover:bg-surface-raised/70 hover:text-text"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function Nav() {
   const pathname = usePathname();
   const { lang, setLang, t } = useLanguage();
   const { isLoaded, isSignedIn } = useAuth();
   const [open, setOpen] = useState(false);
+  const [tmOpen, setTmOpen] = useState(false); // mobile "Trade Management" group
 
   // Close the mobile menu whenever the route changes.
   useEffect(() => {
@@ -101,6 +202,13 @@ export default function Nav() {
   }, [pathname]);
 
   const marketIntelLabel = t("nav.marketIntel");
+  // Trade Management groups the three tools that used to be separate links; their routes are unchanged.
+  const TRADE_MGMT = [
+    { href: "/trade-plan", label: t("nav.tradePlan") },
+    { href: "/journal", label: t("nav.journal") },
+    { href: "/risk", label: t("nav.riskCalculator") },
+  ];
+  const tmActive = TRADE_MGMT.some((i) => isOn(pathname, i.href));
 
   // Desktop "ATLAS Command Bar" — the five primary market-intelligence
   // destinations. Trade Plan, Risk, and Journal are intentionally not
@@ -153,9 +261,6 @@ export default function Nav() {
       label: "TRADING",
       links: [
         { href: "/analyzer", label: t("nav.analyzer") },
-        { href: "/trade-plan", label: t("nav.tradePlan") },
-        { href: "/risk", label: t("nav.risk") },
-        { href: "/journal", label: t("nav.journal") },
       ],
     },
     {
@@ -214,13 +319,15 @@ export default function Nav() {
         >
           <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-none rounded-lg border border-line/70 bg-surface/50 p-0.5 xl:p-1">
             {COMMAND_LINKS.map((link) => (
-              <CommandNavLink
-                key={link.href}
-                href={link.href}
-                icon={link.icon}
-                label={link.label}
-                active={pathname === link.href || pathname.startsWith(`${link.href}/`)}
-              />
+              <Fragment key={link.href}>
+                <CommandNavLink
+                  href={link.href}
+                  icon={link.icon}
+                  label={link.label}
+                  active={pathname === link.href || pathname.startsWith(`${link.href}/`)}
+                />
+                {link.href === "/trade-feed" && <TradeManagementMenu label={t("nav.tradeManagement")} items={TRADE_MGMT} pathname={pathname} />}
+              </Fragment>
             ))}
           </div>
           <Link href="/elite" className={`${elitePillClass} ms-1 xl:ms-2 px-2 lg:px-2.5 xl:px-3 py-1.5`} aria-label={eliteLabel} title={eliteLabel}>
@@ -274,6 +381,34 @@ export default function Nav() {
                       </Link>
                     );
                   })}
+                  {group.label === "TRADING" && (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setTmOpen((v) => !v)}
+                        aria-expanded={tmOpen || tmActive}
+                        className={`flex w-full items-center justify-between px-2 py-2 text-sm transition-colors ${tmActive ? "text-text" : "text-text-muted hover:text-text"}`}
+                      >
+                        <span>{t("nav.tradeManagement")}</span>
+                        <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" className={`transition-transform ${tmOpen || tmActive ? "rotate-180" : ""}`}>
+                          <path d="M2 3.5l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      {(tmOpen || tmActive) && (
+                        <div className="ms-3 flex flex-col border-s border-line ps-2">
+                          {TRADE_MGMT.map((item) => (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              className={`px-2 py-2 text-sm transition-colors ${isOn(pathname, item.href) ? "text-text" : "text-text-muted hover:text-text"}`}
+                            >
+                              {item.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

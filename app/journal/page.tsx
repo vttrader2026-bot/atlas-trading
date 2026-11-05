@@ -3,7 +3,7 @@
 // ATLAS-JOURNAL-v2
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Trade, computeDashboard, filterAndSort, loadTrades, saveTrades, statusOf, tradesToCsv, unrealizedPnl } from "@/lib/journal";
+import { Trade, computeDashboard, filterAndSort, loadTrades, saveTrades, statusOf, unrealizedPnl } from "@/lib/journal";
 import { useLanguage } from "@/lib/i18n";
 import { loadDraft } from "@/lib/tradePlan";
 import { planToTrade } from "@/lib/planBridge";
@@ -190,14 +190,15 @@ export default function JournalPage() {
     setMsg(t("journal.deleted"));
   }
 
-  function exportCsv() {
-    const blob = new Blob(["﻿" + tradesToCsv(trades)], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "atlas-trading-journal.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+  async function downloadPdf() {
+    setMsg(null);
+    try {
+      const { downloadJournalPdf } = await import("@/lib/journalPdf");
+      await downloadJournalPdf(trades);
+    } catch (err) {
+      console.error("journal pdf failed", err);
+      setMsg(t("journal.pdfError"));
+    }
   }
 
   if (!mounted) return null;
@@ -215,7 +216,7 @@ export default function JournalPage() {
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={importFromPlan} className="btn-secondary">{t("journal.importPlan")}</button>
           <button type="button" onClick={openSignalPicker} className="btn-secondary">{t("journal.importSignal")}</button>
-          <button type="button" onClick={exportCsv} disabled={trades.length === 0} className="btn-secondary">{t("journal.exportCsv")}</button>
+          <button type="button" onClick={downloadPdf} disabled={trades.length === 0} className="btn-secondary">{t("journal.downloadPdf")}</button>
           <button type="button" onClick={startNew} className="btn-primary">{t("journal.addTrade")}</button>
         </div>
       </div>
