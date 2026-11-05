@@ -138,9 +138,9 @@ export async function POST(req: Request) {
   try {
     await redis.lpush(FEED_KEY, trade);
     await redis.ltrim(FEED_KEY, 0, MAX_TRADES - 1);
-    // Push notifications go to every subscriber, so Elite signals must not trigger them (notification
-    // targeting by tier is a later phase).
-    if (trade.tier === "free") after(() => notifyTradeSubscribers(trade));
+    // One unified, detail-free notification for every new signal (FREE from the bot, ELITE from the website).
+    // Opening an ELITE signal is still gated by GET /api/trade-feed.
+    after(() => notifyTradeSubscribers(trade));
     return NextResponse.json({ ok: true, trade }, { status: 201 });
   } catch (err) {
     console.error("trade-feed POST failed:", err);

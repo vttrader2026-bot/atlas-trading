@@ -7,6 +7,7 @@ import type { PublishedTrade } from "@/lib/tradeFeed";
 import { buildRadarRows, type RadarRow } from "@/lib/radar";
 import { getAllTickers24h, getTicker24h, getSpotTradingSymbols } from "@/lib/binance";
 import { lessons, type Lesson } from "@/lib/academy-content";
+import { baseSymbol, coinNameFor } from "@/lib/coinName";
 
 type Lang = "en" | "ar";
 
@@ -49,21 +50,18 @@ function configure(): boolean {
   return true;
 }
 
-export function tradePayload(trade: PublishedTrade, lang: Lang): Payload {
-  if (lang === "ar") {
-    const dir = trade.direction === "Long" ? "شراء" : "بيع";
-    return {
-      title: "صفقة جديدة: " + trade.pair + " " + dir,
-      body: trade.entryZone ? "الدخول: " + trade.entryZone : "Atlas Trading",
-      url: "https://www.atlastrading.app/trade-feed",
-      tag: "trade-" + trade.id,
-    };
-  }
+// SIGNAL-NOTIFY-v1
+// ONE notification for every new signal, FREE or ELITE, from the website or the Telegram bot. It carries no trade
+// details (no entry, SL or TP) and the same text goes to everyone who receives signal notifications; who may OPEN the
+// signal is decided by the Trade Feed API, not here. `coinName` is looked up once per signal by the caller.
+export function tradePayload(trade: PublishedTrade, _lang: Lang, coinName?: string | null): Payload {
+  void _lang; // the wording is fixed (same for every language), as specified
+  const symbol = baseSymbol(trade.pair) ?? String(trade.pair ?? "").toUpperCase();
   return {
-    title: "New trade setup: " + trade.pair + " " + trade.direction,
-    body: trade.entryZone ? "Entry: " + trade.entryZone : "Atlas Trading",
+    title: "\u26A1 BUY SIGNAL",
+    body: "New signal: " + (coinName && coinName.toUpperCase() !== symbol ? coinName + " (" + symbol + ")" : symbol),
     url: "https://www.atlastrading.app/trade-feed",
-    tag: "trade-" + trade.id,
+    tag: "signal-" + trade.id,
   };
 }
 
@@ -163,13 +161,25 @@ export async function notifyTradeSubscribers(trade: PublishedTrade): Promise<voi
   try {
     const redis = getRedis();
     if (!redis || !configure()) return;
+    // Never notify twice for the same signal, even if this is invoked again (retry, double call). The bot's own
+    // id (e.g. "T268") is guarded too: a bot retry of the same signal creates a new feed record (new uuid) but is
+    // still the same signal, so it must not notify again.
+    const ttl = { nx: true, ex: 60 * 60 * 24 * 7 } as const;
+    if (trade.tradeId) {
+      const firstBot = await redis.set(`push:signal-sent:bot:${trade.tradeId}`, "1", ttl);
+      if (!firstBot) return;
+    }
+    const first = await redis.set(`push:signal-sent:${trade.id}`, "1", ttl);
+    if (!first) return;
+    const symbol = baseSymbol(trade.pair);
+    const coinName = symbol ? await coinNameFor(symbol, redis) : null;
     const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
     for (let i = 0; i < userIds.length; i += 20) {
       await Promise.allSettled(
         userIds.slice(i, i + 20).map(async (userId) => {
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           if (!prefs.enabled || !prefs.tradeFeed) return;
-          await sendToUser(userId, (lang) => tradePayload(trade, lang));
+          await sendToUser(userId, (lang) => tradePayload(trade, lang, coinName));
         }),
       );
     }

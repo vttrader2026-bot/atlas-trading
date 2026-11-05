@@ -168,3 +168,20 @@ export async function getGlobalMetrics(): Promise<GlobalMetrics> {
     lastUpdated: str(data.last_updated),
   };
 }
+
+/**
+ * Display name for a ticker from CoinMarketCap's coin map (highest-ranked active coin with that symbol).
+ * Returns null when there is no key, no match or any error - callers then use the symbol alone.
+ */
+export async function getCoinNameFromCmc(symbol: string): Promise<string | null> {
+  if (!/^[A-Z0-9]{1,15}$/.test(symbol) || !apiKey()) return null;
+  try {
+    const body = obj(await cmcGet(`/v1/cryptocurrency/map?symbol=${symbol}&listing_status=active&sort=cmc_rank&limit=1`));
+    const first = Array.isArray(body?.data) ? obj((body.data as unknown[])[0]) : null;
+    const name = str(first?.name);
+    return name ? name.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 40) || null : null;
+  } catch (err) {
+    console.error("coinmarketcap: coin name lookup failed", err);
+    return null;
+  }
+}

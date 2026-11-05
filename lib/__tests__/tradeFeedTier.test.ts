@@ -184,12 +184,12 @@ describe("POST /api/trade-feed - tier assignment", () => {
     expect(await ids(await getFeed())).not.toContain(newId);
     expect(await ids(await getFeed({ "x-admin-secret": ADMIN }))).toContain(newId);
   });
-  it("push notifications: FREE signals notify as before, ELITE signals never notify the general list", async () => {
+  it("push notifications: every new signal notifies once, FREE (bot) and ELITE (website) alike", async () => {
     await post(BOT);
     await post(ADMIN);
     h.after.forEach((fn) => fn());
-    expect(push.trade).toHaveBeenCalledTimes(1);
-    expect(push.trade.mock.calls[0][0].tier).toBe("free");
+    expect(push.trade).toHaveBeenCalledTimes(2);
+    expect(push.trade.mock.calls.map((c) => c[0].tier).sort()).toEqual(["elite", "free"]);
   });
 });
 
