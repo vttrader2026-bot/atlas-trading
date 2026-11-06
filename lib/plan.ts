@@ -27,6 +27,23 @@ export function analyzeLimitReachedMessage(plan: Plan, limit: number): string {
 }
 
 /**
+ * ADMIN-v1: the plan a member ACTUALLY has right now, from their Clerk privateMetadata.
+ *  - `suspended: true` removes paid access immediately (the stored plan is kept, so unsuspending restores it).
+ *  - An ELITE plan with `eliteUntil` (epoch ms) stops at that moment. A malformed `eliteUntil` fails closed to "free".
+ *  - ELITE without `eliteUntil` (every member created before expiry existed) has no end date and stays active.
+ */
+export function effectivePlan(meta: Record<string, unknown> | null | undefined, now: number = Date.now()): Plan {
+  const raw = meta?.plan;
+  if (raw !== "elite" && raw !== "analyzer") return "free";
+  if (meta?.suspended === true) return "free";
+  if (raw === "elite") {
+    const until = meta?.eliteUntil;
+    if (until !== undefined && until !== null && (typeof until !== "number" || !Number.isFinite(until) || until <= now)) return "free";
+  }
+  return raw;
+}
+
+/**
  * The only function that should decide what plan a user is on. Reads
  * Clerk's server-only privateMetadata - never a client-supplied value -
  * and defaults to "free" for anyone with no plan set yet, or if anything
@@ -37,8 +54,7 @@ export async function getUserPlan(userId: string | null | undefined): Promise<Pl
   try {
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
-    const raw = (user.privateMetadata as Record<string, unknown> | null)?.plan;
-    return raw === "elite" ? "elite" : raw === "analyzer" ? "analyzer" : "free";
+    return effectivePlan(user.privateMetadata as Record<string, unknown> | null);
   } catch (err) {
     console.error("plan: getUserPlan failed, defaulting to free", err);
     return "free";

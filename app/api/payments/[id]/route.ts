@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { clerkClient } from "@clerk/nextjs/server";
-import { getPaymentRequest, updatePaymentRequestStatus } from "@/lib/paymentRequests";
+import { approvePayment, rejectPayment } from "@/lib/paymentApproval";
 
 /**
- * PATCH: admin approves or rejects a pending payment request.
- *
- * Approval is the ONLY place a user's plan flips from free to elite in
- * this flow - it is always a manual admin action gated behind the shared
- * admin secret, never automatic from the screenshot upload itself.
- * Rejection just records the outcome; the user stays on Free.
+ * PATCH: approves or rejects a pending payment request (legacy ADMIN_SECRET route, kept for compatibility;
+ * the owner dashboard uses /api/admin/payments). Both go through lib/paymentApproval.ts, so the same rules apply:
+ * a request is decided once, an approved ELITE payment gives 30 days (extended from the current end date while
+ * the membership is active), and an active Elite member is never downgraded.
  */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const secret = req.headers.get("x-admin-secret");
@@ -28,36 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'status must be "approved" or "rejected"' }, { status: 400 });
   }
 
-  const existing = await getPaymentRequest(id);
-  if (!existing) {
-    return NextResponse.json({ error: "Payment request not found" }, { status: 404 });
-  }
-
-  const updated = await updatePaymentRequestStatus(id, body.status);
-
-  if (body.status === "approved") {
-    try {
-      const client = await clerkClient();
-      const target = existing.plan ?? "elite"; // pre-Analyzer-plan requests were all Elite
-      const user = await client.users.getUser(existing.userId);
-      const current = (user.privateMetadata as Record<string, unknown> | null)?.plan;
-      // Never let an Analyzer-only purchase downgrade someone who is already Elite.
-      if (!(current === "elite" && target === "analyzer")) {
-        await client.users.updateUserMetadata(existing.userId, {
-          privateMetadata: { plan: target },
-        });
-      }
-    } catch (err) {
-      // The payment request is already marked approved at this point, but
-      // the plan flip failed - surface this clearly rather than silently
-      // leaving someone paid-but-still-Free.
-      console.error("payments: approved request but failed to set Clerk plan", err);
-      return NextResponse.json(
-        { error: "Marked approved, but failed to update the user's plan. Set it manually in Clerk.", request: updated },
-        { status: 500 }
-      );
-    }
-  }
-
-  return NextResponse.json({ request: updated });
+  const result = body.status === "approved" ? await approvePayment(id, "admin-secret") : await rejectPayment(id, "admin-secret");
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  return NextResponse.json({ request: result.request });
 }

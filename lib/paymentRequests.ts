@@ -16,6 +16,10 @@ export type PaymentRequest = {
   status: PaymentStatus;
   createdAt: number;
   updatedAt: number;
+  /** ADMIN-v1: who decided it (Clerk user id of the owner, or "admin-secret" for the legacy route). */
+  reviewedBy?: string;
+  /** ADMIN-v1: for an approved ELITE payment, the membership end date (epoch ms) it resulted in. Absent = no date change. */
+  grantedUntil?: number;
 };
 
 // Single Redis hash (field = request id) on the same Upstash instance
@@ -81,13 +85,14 @@ export async function listPaymentRequestsForUser(userId: string): Promise<Paymen
 
 export async function updatePaymentRequestStatus(
   id: string,
-  status: PaymentStatus
+  status: PaymentStatus,
+  extra: Pick<PaymentRequest, "reviewedBy" | "grantedUntil"> = {}
 ): Promise<PaymentRequest | null> {
   const redis = getRedis();
   if (!redis) return null;
   const existing = await getPaymentRequest(id);
   if (!existing) return null;
-  const updated: PaymentRequest = { ...existing, status, updatedAt: Date.now() };
+  const updated: PaymentRequest = { ...existing, ...extra, status, updatedAt: Date.now() };
   await redis.hset(KEY, { [id]: updated });
   return updated;
 }
