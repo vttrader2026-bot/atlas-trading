@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
-import { TradePlanDraft, emptyDraft, loadDraft, saveDraft, clearDraft } from "@/lib/tradePlan";
+import { TradePlanDraft, TIMEFRAMES, emptyDraft, loadDraft, saveDraft, clearDraft, missingTargets, normalizeTimeframe, type SizeMode } from "@/lib/tradePlan";
 import { loadTrades, saveTrades } from "@/lib/journal";
 import { computePlan } from "@/lib/planCalc";
 import { DEFAULT_BALANCE, DEFAULT_RISK, planToTrade } from "@/lib/planBridge";
@@ -42,6 +42,7 @@ export default function TradePlanPage() {
   const [sendMsg, setSendMsg] = useState<string | null>(null);
   const [journalHas, setJournalHas] = useState(false);
   const [confirmPrice, setConfirmPrice] = useState("");
+  const [showTpErrors, setShowTpErrors] = useState(false);
   const [confirmDate, setConfirmDate] = useState("");
   // Signal import: a pending replacement of an in-progress draft, and any import message.
   const [incoming, setIncoming] = useState<TradePlanDraft | null>(null);
@@ -109,10 +110,15 @@ export default function TradePlanPage() {
   const balance = draft.balance ?? DEFAULT_BALANCE;
   const riskPct = draft.riskPct ?? DEFAULT_RISK;
   const entered = draft.status === "entered";
+  const strategy = draft.exitStrategy ?? "split";
+  const sizeMode: SizeMode = draft.sizeMode ?? "risk";
+  const sizeValue = draft.sizeValue ?? "";
   const calc = useMemo(
-    () => computePlan({ entry: draft.entry, invalidation: draft.invalidation, tp1: draft.tp1, tp2: draft.tp2, tp3: draft.tp3, balance, riskPct }),
-    [draft.entry, draft.invalidation, draft.tp1, draft.tp2, draft.tp3, balance, riskPct],
+    () => computePlan({ entry: draft.entry, invalidation: draft.invalidation, tp1: draft.tp1, tp2: draft.tp2, tp3: draft.tp3, balance, riskPct, sizeMode, sizeValue, strategy }),
+    [draft.entry, draft.invalidation, draft.tp1, draft.tp2, draft.tp3, balance, riskPct, sizeMode, sizeValue, strategy],
   );
+  const missing = missingTargets(draft);
+  const tpError = (k: "tp1" | "tp2" | "tp3") => showTpErrors && missing.includes(k);
   const bad = (s: string) => s.trim() !== "" && parseInput(s) === null;
 
   function confirmEntry() {
@@ -129,7 +135,8 @@ export default function TradePlanPage() {
     const withId = { ...draft, id: draft.id ?? crypto.randomUUID() };
     const r = planToTrade(withId, { id: crypto.randomUUID(), today: todayLocal() });
     if (!r.ok) {
-      const key = r.error === "notEntered" ? "tradePlan.confirmFirst" : r.error === "wait" ? "tradePlan.sendWait" : r.error === "pair" ? "tradePlan.sendPair" : r.error === "incomplete" ? "tradePlan.fillToCalculate" : ERR_KEY[r.error as RiskError];
+      const key = r.error === "notEntered" ? "tradePlan.confirmFirst" : r.error === "wait" ? "tradePlan.sendWait" : r.error === "pair" ? "tradePlan.sendPair" : r.error === "incomplete" ? "tradePlan.fillToCalculate" : r.error === "targets" ? "tradePlan.tpRequired" : ERR_KEY[r.error as RiskError];
+      if (r.error === "targets") setShowTpErrors(true);
       return setSendMsg(t(key));
     }
     // ELITE-CONFIRM-v1: a plan built on an ELITE signal becomes a Journal trade only through the server's
@@ -199,7 +206,8 @@ export default function TradePlanPage() {
         body: JSON.stringify({
           secret, source: "trade-plan", pair: draft.pair, direction: draft.direction, timeframe: draft.timeframe,
           entryZone: draft.entryZone || draft.entry, invalidation: draft.invalidationText || draft.invalidation,
-          tp1: draft.tp1, tp2: draft.tp2, tp3: draft.tp3, reasoning: draft.reasoning,
+          // TP3 Only has no TP1 / TP2: publish what the plan shows.
+          tp1: strategy === "tp3" ? "" : draft.tp1, tp2: strategy === "tp3" ? "" : draft.tp2, tp3: draft.tp3, reasoning: draft.reasoning,
         }),
       });
       if (res.status === 401) {
@@ -288,7 +296,15 @@ export default function TradePlanPage() {
           </div>
           {draft.direction === "Wait" && <p className="mt-1 text-xs text-text-muted">{t("tradePlan.waitHint")}</p>}
         </div>
-        <Field label={t("tradePlan.timeframe")} value={draft.timeframe} onChange={(x) => update("timeframe", x)} placeholder="4H" ltr />
+        <div>
+          <label htmlFor="tp-timeframe" className="text-xs text-text-muted">{t("tradePlan.timeframe")}</label>
+          <select id="tp-timeframe" dir="ltr" value={normalizeTimeframe(draft.timeframe) ?? draft.timeframe} onChange={(e) => update("timeframe", e.target.value)} className="input mt-1.5 w-full font-data">
+            <option value="">{t("tradePlan.timeframeSelect")}</option>
+            {/* a value saved by an older version that is not in the list stays visible instead of disappearing */}
+            {draft.timeframe !== "" && normalizeTimeframe(draft.timeframe) === null && <option value={draft.timeframe}>{draft.timeframe}</option>}
+            {TIMEFRAMES.map((tf) => <option key={tf} value={tf}>{tf}</option>)}
+          </select>
+        </div>
       </div>
 
       <div className="mt-4 grid sm:grid-cols-2 gap-4">
@@ -302,9 +318,18 @@ export default function TradePlanPage() {
           <Field label={t("tradePlan.entry")} value={draft.entry} onChange={(x) => update("entry", x)} numeric invalid={bad(draft.entry)} errorText={t("risk.errNumber")} />
           <Field label={t("tradePlan.stopLoss")} value={draft.invalidation} onChange={(x) => update("invalidation", x)} numeric invalid={bad(draft.invalidation)} errorText={t("risk.errNumber")} />
           <span className="hidden sm:block" />
-          <Field label="TP1" value={draft.tp1} onChange={(x) => update("tp1", x)} numeric invalid={bad(draft.tp1)} errorText={t("risk.errNumber")} />
-          <Field label="TP2" value={draft.tp2} onChange={(x) => update("tp2", x)} numeric invalid={bad(draft.tp2)} errorText={t("risk.errNumber")} />
-          <Field label="TP3" value={draft.tp3} onChange={(x) => update("tp3", x)} numeric invalid={bad(draft.tp3)} errorText={t("risk.errNumber")} />
+        </div>
+        <div className="mt-4 max-w-xl">
+          <ExitStrategyPicker value={strategy} onChange={(v) => update("exitStrategy", v)} disabled={sent} t={t} />
+        </div>
+        <div className="mt-4 grid sm:grid-cols-3 gap-3">
+          {strategy === "split" && (
+            <>
+              <Field label="TP1 *" value={draft.tp1} onChange={(x) => update("tp1", x)} numeric invalid={bad(draft.tp1) || tpError("tp1")} errorText={bad(draft.tp1) ? t("risk.errNumber") : t("tradePlan.tpRequired")} />
+              <Field label="TP2 *" value={draft.tp2} onChange={(x) => update("tp2", x)} numeric invalid={bad(draft.tp2) || tpError("tp2")} errorText={bad(draft.tp2) ? t("risk.errNumber") : t("tradePlan.tpRequired")} />
+            </>
+          )}
+          <Field label="TP3 *" value={draft.tp3} onChange={(x) => update("tp3", x)} numeric invalid={bad(draft.tp3) || tpError("tp3")} errorText={bad(draft.tp3) ? t("risk.errNumber") : t("tradePlan.tpRequired")} />
         </div>
       </div>
 
@@ -319,8 +344,23 @@ export default function TradePlanPage() {
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label={t("risk.balance")} value={balance} onChange={(x) => update("balance", x)} numeric invalid={bad(balance)} errorText={t("risk.errNumber")} />
           <div>
-            <Field label={t("risk.riskPct")} value={riskPct} onChange={(x) => update("riskPct", x)} numeric invalid={bad(riskPct)} errorText={t("risk.errNumber")} />
-            <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label={t("risk.presets")}>
+            <div className="text-xs text-text-muted">{t("tradePlan.sizeMode")}</div>
+            <div role="radiogroup" aria-label={t("tradePlan.sizeMode")} className="mt-1.5 flex flex-wrap rounded-md border border-line overflow-hidden w-fit max-w-full">
+              {(["risk", "usdt", "balancePct"] as const).map((m) => (
+                <button key={m} type="button" role="radio" aria-checked={sizeMode === m} onClick={() => update("sizeMode", m)}
+                  className={`px-3 py-2 text-sm transition-colors ${sizeMode === m ? "bg-surface-raised text-text" : "text-text-muted hover:text-text"}`}>
+                  {t(m === "risk" ? "tradePlan.sizeModeRisk" : m === "usdt" ? "tradePlan.sizeModeUsdt" : "tradePlan.sizeModePct")}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3">
+            {sizeMode === "risk" ? (
+              <Field label={t("risk.riskPct")} value={riskPct} onChange={(x) => update("riskPct", x)} numeric invalid={bad(riskPct)} errorText={t("risk.errNumber")} />
+            ) : (
+              <Field label={t(sizeMode === "usdt" ? "tradePlan.sizeUsdt" : "tradePlan.sizePct")} value={sizeValue} onChange={(x) => update("sizeValue", x)} numeric invalid={bad(sizeValue)} errorText={t("risk.errNumber")} />
+            )}
+            </div>
+            {sizeMode === "risk" && <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label={t("risk.presets")}>
               <span className="text-xs text-text-muted">{t("risk.presets")}</span>
               {RISK_PRESETS.map((p) => (
                 <button key={p} type="button" aria-pressed={parseInput(riskPct) === p} onClick={() => update("riskPct", String(p))}
@@ -328,7 +368,7 @@ export default function TradePlanPage() {
                   <span dir="ltr">{p}%</span>
                 </button>
               ))}
-            </div>
+            </div>}
           </div>
         </div>
 
@@ -414,10 +454,6 @@ export default function TradePlanPage() {
           </>
         )}
       </section>
-
-      <div className="mt-6 max-w-xl">
-        <ExitStrategyPicker value={draft.exitStrategy ?? "split"} onChange={(v) => update("exitStrategy", v)} disabled={sent} t={t} />
-      </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
         {sent ? (

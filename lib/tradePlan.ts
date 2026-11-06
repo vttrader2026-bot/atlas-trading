@@ -2,6 +2,34 @@ import { normalizeLink, type SignalLink } from "@/lib/signalLink";
 
 export type PlanStatus = "draft" | "entered";
 
+/** How the position is sized. "risk" is the original behaviour (risk % of the balance). */
+export type SizeMode = "risk" | "usdt" | "balancePct";
+
+/** The only timeframes the Trade Plan offers. */
+export const TIMEFRAMES = ["15M", "30M", "1H", "4H", "1D", "1W", "1M"] as const;
+
+/**
+ * Maps what an older plan or the Analyzer hand-off stored ("4h", "15m", " 1D ") to a dropdown value.
+ * "1m" (lower case) is NOT mapped: it could have meant one minute, which is not offered, so it is kept as typed.
+ */
+export function normalizeTimeframe(raw: string): string | null {
+  const t = raw.trim();
+  if ((TIMEFRAMES as readonly string[]).includes(t)) return t;
+  if (t === "1m") return null;
+  const up = t.toUpperCase();
+  return (TIMEFRAMES as readonly string[]).includes(up) ? up : null;
+}
+
+export type TpKey = "tp1" | "tp2" | "tp3";
+/** Split needs TP1, TP2 and TP3. TP3 Only needs TP3 alone. */
+export function requiredTargets(strategy: "split" | "tp3" | undefined): readonly TpKey[] {
+  return strategy === "tp3" ? ["tp3"] : ["tp1", "tp2", "tp3"];
+}
+/** Required targets that are empty (the plan can't go to the Journal until they are filled). */
+export function missingTargets(d: Pick<TradePlanDraft, "tp1" | "tp2" | "tp3" | "exitStrategy">): TpKey[] {
+  return requiredTargets(d.exitStrategy).filter((k) => d[k].trim() === "");
+}
+
 export type TradePlanDraft = {
   pair: string;
   /**
@@ -24,6 +52,9 @@ export type TradePlanDraft = {
   status?: PlanStatus;
   balance?: string;
   riskPct?: string;
+  /** Position sizing mode and its value (USDT amount, or % of the balance). Absent = risk % (older plans). */
+  sizeMode?: SizeMode;
+  sizeValue?: string;
   /** Set when the user confirms they actually entered the trade. */
   enteredAt?: string;
   actualEntry?: string;
@@ -66,7 +97,7 @@ export function normalizeDraft(raw: unknown): TradePlanDraft {
   const d: TradePlanDraft = {
     pair: s(r.pair),
     direction: r.direction === "Wait" || r.direction === "Short" ? "Wait" : "Long",
-    timeframe: s(r.timeframe),
+    timeframe: normalizeTimeframe(s(r.timeframe)) ?? s(r.timeframe),
     entryZone: s(r.entryZone),
     invalidationText: s(r.invalidationText),
     entry: s(r.entry),
@@ -81,6 +112,8 @@ export function normalizeDraft(raw: unknown): TradePlanDraft {
   for (const k of ["balance", "riskPct", "enteredAt", "actualEntry", "journalId"] as const) {
     if (typeof r[k] === "string" && r[k]) d[k] = r[k] as string;
   }
+  if (r.sizeMode === "risk" || r.sizeMode === "usdt" || r.sizeMode === "balancePct") d.sizeMode = r.sizeMode;
+  if (typeof r.sizeValue === "string" && r.sizeValue) d.sizeValue = r.sizeValue;
   if (r.exitStrategy === "split" || r.exitStrategy === "tp3") d.exitStrategy = r.exitStrategy;
   if (typeof r.signalId === "string" && r.signalId) d.signalId = r.signalId;
   const link = normalizeLink(r.signal);

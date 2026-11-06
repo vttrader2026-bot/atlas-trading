@@ -125,8 +125,9 @@ describe("Send to Journal (plan -> trade)", () => {
     expect(planToTrade({ ...draft, invalidation: "101" }, ctx)).toEqual({ ok: false, error: "stopNotBelowEntry" });
     expect(planToTrade({ ...draft, entry: "" }, ctx)).toEqual({ ok: false, error: "incomplete" });
   });
-  it("drops targets that are not above entry instead of sending bad data", () => {
-    const r = planToTrade({ ...draft, tp2: "90" }, ctx);
+  it("Split refuses a target that is not above entry (all three are required); TP3 Only ignores TP1/TP2 so bad data never reaches the Journal", () => {
+    expect(planToTrade({ ...draft, tp2: "90" }, ctx)).toEqual({ ok: false, error: "targets" });
+    const r = planToTrade({ ...draft, exitStrategy: "tp3", tp2: "90" }, ctx);
     if (!r.ok) throw new Error(r.error);
     expect(r.trade.tp2).toBeNull();
     expect(validateTrade(r.trade)).toEqual([]);

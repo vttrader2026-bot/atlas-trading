@@ -2,8 +2,8 @@
 // "never larger than the account balance" cap, per-target profit and risk/reward. Pure, no market data.
 
 import { TP_ALLOCATION } from "@/lib/tradeFeedView";
-import { calcRiskBased, parseInput, type RiskError } from "@/lib/riskCalc";
-import type { TradePlanDraft } from "@/lib/tradePlan";
+import { calcPositionBased, calcRiskBased, parseInput, type RiskError } from "@/lib/riskCalc";
+import type { SizeMode, TradePlanDraft } from "@/lib/tradePlan";
 
 export type PlanTarget = {
   key: "TP1" | "TP2" | "TP3";
@@ -39,6 +39,11 @@ export type PlanResult = { ok: true; value: PlanSizing } | { ok: false; error: P
 export type PlanInputs = Pick<TradePlanDraft, "entry" | "invalidation" | "tp1" | "tp2" | "tp3"> & {
   balance: string;
   riskPct: string;
+  /** Absent or "risk": size from the risk %. "usdt": fixed USDT amount. "balancePct": % of the balance. */
+  sizeMode?: SizeMode;
+  sizeValue?: string;
+  /** TP3 Only looks at TP3 only; absent or "split" looks at all three. */
+  strategy?: "split" | "tp3";
 };
 
 export function computePlan(i: PlanInputs): PlanResult {
@@ -46,20 +51,36 @@ export function computePlan(i: PlanInputs): PlanResult {
   const riskPct = parseInput(i.riskPct);
   const entry = parseInput(i.entry);
   const stop = parseInput(i.invalidation);
-  if (balance === null || riskPct === null || entry === null || stop === null) return { ok: false, error: "incomplete" };
+  const mode: SizeMode = i.sizeMode ?? "risk";
+  if (balance === null || entry === null || stop === null) return { ok: false, error: "incomplete" };
 
-  const r = calcRiskBased({ balance, riskPct, entry, stop, tp: null });
-  if (!r.ok) return { ok: false, error: r.error };
-
+  let capped = false;
+  let plannedLoss: number;
+  let quantity: number;
+  if (mode === "risk") {
+    if (riskPct === null) return { ok: false, error: "incomplete" };
+    const r = calcRiskBased({ balance, riskPct, entry, stop, tp: null });
+    if (!r.ok) return { ok: false, error: r.error };
+    plannedLoss = balance * (riskPct / 100);
+    capped = r.value.exceedsBalance;
+    quantity = capped ? balance / entry : r.value.quantity;
+  } else {
+    // Fixed USDT, or a % of the balance: the money in the trade is given, the quantity follows from the entry.
+    const v = parseInput(i.sizeValue ?? "");
+    if (v === null) return { ok: false, error: "incomplete" };
+    const investment = mode === "balancePct" ? balance * (v / 100) : v;
+    const r = calcPositionBased({ balance, investment, entry, stop, tp: null });
+    if (!r.ok) return { ok: false, error: r.error };
+    quantity = r.value.quantity;
+    plannedLoss = r.value.maxLoss;
+  }
   const distance = entry - stop;
-  const plannedLoss = balance * (riskPct / 100);
-  const capped = r.value.exceedsBalance;
-  const quantity = capped ? balance / entry : r.value.quantity;
   const positionUsdt = quantity * entry;
   const maxLoss = quantity * distance;
 
   const issues: PlanSizing["targetIssues"] = [];
-  const raw = [i.tp1, i.tp2, i.tp3];
+  // TP3 Only: TP1 and TP2 are not part of the plan, whatever an earlier edit left in them.
+  const raw = i.strategy === "tp3" ? ["", "", i.tp3] : [i.tp1, i.tp2, i.tp3];
   const keys = ["TP1", "TP2", "TP3"] as const;
   const targets: PlanTarget[] = [];
   const prices: (number | null)[] = [];
@@ -82,7 +103,7 @@ export function computePlan(i: PlanInputs): PlanResult {
   if (given.some((p, k) => k > 0 && p < given[k - 1])) issues.push({ key: "order", code: "order" });
 
   let blended: PlanSizing["blended"] = null;
-  if (prices.every((p): p is number => p !== null) && !issues.some((x) => x.code === "order")) {
+  if (i.strategy !== "tp3" && prices.every((p): p is number => p !== null) && !issues.some((x) => x.code === "order")) {
     const avgExit = prices.reduce((s, p, k) => s + (p * TP_ALLOCATION[k]) / 100, 0);
     blended = { profit: quantity * (avgExit - entry), rr: (avgExit - entry) / distance };
   }

@@ -3,12 +3,12 @@
 import type { Trade } from "@/lib/journal";
 import { computePlan, type PlanError } from "@/lib/planCalc";
 import { parseInput } from "@/lib/riskCalc";
-import type { TradePlanDraft } from "@/lib/tradePlan";
+import { requiredTargets, type TradePlanDraft } from "@/lib/tradePlan";
 
 export const DEFAULT_BALANCE = "1000";
 export const DEFAULT_RISK = "1";
 
-export type BridgeResult = { ok: true; trade: Trade } | { ok: false; error: PlanError | "wait" | "pair" | "notEntered" };
+export type BridgeResult = { ok: true; trade: Trade } | { ok: false; error: PlanError | "wait" | "pair" | "notEntered" | "targets" };
 
 export function planToTrade(draft: TradePlanDraft, ctx: { id: string; today: string; now?: number }): BridgeResult {
   if (draft.direction === "Wait") return { ok: false, error: "wait" };
@@ -19,6 +19,7 @@ export function planToTrade(draft: TradePlanDraft, ctx: { id: string; today: str
 
   // If the user confirmed a different actual fill, size the position from that price.
   const entryTxt = draft.actualEntry && parseInput(draft.actualEntry) !== null ? draft.actualEntry : draft.entry;
+  const strategy = draft.exitStrategy ?? "split";
   const sized = computePlan({
     entry: entryTxt,
     invalidation: draft.invalidation,
@@ -27,6 +28,9 @@ export function planToTrade(draft: TradePlanDraft, ctx: { id: string; today: str
     tp3: draft.tp3,
     balance: draft.balance || DEFAULT_BALANCE,
     riskPct: draft.riskPct || DEFAULT_RISK,
+    sizeMode: draft.sizeMode,
+    sizeValue: draft.sizeValue,
+    strategy,
   });
   if (!sized.ok) return sized;
 
@@ -35,7 +39,10 @@ export function planToTrade(draft: TradePlanDraft, ctx: { id: string; today: str
     const e = parseInput(entryTxt) as number;
     return p !== null && p > e ? p : null;
   };
-  const tp1 = tp(draft.tp1);
+  // The targets the chosen exit strategy needs must be filled with valid prices above the entry.
+  if (requiredTargets(strategy).some((k) => tp(draft[k]) === null)) return { ok: false, error: "targets" };
+  // TP3 Only has no TP1 / TP2; the Journal gets TP3 as the target.
+  const tp1 = strategy === "tp3" ? null : tp(draft.tp1);
   const notes = [
     draft.entryZone && `Entry zone: ${draft.entryZone}`,
     draft.invalidationText && `Invalidation: ${draft.invalidationText}`,
@@ -47,20 +54,20 @@ export function planToTrade(draft: TradePlanDraft, ctx: { id: string; today: str
   return {
     ok: true,
     trade: {
-      exitStrategy: draft.exitStrategy ?? "split",
+      exitStrategy: strategy,
       id: ctx.id,
       date: draft.enteredAt || ctx.today,
       pair,
       side: "Long",
       entry: parseInput(entryTxt) as number,
       stop: parseInput(draft.invalidation) as number,
-      target: tp1 ?? 0,
+      target: (strategy === "tp3" ? tp(draft.tp3) : tp1) ?? 0,
       exit: null,
       size: sized.value.quantity,
       notes,
       status: "open",
       tp1,
-      tp2: tp(draft.tp2),
+      tp2: strategy === "tp3" ? null : tp(draft.tp2),
       tp3: tp(draft.tp3),
       invested: sized.value.positionUsdt,
       fees: null,
