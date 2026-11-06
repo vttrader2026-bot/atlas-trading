@@ -347,3 +347,27 @@ describe("watching a signal never creates a personal trade", () => {
     expect(confirmationsOf()).toBeUndefined();
   });
 });
+
+describe("EXIT-STRATEGY: exit strategy at confirmation", () => {
+  const stored = () => journalOf()[0] as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  it("stores the chosen strategy with the personal trade; the default is the 30/40/30 split", async () => {
+    await confirm({ exitStrategy: "tp3" });
+    expect(stored().exitStrategy).toBe("tp3");
+    h.userId = "member_b";
+    await confirm();
+    expect(journalOf("member_b")[0].exitStrategy).toBe("split");
+  });
+  it("an unknown strategy is refused and nothing is created", async () => {
+    const res = await confirm({ exitStrategy: "yolo" });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe("invalid_strategy");
+    expect(journalOf()).toEqual([]);
+    expect(h.ticker).not.toHaveBeenCalled();
+  });
+  it("the official signal is untouched by the personal strategy", async () => {
+    const before = JSON.stringify(h.feed);
+    await confirm({ exitStrategy: "tp3" });
+    expect(JSON.stringify(h.feed)).toBe(before);
+    expect(stored().signal.latest).toMatchObject({ invalidation: "95", tp1: "120" });
+  });
+});

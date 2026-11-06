@@ -12,6 +12,8 @@ import { useLanguage } from "@/lib/i18n";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 import { parseInput } from "@/lib/riskCalc";
 import { outcomeText, postConfirm } from "@/lib/eliteConfirmClient";
+import type { ExitStrategy } from "@/lib/journal";
+import { ExitStrategyPicker } from "@/components/journal/ExitStrategyPicker";
 
 export function ConfirmTradeDialog({ signal, onClose, onDone }: { signal: PublishedTrade; onClose: () => void; onDone: () => void }) {
   const { t } = useLanguage();
@@ -21,6 +23,7 @@ export function ConfirmTradeDialog({ signal, onClose, onDone }: { signal: Publis
   const [error, setError] = useState<string | null>(null);
   const [blockedText, setBlockedText] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [strategy, setStrategy] = useState<ExitStrategy>("split");
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -39,7 +42,7 @@ export function ConfirmTradeDialog({ signal, onClose, onDone }: { signal: Publis
     if (investedNum === null) return setError(t("journal.errInvested"));
     setBusy(true);
     // The price check happens on the server, at this moment. No price is sent from here.
-    const out = await postConfirm({ signalId: signal.id, entry: entryNum, invested: investedNum });
+    const out = await postConfirm({ signalId: signal.id, entry: entryNum, invested: investedNum, exitStrategy: strategy });
     setBusy(false);
     if (out.ok) {
       setSavedId(out.trade.id);
@@ -78,6 +81,7 @@ export function ConfirmTradeDialog({ signal, onClose, onDone }: { signal: Publis
               {field("cf-entry", t("tradeFeed.tookEntry"), entry, setEntry)}
               {field("cf-inv", t("tradeFeed.tookInvested"), invested, setInvested)}
             </div>
+            <div className="mt-4"><ExitStrategyPicker value={strategy} onChange={setStrategy} t={t} /></div>
             {blockedText && (
               <p className="mt-3 rounded-lg border border-bear/40 bg-bear/10 px-3 py-2 text-sm text-bear" role="alert">{blockedText}</p>
             )}

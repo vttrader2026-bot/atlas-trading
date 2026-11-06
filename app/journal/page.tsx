@@ -8,6 +8,7 @@ import { useLanguage } from "@/lib/i18n";
 import { loadDraft } from "@/lib/tradePlan";
 import { planToTrade } from "@/lib/planBridge";
 import { getKlinesFrom, getTicker24h } from "@/lib/binance";
+import { partialRealizedTotal } from "@/lib/exits";
 import { applyAutoSl, findAutoSlTouches, newMonitorState } from "@/lib/autoSl";
 import Overview from "@/components/journal/Overview";
 import History, { Query } from "@/components/journal/History";
@@ -123,6 +124,7 @@ export default function JournalPage() {
     const vals = trades.map((x) => unrealizedPnl(x, prices[x.pair] ?? x.markPrice ?? null)).filter((v): v is number => v !== null);
     return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
   }, [trades, prices]);
+  const partial = useMemo(() => partialRealizedTotal(trades), [trades]);
   const rows = useMemo(() => filterAndSort(trades, q), [trades, q]);
   const current = trades.find((x) => x.id === selected) ?? null;
 
@@ -280,7 +282,7 @@ export default function JournalPage() {
         />
       )}
 
-      <Overview d={dash} unrealized={unrealized} t={t} />
+      <Overview d={dash} unrealized={unrealized} partial={partial} t={t} />
 
       {trades.length === 0 ? (
         <div className="mt-8 card p-10 text-center text-text-muted text-sm">{t("journal.noTrades")}</div>
@@ -295,6 +297,7 @@ export default function JournalPage() {
           onClose={() => setSelected(null)}
           onEdit={(closeIt) => startEdit(current, closeIt)}
           onDelete={onDelete}
+          onRecord={(next) => persist(trades.map((x) => (x.id === next.id ? next : x)))}
           t={t}
         />
       )}

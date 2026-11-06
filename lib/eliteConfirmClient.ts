@@ -25,13 +25,16 @@ const ERROR_KEY: Record<string, string> = {
   long_only: "tradeFeed.shortNote",
   invalid_amount: "journal.errInvested",
   invalid_trade: "journal.errStop",
+  invalid_strategy: "tradeFeed.cfFailed",
 };
 
 export type ConfirmBody = {
   signalId: string;
   entry: number;
   invested: number;
-  plan?: { planId?: string; stop?: number | null; tp1?: number | null; tp2?: number | null; tp3?: number | null; notes?: string; entryReason?: string; date?: string };
+  /** Chosen before confirming; the server stores it with the trade and it cannot be changed afterwards. */
+  exitStrategy?: "split" | "tp3";
+  plan?: { planId?: string; stop?: number | null; tp1?: number | null; tp2?: number | null; tp3?: number | null; notes?: string; entryReason?: string; date?: string; balance?: number; riskPct?: number };
 };
 
 /** Asks the server to confirm. On success the new trade is also put in the local Journal (and the Journal is told). */
@@ -81,6 +84,7 @@ export async function confirmPlanIfElite(draft: TradePlanDraft, planTrade: Trade
     signalId,
     entry: planTrade.entry,
     invested: planTrade.invested ?? 0,
+    exitStrategy: draft.exitStrategy,
     plan: {
       planId: draft.id,
       stop: planTrade.stop > 0 ? planTrade.stop : null,

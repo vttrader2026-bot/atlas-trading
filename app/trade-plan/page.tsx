@@ -14,6 +14,7 @@ import { pct, price, qty, todayLocal, usd } from "@/components/journal/format";
 import { applyOfficialLevels, signalChanges, signalToDraft } from "@/lib/signalLink";
 import { fetchFeed, syncLocalRecords } from "@/lib/signalSync";
 import { confirmPlanIfElite, outcomeText } from "@/lib/eliteConfirmClient";
+import { ExitStrategyPicker } from "@/components/journal/ExitStrategyPicker";
 
 const ADMIN_KEY = "atlas-trading.adminSecret";
 
@@ -413,6 +414,10 @@ export default function TradePlanPage() {
           </>
         )}
       </section>
+
+      <div className="mt-6 max-w-xl">
+        <ExitStrategyPicker value={draft.exitStrategy ?? "split"} onChange={(v) => update("exitStrategy", v)} disabled={sent} t={t} />
+      </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
         {sent ? (

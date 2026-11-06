@@ -105,7 +105,7 @@ describe("closing", () => {
   it("closes at the trade's own stop as an estimate, with source, detection time and estimated exit recorded", () => {
     const c = applyAutoSl(trade(), touch, NOW)!;
     expect(c).toMatchObject({ status: "closed", exit: 95, exitDate: "2026-11-05", exitSource: "auto-sl", updatedAt: NOW });
-    expect(c.autoSl).toEqual({ detectedAt: NOW, touchedAt: touch.touchedAt, low: 94.5, estimatedExit: 95 });
+    expect(c.autoSl).toEqual({ detectedAt: NOW, touchedAt: touch.touchedAt, low: 94.5, estimatedExit: 95, qty: 2 });
     expect(statusOf(c)).toBe("closed");
   });
   it("realized PnL and ROI use the Journal's own maths: (95-100)*2 - fees, over the invested amount", () => {
@@ -179,5 +179,39 @@ describe("wiring and labels", () => {
   it("no server, bot or signal code was touched for this: nothing outside the Journal triggers a close", () => {
     expect(readFileSync("app/api/trade-feed/route.ts", "utf8")).not.toContain("autoSl");
     expect(readFileSync("app/api/me/journal/route.ts", "utf8")).not.toContain("autoSl");
+  });
+});
+
+describe("with an exit strategy: partial exits and the remaining position", () => {
+  const strat = (o: Partial<Trade> = {}) => trade({ exitStrategy: "split", size: 10, invested: 1000, fees: 0, tp1: 110, tp2: 120, tp3: 130, ...o });
+  const touch = { touchedAt: T0 + 10 * 60_000, low: 94 };
+  it("a stop-out with nothing sold closes 100% at the stop, recorded as an SL exit", () => {
+    const c = applyAutoSl(strat(), touch, NOW)!;
+    expect(c.exits).toEqual([{ level: "SL", price: 95, qty: 10, date: "2026-11-05" }]);
+    expect(c).toMatchObject({ status: "closed", exit: 95, exitSource: "auto-sl" });
+    expect(c.autoSl).toMatchObject({ estimatedExit: 95, qty: 10 });
+    expect(realizedPnl(c)).toBe(-50);
+  });
+  it("after TP1 (30% sold) the stop closes only the remaining 70%; the recorded TP1 exit is kept and the result is correct", () => {
+    const afterTp1 = strat({ exits: [{ level: "TP1", price: 110, qty: 3, date: "2026-11-05" }] });
+    const c = applyAutoSl(afterTp1, touch, NOW)!;
+    expect(c.exits).toEqual([afterTp1.exits![0], { level: "SL", price: 95, qty: 7, date: "2026-11-05" }]);
+    expect(c.autoSl?.qty).toBe(7);
+    expect(statusOf(c)).toBe("closed");
+    expect(realizedPnl(c)).toBeCloseTo(3 * 10 + 7 * -5, 10); // +30 from TP1, -35 from the stop = -5
+  });
+  it("a fully sold trade, or one with no quantity left, is not monitored", () => {
+    const sold = strat({ status: "closed", exit: 110, exits: [{ level: "TP3", price: 110, qty: 10, date: "2026-11-05" }] });
+    expect(isMonitorable(sold)).toBe(false);
+    expect(isMonitorable(strat({ exits: [{ level: "TP1", price: 110, qty: 10, date: "2026-11-05" }] }))).toBe(false);
+    expect(isMonitorable(strat({ exits: [{ level: "TP1", price: 110, qty: 3, date: "2026-11-05" }] }))).toBe(true);
+  });
+  it("TP3-only trades are stopped out for the whole position too", () => {
+    const c = applyAutoSl(strat({ exitStrategy: "tp3" }), touch, NOW)!;
+    expect(c.exits).toEqual([{ level: "SL", price: 95, qty: 10, date: "2026-11-05" }]);
+  });
+  it("still idempotent", () => {
+    const c = applyAutoSl(strat(), touch, NOW)!;
+    expect(applyAutoSl(c, touch, NOW + 1)).toBeNull();
   });
 });

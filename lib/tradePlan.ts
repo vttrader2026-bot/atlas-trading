@@ -27,6 +27,8 @@ export type TradePlanDraft = {
   /** Set when the user confirms they actually entered the trade. */
   enteredAt?: string;
   actualEntry?: string;
+  /** Exit strategy chosen for the trade (EXIT-STRATEGY-v1). Defaults to the 30/40/30 split. */
+  exitStrategy?: "split" | "tp3";
   /** Journal trade created from this plan. */
   journalId?: string;
   /** Atlas signal this plan was created from (Signal ID) and the official data linked to it. */
@@ -79,6 +81,7 @@ export function normalizeDraft(raw: unknown): TradePlanDraft {
   for (const k of ["balance", "riskPct", "enteredAt", "actualEntry", "journalId"] as const) {
     if (typeof r[k] === "string" && r[k]) d[k] = r[k] as string;
   }
+  if (r.exitStrategy === "split" || r.exitStrategy === "tp3") d.exitStrategy = r.exitStrategy;
   if (typeof r.signalId === "string" && r.signalId) d.signalId = r.signalId;
   const link = normalizeLink(r.signal);
   if (link) {

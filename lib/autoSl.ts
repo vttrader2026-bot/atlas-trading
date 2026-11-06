@@ -2,7 +2,8 @@
 // The Journal is the ONLY trigger: the official signal's status or hit levels are never looked at here.
 // The exit is an ESTIMATE: the trade is closed at its own stop price when a candle low touched the stop.
 
-import { statusOf, type AutoSlRecord, type Trade } from "@/lib/journal";
+import { remainingQty, statusOf, type AutoSlRecord, type Trade } from "@/lib/journal";
+import { applyExit } from "@/lib/exits";
 
 export type Candle = { openTime: number; low: number };
 export type CandleFetcher = (symbol: string, interval: "1m" | "1h", startTime: number, limit: number) => Promise<Candle[]>;
@@ -24,7 +25,8 @@ export function isMonitorable(t: Trade): boolean {
     t.entry > 0 &&
     t.stop > 0 &&
     t.stop < t.entry &&
-    t.size > 0
+    t.size > 0 &&
+    remainingQty(t) > 0 // with partial exits only the part still held is watched
   );
 }
 
@@ -105,15 +107,15 @@ const utcDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 export function applyAutoSl(t: Trade, touch: Touch, now: number): Trade | null {
   if (!isMonitorable(t)) return null;
   if (touch.touchedAt < monitorStart(t) - MIN) return null;
-  const rec: AutoSlRecord = { detectedAt: now, touchedAt: touch.touchedAt, low: touch.low, estimatedExit: t.stop };
   const day = utcDay(touch.touchedAt);
-  return {
-    ...t,
-    status: "closed",
-    exit: t.stop,
-    exitDate: day < t.date ? t.date : day,
-    exitSource: "auto-sl",
-    autoSl: rec,
-    updatedAt: now,
-  };
+  const exitDate = day < t.date ? t.date : day;
+  const rec: AutoSlRecord = { detectedAt: now, touchedAt: touch.touchedAt, low: touch.low, estimatedExit: t.stop, qty: remainingQty(t) };
+  if (t.exitStrategy) {
+    // Exit-strategy trade: the stop closes 100% of what is still held, recorded like any other exit (SL level);
+    // exits already recorded stay as they are and the final exit price is the weighted average of all of them.
+    const r = applyExit(t, { level: "SL", price: t.stop, date: exitDate }, now);
+    if (!r.ok) return null;
+    return { ...r.trade, exitSource: "auto-sl", autoSl: rec };
+  }
+  return { ...t, status: "closed", exit: t.stop, exitDate, exitSource: "auto-sl", autoSl: rec, updatedAt: now };
 }

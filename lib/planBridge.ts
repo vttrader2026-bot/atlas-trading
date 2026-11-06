@@ -47,6 +47,7 @@ export function planToTrade(draft: TradePlanDraft, ctx: { id: string; today: str
   return {
     ok: true,
     trade: {
+      exitStrategy: draft.exitStrategy ?? "split",
       id: ctx.id,
       date: draft.enteredAt || ctx.today,
       pair,

@@ -221,13 +221,13 @@ describe("the server refuses every other way to store an ELITE-linked Journal tr
     expect((await r.json()).rejected).toEqual(["p1", "p2"]);
     expect(journalOf()).toEqual([]);
   });
-  it("a CONFIRMED trade is stored, and the member can still edit it (same id)", async () => {
+  it("a CONFIRMED trade is stored, the member can edit notes, but cannot forge its result (EXIT-STRATEGY fix)", async () => {
     await confirmPOST(new Request("http://x/api/me/confirm-trade", { method: "POST", body: JSON.stringify({ signalId: "sig-elite", entry: 105, invested: 200 }) }));
     const confirmed = journalOf()[0];
     const edited = { ...confirmed, notes: "my note", exit: 120, status: "closed", exitDate: "2026-11-05" };
     const res = await putJournal([edited]);
     expect(await res.json()).toEqual({ ok: true, count: 1 });
-    expect(journalOf()[0]).toMatchObject({ id: confirmed.id, notes: "my note", exit: 120 });
+    expect(journalOf()[0]).toMatchObject({ id: confirmed.id, notes: "my note", status: "open", exit: null, exitDate: null });
   });
   it("a second trade for an already-confirmed signal (different id) is dropped, the confirmed one is kept", async () => {
     await confirmPOST(new Request("http://x/api/me/confirm-trade", { method: "POST", body: JSON.stringify({ signalId: "sig-elite", entry: 105, invested: 200 }) }));
@@ -260,5 +260,15 @@ describe("the server refuses every other way to store an ELITE-linked Journal tr
     expect(await push(loadTrades())).toBe(true);
     expect(loadTrades().map((x) => x.id)).toEqual(["keep"]);
     expect(journalOf().map((x) => x.id)).toEqual(["keep"]);
+  });
+});
+
+describe("EXIT-STRATEGY: a Journal save cannot rewrite a confirmed trade's strategy or entry", () => {
+  it("restores them from the stored copy and keeps the member's notes", async () => {
+    await confirmPOST(new Request("http://x/api/me/confirm-trade", { method: "POST", body: JSON.stringify({ signalId: "sig-elite", entry: 105, invested: 200, exitStrategy: "split" }) }));
+    const [orig] = journalOf();
+    const res = await putJournal([{ ...orig, exitStrategy: "tp3", entry: 1, size: 999, notes: "my note" }]);
+    expect(res.status).toBe(200);
+    expect(journalOf()[0]).toMatchObject({ exitStrategy: "split", entry: orig.entry, size: orig.size, notes: "my note" });
   });
 });

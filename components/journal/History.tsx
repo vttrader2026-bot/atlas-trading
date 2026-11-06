@@ -1,6 +1,7 @@
 "use client";
 
-import { Trade, SortKey, StatusFilter, investedOf, realizedPnl, roiPct, statusOf, unrealizedPnl } from "@/lib/journal";
+import { Trade, SortKey, StatusFilter, exitsOf, investedOf, realizedPnl, roiPct, statusOf, unrealizedPnl } from "@/lib/journal";
+import { positionOf } from "@/lib/exits";
 import { price, signedPct, signedUsd, tone, usd } from "./format";
 
 export type Query = { query: string; status: StatusFilter; sort: SortKey; desc: boolean };
@@ -14,10 +15,28 @@ function StatusTag({ trade, t }: { trade: Trade; t: (k: string) => string }) {
   return <span className={`tag ${open ? "" : "tag-bull"}`}>{open ? t("journal.statusOpen") : t("journal.statusClosed")}</span>;
 }
 
-/** Realized PnL for closed trades, live/manual unrealized for open ones. */
-export function pnlCell(tr: Trade, prices: Record<string, number>) {
+/** Realized / unrealized breakdown under the PnL of a partly sold open trade (clearly separate figures). */
+function PnlParts({ c, t }: { c: ReturnType<typeof pnlCell>; t: (k: string) => string }) {
+  if (!c.parts) return null;
+  return (
+    <div className="mt-0.5 text-[10px] leading-tight text-text-muted">
+      <div>{t("journal.pnlRealizedShort")} <Num cls={tone(c.parts.realized)}>{signedUsd(c.parts.realized)}</Num></div>
+      <div>{t("journal.pnlUnrealizedShort")} {c.parts.unrealized === null ? <Num>—</Num> : <Num cls={tone(c.parts.unrealized)}>{signedUsd(c.parts.unrealized)}</Num>}</div>
+    </div>
+  );
+}
+
+/** Realized PnL for closed trades, live/manual unrealized for open ones. A partly sold open trade shows realized + unrealized, with both parts. */
+export function pnlCell(tr: Trade, prices: Record<string, number>): { value: number | null; live: boolean; roi: number | null; parts?: { realized: number; unrealized: number | null } } {
   const realized = realizedPnl(tr);
   if (realized !== null) return { value: realized, live: false, roi: roiPct(tr) };
+  if (tr.exitStrategy && exitsOf(tr).length > 0) {
+    const pos = positionOf(tr, prices[tr.pair] ?? tr.markPrice ?? null);
+    const parts = { realized: pos.realizedPnl, unrealized: pos.unrealizedPnl };
+    return pos.totalPnl === null
+      ? { value: pos.realizedPnl, live: false, roi: pos.realizedRoiPct, parts }
+      : { value: pos.totalPnl, live: true, roi: pos.totalRoiPct, parts };
+  }
   const p = unrealizedPnl(tr, prices[tr.pair] ?? tr.markPrice ?? null);
   const inv = investedOf(tr);
   return { value: p, live: p !== null, roi: p !== null && inv > 0 ? (p / inv) * 100 : null };
@@ -92,7 +111,8 @@ export default function History({
                       <td className="px-4 py-3 text-end"><Num>{usd(investedOf(tr))}</Num></td>
                       <td className={`px-4 py-3 text-end ${c.live ? "opacity-80" : ""}`}>
                         <Num cls={tone(c.value)}>{c.value === null ? "—" : signedUsd(c.value)}</Num>
-                        {c.live && <span className="ms-1 text-[10px] text-text-muted">{t("journal.live")}</span>}
+                        {c.live && !c.parts && <span className="ms-1 text-[10px] text-text-muted">{t("journal.live")}</span>}
+                        <PnlParts c={c} t={t} />
                       </td>
                       <td className="px-4 py-3 text-end"><Num cls={tone(c.roi)}>{c.roi === null ? "—" : signedPct(c.roi)}</Num></td>
                     </tr>
@@ -118,6 +138,7 @@ export default function History({
                       <div className="text-end">
                         <Num cls={`text-lg ${tone(c.value)}`}>{c.value === null ? "—" : signedUsd(c.value)}</Num>
                         {c.roi !== null && <div className="text-xs"><Num cls={tone(c.roi)}>{signedPct(c.roi)}</Num></div>}
+                        <PnlParts c={c} t={t} />
                       </div>
                     </div>
                   </button>

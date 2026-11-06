@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Trade, feesOf, grossPnl, investedOf, plannedLoss, pnlPct, realizedPnl, roiPct, statusOf, unrealizedPnl } from "@/lib/journal";
 import { signalChanges } from "@/lib/signalLink";
+import ExitsPanel from "./ExitsPanel";
 import { price, qty, signedPct, signedUsd, tone, usd } from "./format";
 
 function Num({ children, cls = "" }: { children: React.ReactNode; cls?: string }) {
@@ -28,9 +29,9 @@ function Text({ label, value }: { label: string; value?: string }) {
 }
 
 export default function TradeDetails({
-  trade, livePrice, onClose, onEdit, onDelete, t,
+  trade, livePrice, onClose, onEdit, onDelete, onRecord, t,
 }: {
-  trade: Trade; livePrice: number | null; onClose: () => void; onEdit: (closeIt: boolean) => void; onDelete: () => void; t: (k: string) => string;
+  trade: Trade; livePrice: number | null; onClose: () => void; onEdit: (closeIt: boolean) => void; onDelete: () => void; onRecord: (next: Trade) => void; t: (k: string) => string;
 }) {
   const [confirming, setConfirming] = useState(false);
   useEffect(() => {
@@ -73,7 +74,7 @@ export default function TradeDetails({
           {closed && <Row label={t("journal.fExitPrice")}><Num>{price(trade.exit)}</Num>{trade.exitSource === "auto-sl" && <span className="tag ms-2">{t("journal.autoSlTag")}</span>}</Row>}
           {closed && trade.exitSource === "auto-sl" && (
             <div className="col-span-full rounded-lg border border-gold/40 bg-gold/10 p-3 text-xs text-text-muted">
-              {t("journal.autoSlNote")}
+              {trade.exitStrategy ? t("journal.autoSlNoteExits") : t("journal.autoSlNote")}
               {trade.autoSl && <> <Num>{new Date(trade.autoSl.detectedAt).toISOString().slice(0, 16).replace("T", " ")} UTC</Num></>}
             </div>
           )}
@@ -123,6 +124,8 @@ export default function TradeDetails({
           </section>
         )}
 
+        {trade.exitStrategy && <ExitsPanel trade={trade} livePrice={livePrice} onRecord={onRecord} t={t} />}
+
         <div className="mt-5 pt-5 border-t border-line grid grid-cols-2 sm:grid-cols-3 gap-4">
           {closed && realized !== null && trade.exit !== null ? (
             <>
@@ -160,8 +163,8 @@ export default function TradeDetails({
           </div>
         ) : (
           <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" onClick={() => onEdit(!closed)} className="btn-primary">{closed ? t("journal.edit") : t("journal.closeTrade")}</button>
-            {!closed && <button type="button" onClick={() => onEdit(false)} className="btn-secondary">{t("journal.edit")}</button>}
+            <button type="button" onClick={() => onEdit(!closed && !trade.exitStrategy)} className="btn-primary">{closed || trade.exitStrategy ? t("journal.edit") : t("journal.closeTrade")}</button>
+            {!closed && !trade.exitStrategy && <button type="button" onClick={() => onEdit(false)} className="btn-secondary">{t("journal.edit")}</button>}
             <button type="button" onClick={() => setConfirming(true)} className="btn-secondary hover:text-bear">{t("journal.delete")}</button>
             {trade.planId && <Link href="/trade-plan" className="btn-secondary">{t("journal.openPlan")}</Link>}
           </div>

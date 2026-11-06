@@ -9,7 +9,8 @@ import type { Redis } from "@upstash/redis";
 import { TRADE_FEED_KEY, CONFIRM_COUNTS_KEY, tradeTier, type PublishedTrade } from "@/lib/tradeFeed";
 import { checkEntryZone, evaluateFreshPrice, exchangeSymbol, validateAmounts, type Confirmation } from "@/lib/eliteConfirm";
 import { isLiveSignal, isLongSignal, signalToTrade } from "@/lib/signalLink";
-import { validateTrade, type Trade } from "@/lib/journal";
+import { validateTrade, type ExitStrategy, type Trade } from "@/lib/journal";
+import { isExitStrategy } from "@/lib/exits";
 
 const MAX_FEED = 50;
 const PRICE_TIMEOUT_MS = 8_000;
@@ -29,7 +30,7 @@ export type PlanExtras = {
   /** YYYY-MM-DD the member entered. */
   date?: string;
 };
-export type ConfirmInput = { signalId: string; entry: unknown; invested: unknown; plan?: PlanExtras };
+export type ConfirmInput = { signalId: string; entry: unknown; invested: unknown; exitStrategy?: unknown; plan?: PlanExtras };
 export type ConfirmResult = { status: number; body: Record<string, unknown> };
 
 type Stored = Confirmation & { trade: Trade };
@@ -66,6 +67,10 @@ export async function confirmEliteTrade(
   const { signalId } = input;
   const amounts = validateAmounts({ entry: input.entry, invested: input.invested });
   if (!amounts.ok) return fail("invalid_amount", 400, { field: amounts.field });
+  // EXIT-STRATEGY-v1: the exit strategy is chosen here, once, and stored with the trade. Missing = the default split.
+  const chosen = input.exitStrategy ?? undefined;
+  if (chosen !== undefined && !isExitStrategy(chosen)) return fail("invalid_strategy", 400);
+  const exitStrategy: ExitStrategy = chosen ?? "split";
 
   const feed = await redis.lrange<PublishedTrade>(TRADE_FEED_KEY, 0, MAX_FEED - 1);
   const signal = feed.find((s) => s.id === signalId);
@@ -123,6 +128,7 @@ export async function confirmEliteTrade(
     if (x.notes !== undefined) trade.notes = x.notes;
     if (x.entryReason !== undefined) trade.entryReason = x.entryReason;
   }
+  trade.exitStrategy = exitStrategy;
   const issues = validateTrade(trade);
   if (issues.length) return fail("invalid_trade", 422, { field: issues[0].field });
 

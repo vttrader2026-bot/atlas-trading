@@ -16,7 +16,7 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-export default function Overview({ d, unrealized, t }: { d: Dashboard; unrealized: number | null; t: (k: string) => string }) {
+export default function Overview({ d, unrealized, partial = null, t }: { d: Dashboard; unrealized: number | null; /** Realized PnL of exits already made on trades that are still open. */ partial?: number | null; t: (k: string) => string }) {
   return (
     <section className="mt-8 card p-5 sm:p-6" aria-label={t("journal.overview")}>
       <div className="text-label mb-4">{t("journal.overview")}</div>
@@ -28,6 +28,7 @@ export default function Overview({ d, unrealized, t }: { d: Dashboard; unrealize
         <Tile label={t("journal.wins")}><Num cls="text-bull">{d.wins}</Num></Tile>
         <Tile label={t("journal.losses")}><Num cls="text-bear">{d.losses}</Num></Tile>
         <Tile label={t("journal.realizedPnl")}><Num cls={tone(d.closed ? d.realizedPnl : null)}>{d.closed ? signedUsd(d.realizedPnl) : "—"}</Num></Tile>
+        {partial !== null && <Tile label={t("journal.partialRealized")}><Num cls={tone(partial)}>{signedUsd(partial)}</Num></Tile>}
         <Tile label={t("journal.unrealizedTotal")}><Num cls={tone(unrealized)}>{unrealized === null ? "—" : signedUsd(unrealized)}</Num></Tile>
         <Tile label={t("journal.avgWin")}><Num cls="text-bull">{d.avgWin === null ? "—" : signedUsd(d.avgWin)}</Num></Tile>
         <Tile label={t("journal.avgLoss")}><Num cls="text-bear">{d.avgLoss === null ? "—" : signedUsd(d.avgLoss)}</Num></Tile>

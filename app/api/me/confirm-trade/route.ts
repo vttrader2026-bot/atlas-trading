@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   try {
     const r = await confirmEliteTrade(
       { redis, userId: gate.userId, canSeeElite, getTicker: getTicker24h },
-      { signalId, entry: toNumber(body.entry), invested: toNumber(body.invested), plan: parsePlanExtras(body.plan) },
+      { signalId, entry: toNumber(body.entry), invested: toNumber(body.invested), exitStrategy: body.exitStrategy, plan: parsePlanExtras(body.plan) },
     );
     return NextResponse.json(r.body, { status: r.status });
   } catch (err) {

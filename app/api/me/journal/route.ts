@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/userStore";
 import { splitUnconfirmedEliteTrades } from "@/lib/eliteConfirmServer";
+import { lockStrategyFields } from "@/lib/exits";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,9 @@ export async function PUT(req: Request) {
   try {
     // ELITE-CONFIRM-v1: a trade linked to an ELITE signal is only stored if it came from a server-side
     // confirmation (fresh-price entry-zone check + duplicate guard). Everything else is refused, whatever route made it.
-    const { kept, rejected } = await splitUnconfirmedEliteTrades(ctx.redis, ctx.userId, trades as Array<Record<string, unknown>>);
+    // EXIT-STRATEGY-v1: exit strategy, entry, quantity and invested amount of an existing trade cannot be changed by a save.
+    const locked = lockStrategyFields(await ctx.redis.get<unknown>(key(ctx.userId)), trades as Array<Record<string, unknown>>);
+    const { kept, rejected } = await splitUnconfirmedEliteTrades(ctx.redis, ctx.userId, locked);
     await ctx.redis.set(key(ctx.userId), kept);
     return NextResponse.json({ ok: true, count: kept.length, ...(rejected.length ? { rejected } : {}) });
   } catch (err) {

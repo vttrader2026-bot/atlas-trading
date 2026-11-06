@@ -9,6 +9,11 @@ import type { SignalLink } from "@/lib/signalLink";
 
 export type TradeStatus = "open" | "closed";
 
+// EXIT-STRATEGY-v1: exit strategy and recorded (partial) exits. All optional: records without them behave as before.
+export type ExitStrategy = "split" | "tp3";
+export type ExitLevel = "TP1" | "TP2" | "TP3" | "SL";
+/** An exit the member actually made (their own fill price), never an estimate. */
+export type ExitRecord = { level: ExitLevel; price: number; qty: number; date: string };
 export type Trade = {
   id: string;
   /** Entry date, YYYY-MM-DD. */
@@ -45,6 +50,10 @@ export type Trade = {
   /** Atlas signal this trade is linked to (Signal ID). Official data lives in `signal`, never in the personal fields. */
   signalId?: string;
   signal?: SignalLink;
+  /** Chosen before confirming; locked afterwards. */
+  exitStrategy?: ExitStrategy;
+  /** Partial / final exits in the order they were recorded. */
+  exits?: ExitRecord[];
   updatedAt?: number;
   /** AUTO-SL-v1: where the exit came from. "auto-sl" = the Journal closed it at the stop price (an ESTIMATE, not a fill). */
   exitSource?: "manual" | "auto-sl";
@@ -63,6 +72,11 @@ export type AutoSlRecord = {
   low: number;
   /** The exit price used: the trade's own stop. Estimated; real fills can differ. */
   estimatedExit: number;
+  /** Quantity closed at the estimated stop (the whole remaining position). */
+  qty?: number;
+  /** Set when the member replaced the estimated stop price with their real fill (the estimate stays here for the record). */
+  correctedAt?: number;
+  correctedPrice?: number;
 };
 
 export const KEY = "atlas-trading.journal.v1";
@@ -207,15 +221,31 @@ export function roiPct(t: Trade): number | null {
   return p === null || !(inv > 0) ? null : (p / inv) * 100;
 }
 
-/** Unrealized PnL of an OPEN trade at `price` (fees provided so far are deducted). */
+/** Exits recorded so far (malformed entries are ignored). */
+export function exitsOf(t: Trade): ExitRecord[] {
+  return Array.isArray(t.exits) ? t.exits.filter((e) => e && e.price > 0 && e.qty > 0) : [];
+}
+
+/** Quantity still held: size minus everything already sold. Zero once the sold quantity covers the size. */
+export function remainingQty(t: Trade): number {
+  const left = t.size - exitsOf(t).reduce((s, e) => s + e.qty, 0);
+  return left <= t.size * 1e-9 ? 0 : left;
+}
+
+/**
+ * Unrealized PnL of an OPEN trade at `price` (fees provided so far are deducted).
+ * With recorded exits it covers only the quantity still held; fees are then counted once, in the realized part.
+ */
 export function unrealizedPnl(t: Trade, price: number | null | undefined): number | null {
   if (statusOf(t) !== "open" || price === null || price === undefined || !(price > 0)) return null;
+  if (exitsOf(t).length) return (price - t.entry) * dirOf(t) * remainingQty(t);
   return grossPnl(t, price) - feesOf(t);
 }
 
 export function unrealizedRoiPct(t: Trade, price: number | null | undefined): number | null {
   const p = unrealizedPnl(t, price);
-  const inv = investedOf(t);
+  // With exits, the cost basis is that of the quantity still held.
+  const inv = exitsOf(t).length && t.size > 0 ? (investedOf(t) * remainingQty(t)) / t.size : investedOf(t);
   return p === null || !(inv > 0) ? null : (p / inv) * 100;
 }
 

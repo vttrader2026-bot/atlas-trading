@@ -49,6 +49,8 @@ function buildTrade(f: F, base: Trade | null, id: string): Trade {
   const bad = (s: string) => s.trim() !== "" && parseInput(s) === null;
   const closed = f.status === "closed";
   const tp1 = optNum(f.tp1);
+  // EXIT-STRATEGY-v1: a trade with an exit strategy keeps its entry, quantity, invested amount and status; exits are recorded in the trade details.
+  const lock = base?.exitStrategy ? { entry: base.entry, size: base.size, invested: base.invested ?? null, status: base.status, exit: base.exit, exitDate: base.exitDate ?? null } : null;
   return {
     ...(base ?? {}),
     id,
@@ -70,6 +72,7 @@ function buildTrade(f: F, base: Trade | null, id: string): Trade {
     markPrice: optNum(f.markPrice),
     source: base?.source ?? "manual",
     updatedAt: Date.now(),
+    ...(lock ?? {}),
   };
 }
 
@@ -112,6 +115,8 @@ export default function TradeForm({
   const shown = submitted ? live : [];
   const err = (field: string) => shown.find((i) => i.field === field);
   const errText = (field: string) => { const e = err(field); return e ? t(ISSUE_KEY[e.code]) : undefined; };
+  const locked = !!base?.exitStrategy;
+  const LOCKED_FIELDS = ["entry", "invested", "size", "exit", "exitDate"];
   const numBad = (s: string) => s.trim() !== "" && parseInput(s) === null;
 
   function submit(e: React.FormEvent) {
@@ -137,6 +142,7 @@ export default function TradeForm({
           placeholder={o.ph}
           inputMode={o.num ? "decimal" : undefined}
           dir={o.num || o.type === "date" || k === "pair" ? "ltr" : undefined}
+          disabled={locked && LOCKED_FIELDS.includes(k)}
           aria-invalid={msg ? true : undefined}
           className={`input mt-1.5 w-full ${o.num ? "font-data" : ""} ${msg ? "!border-bear" : ""}`}
         />
@@ -164,7 +170,8 @@ export default function TradeForm({
         {field("fees", t("journal.fFees"), { num: true, hint: t("journal.hintFees") })}
         <div>
           <div className="text-xs text-text-muted">{t("journal.statusLabel")}</div>
-          <div role="radiogroup" aria-label={t("journal.statusLabel")} className="mt-1.5 flex rounded-md border border-line overflow-hidden w-fit">
+          {locked && <p className="mt-1 text-xs text-text-muted">{t("journal.p3Locked")}</p>}
+          <div role="radiogroup" aria-label={t("journal.statusLabel")} className={`mt-1.5 flex rounded-md border border-line overflow-hidden w-fit ${locked ? "pointer-events-none opacity-60" : ""}`}>
             {(["open", "closed"] as const).map((s) => (
               <button key={s} type="button" role="radio" aria-checked={f.status === s} onClick={() => set("status", s)}
                 className={`px-4 py-2 text-sm transition-colors ${f.status === s ? "bg-surface-raised text-text" : "text-text-muted hover:text-text"}`}>
