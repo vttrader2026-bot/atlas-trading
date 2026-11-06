@@ -465,17 +465,14 @@ export function eliteNowPayload(lang: Lang): Payload {
   if (lang === "ar") {
     return {
       title: "Atlas Elite",
-      body:
-        "تحليل أعمق، حدود أعلى، " +
-        "وأدوات حصرية لأعضاء Elite. " +
-        "استكشف ما يشمله.",
+      body: "افتح إشارات سبوت حصرية، وأدوات تحليل متقدمة، وإدارة كاملة للصفقات — كل ذلك في عضوية واحدة.",
       url: "/elite",
       tag: "elite-promo",
     };
   }
   return {
     title: "Atlas Elite",
-    body: "Deeper analysis, higher limits, and tools built for Elite members. See what's included.",
+    body: "Unlock exclusive spot signals, advanced analysis tools and complete trade management — all in one membership.",
     url: "/elite",
     tag: "elite-promo",
   };
@@ -510,7 +507,7 @@ export async function notifyElitePromo(): Promise<{ sent: number; reason: string
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           if (!prefs.enabled || !prefs.promotional) return;
           const plan = await getUserPlan(userId);
-          if (plan === "elite") return; // never promo existing Elite members (Analyzer-only members still get it)
+          if (plan === "elite") return; // never promo existing Elite members
           const delivered = await sendToUser(userId, (lang) => eliteNowPayload(lang));
           if (delivered > 0) sent++;
         }),

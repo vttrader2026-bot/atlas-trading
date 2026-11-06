@@ -1,18 +1,13 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
 
 type Method = "usdt" | "bankily" | "masrivi" | "sedad";
-type PlanChoice = "analyzer" | "elite";
-
-const PLAN_PRICE: Record<PlanChoice, { usd: string; mru: string }> = {
-  analyzer: { usd: "4.99", mru: "250" },
-  elite: { usd: "14.99", mru: "600" },
-};
+/** ATLAS ELITE is the only paid plan. */
+const ELITE_PRICE = { usd: "14.99", mru: "600" };
 type RowKey = "wallet" | "network" | "account";
 
 const ROW_LABELS: Record<RowKey, [string, string]> = {
@@ -128,14 +123,12 @@ export default function ElitePage() {
 }
 
 function ElitePageInner() {
-  const searchParams = useSearchParams();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const isAr = lang === "ar";
   /** Inline (en, ar) pair helper — this page isn't wired into lib/i18n.tsx yet, so strings live here for now. */
   const s = (en: string, ar: string) => (isAr ? ar : en);
   const { isSignedIn, isLoaded } = useUser();
 
-  const [plan, setPlan] = useState<PlanChoice>(searchParams.get("plan") === "analyzer" ? "analyzer" : "elite");
   const [method, setMethod] = useState<Method>("usdt");
   const [amount, setAmount] = useState("");
   const [telegramUsername, setTelegramUsername] = useState("");
@@ -157,7 +150,7 @@ function ElitePageInner() {
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, amount, method, proof, telegramUsername }),
+        body: JSON.stringify({ plan: "elite", amount, method, proof, telegramUsername }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -183,16 +176,14 @@ function ElitePageInner() {
         ⚜ Atlas Elite
       </span>
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-3">
-        {s("Upgrade your plan", "ترقية خطتك")}
+        {t("eliteSection.heading")}
       </h1>
-      <p className="text-text-muted text-sm mt-1.5 max-w-md">
-        {s(
-          "Choose the Analyzer plan for 20 AI analyses a day, or go Elite for everything. Manual verification, no recurring card charges.",
-          "اختر خطة المحلل للحصول على 20 تحليلًا بالذكاء الاصطناعي يوميًا، أو Elite للحصول على كل شيء. تحقق يدوي، بدون رسوم بطاقة متكررة."
-        )}
+      <p className="text-text-muted text-sm mt-1.5 max-w-md">{t("eliteSection.subtitle")}</p>
+      <p className="text-text-muted text-xs mt-1.5 max-w-md">
+        {s("Manual verification, no recurring card charges.", "تحقق يدوي، بدون رسوم بطاقة متكررة.")}
       </p>
 
-      <div className="grid sm:grid-cols-3 gap-3 mt-6">
+      <div className="grid sm:grid-cols-2 gap-3 mt-6">
         <div className="card p-4">
           <div className="text-label">{s("Free", "مجاني")}</div>
           <div className="text-xl font-bold mt-1">$0</div>
@@ -204,41 +195,44 @@ function ElitePageInner() {
             <li>{s("Watchlist — 10 coins", "قائمة المراقبة — 10 عملات")}</li>
           </ul>
         </div>
-        <button
-          type="button"
-          onClick={() => setPlan("analyzer")}
-          className={"card p-4 text-left transition-colors " + (plan === "analyzer" ? "card-accent ring-1 ring-gold" : "hover:border-text-muted")}
-        >
-          <div className="text-label text-gold">Atlas Analyzer Pro</div>
-          <div className="text-xl font-bold mt-1">
-            ${PLAN_PRICE.analyzer.usd}<span className="text-sm text-text-muted font-normal">/{s("mo", "شهر")}</span>
-          </div>
-          <div className="text-xs text-text-muted mt-0.5">≈ {PLAN_PRICE.analyzer.mru} MRU</div>
-          <ul className="mt-2.5 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
-            <li>{s("Everything in Free", "كل ما في المجاني")}</li>
-            <li>{s("AI Analyzer — 20/day", "المحلل بالذكاء الاصطناعي — 20/يوم")}</li>
-            <li>{s("Screenshot + one-click chart analysis", "تحليل الصور + تحليل الرسم البياني بنقرة")}</li>
-            <li>{s("Watchlist — up to 50 coins", "قائمة المراقبة — حتى 50 عملة")}</li>
-          </ul>
-        </button>
-        <button
-          type="button"
-          onClick={() => setPlan("elite")}
-          className={"card p-4 text-left transition-colors " + (plan === "elite" ? "card-accent ring-1 ring-gold" : "hover:border-text-muted")}
-        >
+        <div className="card card-accent p-4 text-left ring-1 ring-gold">
           <div className="text-label text-gold">Atlas Elite</div>
           <div className="text-xl font-bold mt-1">
-            ${PLAN_PRICE.elite.usd}<span className="text-sm text-text-muted font-normal">/{s("mo", "شهر")}</span>
+            ${ELITE_PRICE.usd}<span className="text-sm text-text-muted font-normal">{t("eliteSection.perMonth")}</span>
           </div>
-          <div className="text-xs text-text-muted mt-0.5">≈ {PLAN_PRICE.elite.mru} MRU</div>
-          <ul className="mt-2.5 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
-            <li>{s("Everything in Analyzer Pro, incl. Watchlist of 50 coins", "كل ما في خطة المحلل، مع قائمة مراقبة حتى 50 عملة")}</li>
-            <li>{s("Private spot signals, earlier access", "إشارات سبوت خاصة، وصول مبكر")}</li>
-            <li>{s("TP1/TP2/TP3 + stop-loss updates", "تحديثات TP1/TP2/TP3 ووقف الخسارة")}</li>
-            <li>{s("Full trade management", "إدارة كاملة للصفقات")}</li>
-            <li>{s("Private Telegram group, Atlas Bot alerts", "مجموعة تيليجرام خاصة، تنبيهات Atlas Bot")}</li>
-          </ul>
-        </button>
+          <div className="text-xs text-text-muted mt-0.5">≈ {ELITE_PRICE.mru} MRU</div>
+          <div className="mt-3 space-y-4">
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-gold">{t("eliteSection.g1")}</div>
+              <ul className="mt-1.5 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
+                <li>{t("eliteSection.f1")}</li>
+                <li>{t("eliteSection.f2")}</li>
+              </ul>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-gold">{t("eliteSection.g2")}</div>
+              <ul className="mt-1.5 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
+                <li>{t("eliteSection.f3")}</li>
+                <li>{t("eliteSection.f4")}</li>
+                <li>{t("eliteSection.f5")}</li>
+              </ul>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-gold">{t("eliteSection.g3")}</div>
+              <ul className="mt-1.5 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
+                <li>{t("eliteSection.f6")}</li>
+                <li>{t("eliteSection.f7")}</li>
+              </ul>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-gold">{t("eliteSection.g4")}</div>
+              <ul className="mt-1.5 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
+                <li>{t("eliteSection.f8")}</li>
+                <li>{t("eliteSection.f9")}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
 
       {!isLoaded ? null : !isSignedIn ? (
@@ -313,7 +307,7 @@ function ElitePageInner() {
           <div className="card p-5 mt-4">
             <div className="font-medium mb-1">{s("Submit your payment", "أرسل دفعتك")}</div>
             <p className="text-xs text-text-muted mb-3">
-              {plan === "analyzer" ? "Atlas Analyzer Pro" : "Atlas Elite"} — ${PLAN_PRICE[plan].usd} ≈ {PLAN_PRICE[plan].mru} MRU {s("per month", "شهريًا")}
+              Atlas Elite — ${ELITE_PRICE.usd} ≈ {ELITE_PRICE.mru} MRU {s("per month", "شهريًا")}
             </p>
             <div className="mb-3">
               <label className="text-label block mb-1.5">{s("Amount sent", "المبلغ المُرسل")}</label>
@@ -321,7 +315,7 @@ function ElitePageInner() {
                 type="text"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder={s(`e.g. ${PLAN_PRICE[plan].usd} USDT or ${PLAN_PRICE[plan].mru} MRU`, `مثال: ${PLAN_PRICE[plan].usd} USDT أو ${PLAN_PRICE[plan].mru} أوقية`)}
+                placeholder={s(`e.g. ${ELITE_PRICE.usd} USDT or ${ELITE_PRICE.mru} MRU`, `مثال: ${ELITE_PRICE.usd} USDT أو ${ELITE_PRICE.mru} أوقية`)}
                 className="input"
               />
             </div>

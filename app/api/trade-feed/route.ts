@@ -34,7 +34,7 @@ function clean(value: unknown, max = 500): string {
 
 /**
  * Who may read Elite-tier signals: the admin (valid ADMIN_SECRET in the x-admin-secret header) or a
- * signed-in user whose Clerk plan is "elite". Free, Analyzer-only, expired/unknown plans and any
+ * signed-in user whose Clerk plan is "elite". Free, expired/unknown plans (incl. the retired "analyzer" value) and any
  * lookup failure (getUserPlan fails closed to "free") get FREE signals only.
  */
 async function viewerAccess(req: Request, userId: string | null): Promise<{ admin: boolean; elite: boolean; member: boolean }> {

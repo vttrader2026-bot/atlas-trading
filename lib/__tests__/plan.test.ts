@@ -48,7 +48,6 @@ beforeEach(() => {
 describe("plan limits", () => {
   it("keeps the intended membership limits", () => {
     expect(analyzeLimitForPlan("free")).toBe(3);
-    expect(analyzeLimitForPlan("analyzer")).toBe(20);
     expect(analyzeLimitForPlan("elite")).toBe(20);
   });
 
@@ -66,6 +65,8 @@ describe("plan limits", () => {
     h.store.clear();
     h.plan = "platinum"; // not a real plan
     expect((await peekAnalyzeUsage("u1")).limit).toBe(3);
+    h.plan = "analyzer"; // the retired Analyzer plan: old accounts are simply FREE (3/day), nothing breaks
+    expect(await peekAnalyzeUsage("u1")).toMatchObject({ limit: 3, plan: "free", allowed: true });
   });
 
   it("parallel requests cannot all slip under the limit (atomic increment)", async () => {

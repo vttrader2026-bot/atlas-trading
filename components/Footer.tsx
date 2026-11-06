@@ -83,7 +83,7 @@ export default function Footer() {
           <p className="mt-2 text-xs text-text-muted leading-relaxed">{t("footer.eliteTagline")}</p>
           <div className="mt-4 flex items-center justify-between gap-2">
             <span className="text-sm font-semibold">
-              $14.99<span className="text-xs text-text-muted font-normal">/mo</span>
+              $14.99<span className="text-xs text-text-muted font-normal">{t("eliteSection.perMonth")}</span>
             </span>
             <Link
               href="/elite"

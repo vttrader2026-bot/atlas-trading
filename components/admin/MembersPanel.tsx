@@ -8,7 +8,7 @@ import type { MemberAction } from "@/lib/membership";
 type Member = { id: string; name: string; email: string; createdAt: number; storedPlan: string; effectivePlan: string; state: string; eliteUntil: number | null; suspended: boolean };
 type Pay = { id: string; plan?: string; amount: string; method: string; status: string; createdAt: number; grantedUntil?: number };
 
-const STATE_LABEL: Record<string, string> = { free: "FREE", active: "ELITE · active", unlimited: "ELITE · no expiry", expired: "ELITE · expired", suspended: "Suspended", analyzer: "Legacy plan" };
+const STATE_LABEL: Record<string, string> = { free: "FREE", active: "ELITE · active", unlimited: "ELITE · no expiry", expired: "ELITE · expired", suspended: "Suspended" };
 const STATE_CLASS: Record<string, string> = { active: "text-bull border-bull/40", unlimited: "text-gold border-gold/40", expired: "text-bear border-bear/40", suspended: "text-bear border-bear/40" };
 
 export function MembersPanel() {
@@ -56,7 +56,7 @@ export function MembersPanel() {
       if (m.state === "unlimited") out.push({ action: "setExpiry", label: "Set expiry" });
       else { out.push({ action: "renew", label: "Renew" }); out.push({ action: "setExpiry", label: "Set expiry" }); }
     }
-    if (m.state === "free" || m.state === "expired" || m.state === "analyzer") out.push({ action: "activate", label: "Activate ELITE" });
+    if (m.state === "free" || m.state === "expired") out.push({ action: "activate", label: "Activate ELITE" });
     if (m.storedPlan !== "free") out.push(m.suspended ? { action: "unsuspend", label: "Unsuspend" } : { action: "suspend", label: "Suspend", danger: true });
     if (m.storedPlan !== "free") out.push({ action: "revoke", label: "Revoke", danger: true });
     return out;

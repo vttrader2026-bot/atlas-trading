@@ -22,7 +22,7 @@ export function memberView(u: ClerkUserLike, now: number) {
     name,
     email,
     createdAt: u.createdAt ?? 0,
-    storedPlan: meta.plan === "elite" || meta.plan === "analyzer" ? (meta.plan as string) : "free",
+    storedPlan: meta.plan === "elite" ? "elite" : "free",
     effectivePlan: effectivePlan(meta, now),
     state: memberState(meta, now),
     eliteUntil: typeof meta.eliteUntil === "number" ? meta.eliteUntil : null,

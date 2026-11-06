@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createPaymentRequest, listPaymentRequests, type PaymentStatus } from "@/lib/paymentRequests";
 import { sendPaymentProofToAdmin } from "@/lib/telegram";
-import { isPaidPlan } from "@/lib/plan";
 
 const MAX_PROOF_BYTES = 4 * 1024 * 1024; // ~4MB base64 payload ceiling, kept well under typical Redis/request limits
 
 /**
- * POST: any signed-in user submits a payment request for Elite.
+ * POST: any signed-in user submits a payment request for ATLAS ELITE.
  * Records it as "pending" and pings the admin on Telegram - it does NOT
  * touch the user's plan. Approval is a separate, manual admin action.
  */
@@ -25,9 +24,8 @@ export async function POST(req: NextRequest) {
   }
 
   const { amount, method, proof, telegramUsername } = body;
-  // Older clients send no plan; that has always meant Elite.
-  const plan = body.plan === undefined ? "elite" : body.plan;
-  if (!isPaidPlan(plan)) {
+  // ATLAS ELITE is the only plan. Older clients send no plan (= Elite) or "elite"; anything else is refused.
+  if (body.plan !== undefined && body.plan !== "elite") {
     return NextResponse.json({ error: "Unknown plan" }, { status: 400 });
   }
   if (!amount || !method || !proof) {
@@ -39,7 +37,6 @@ export async function POST(req: NextRequest) {
 
   const request = await createPaymentRequest({
     userId,
-    plan,
     amount,
     method,
     proof,
@@ -52,8 +49,7 @@ export async function POST(req: NextRequest) {
   // request details as the caption underneath it.
   await sendPaymentProofToAdmin(
     proof,
-    `💳 <b>New ${plan === "analyzer" ? "Atlas Analyzer Pro" : "Atlas Elite"} payment request</b>\n` +
-      `Plan: ${plan}\n` +
+    `💳 <b>New Atlas Elite payment request</b>\n` +
       `Method: ${escapeHtml(method)}\n` +
       `Amount: ${escapeHtml(amount)}\n` +
       `Telegram: ${escapeHtml(telegramUsername || "not provided")}\n` +

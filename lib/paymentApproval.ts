@@ -3,10 +3,10 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { getRedis } from "@/lib/userStore";
 import { getPaymentRequest, updatePaymentRequestStatus, type PaymentRequest } from "@/lib/paymentRequests";
-import { planAnalyzerApproval, planEliteApproval, type Meta } from "@/lib/membership";
+import { planEliteApproval, type Meta } from "@/lib/membership";
 
 export type DecisionResult =
-  | { ok: true; request: PaymentRequest; kind?: "started" | "extended" | "unlimited" | "analyzer" | "unchanged"; until?: number | null }
+  | { ok: true; request: PaymentRequest; kind?: "started" | "extended" | "unlimited"; until?: number | null }
   | { ok: false; status: number; error: string; request?: PaymentRequest };
 
 const lockKey = (id: string) => `payments:decision-lock:${id}`;
@@ -25,25 +25,21 @@ export async function approvePayment(id: string, reviewer: string, now: number =
   const existing = await getPaymentRequest(id);
   if (!existing) return { ok: false, status: 404, error: "Payment request not found" };
   if (existing.status !== "pending") return { ok: false, status: 409, error: `Already ${existing.status}` };
+  // Requests from the retired Analyzer plan cannot be approved (there is no such plan any more). Reject them, or
+  // activate ELITE for the member from the Members tab.
+  if (existing.plan !== undefined && existing.plan !== "elite") return { ok: false, status: 409, error: "This is an old request for a plan that no longer exists. Reject it, or activate ELITE for the member from Members." };
   if (!(await claim(id))) return { ok: false, status: 409, error: "This request is already being processed" };
 
-  let kind: "started" | "extended" | "unlimited" | "analyzer" | "unchanged";
+  let kind: "started" | "extended" | "unlimited";
   let until: number | null = null;
   try {
     const client = await clerkClient();
     const user = await client.users.getUser(existing.userId);
     const meta = (user.privateMetadata ?? {}) as Meta;
-    const target = existing.plan ?? "elite"; // requests from before the Analyzer plan were all Elite
-    if (target === "elite") {
-      const p = planEliteApproval(meta, now);
-      kind = p.kind;
-      until = p.until;
-      if (p.patch) await client.users.updateUserMetadata(existing.userId, { privateMetadata: p.patch });
-    } else {
-      const patch = planAnalyzerApproval(meta);
-      kind = patch ? "analyzer" : "unchanged";
-      if (patch) await client.users.updateUserMetadata(existing.userId, { privateMetadata: patch });
-    }
+    const p = planEliteApproval(meta, now);
+    kind = p.kind;
+    until = p.until;
+    if (p.patch) await client.users.updateUserMetadata(existing.userId, { privateMetadata: p.patch });
   } catch (err) {
     // Nothing was recorded as approved: the request stays pending and can be retried.
     console.error("payments: could not update the member's plan", err);

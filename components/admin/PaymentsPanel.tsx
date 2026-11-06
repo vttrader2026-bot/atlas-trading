@@ -6,7 +6,7 @@ import { adminApi, fmtDate, fmtDateTime } from "@/components/admin/adminApi";
 
 type Req = { id: string; userId: string; member: string; plan?: string; amount: string; method: string; telegramUsername?: string; status: "pending" | "approved" | "rejected"; createdAt: number; updatedAt: number; hasProof: boolean; grantedUntil?: number; reviewedBy?: string };
 const FILTERS = ["pending", "approved", "rejected", "all"] as const;
-const KIND: Record<string, string> = { started: "ELITE started", extended: "ELITE extended", unlimited: "Member already has ELITE with no expiry; nothing changed", analyzer: "Legacy plan applied", unchanged: "Nothing changed (member already on ELITE)" };
+const KIND: Record<string, string> = { started: "ELITE started", extended: "ELITE extended", unlimited: "Member already has ELITE with no expiry; nothing changed" };
 
 export function PaymentsPanel() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("pending");
@@ -61,7 +61,7 @@ export function PaymentsPanel() {
                 <div>
                   <div className="font-medium">{r.method.toUpperCase()} — {r.amount}</div>
                   <div className="text-xs text-text-muted mt-0.5">{r.member || r.userId} · {r.telegramUsername || "no Telegram username"}</div>
-                  <div className="text-xs text-text-muted mt-0.5">{fmtDateTime(r.createdAt)}{r.plan === "analyzer" ? " · legacy plan request" : ""}</div>
+                  <div className="text-xs text-text-muted mt-0.5">{fmtDateTime(r.createdAt)}{r.plan && r.plan !== "elite" ? " · old plan request (no longer offered)" : ""}</div>
                   <div className="text-xs mt-1">
                     <span className={r.status === "approved" ? "text-bull" : r.status === "rejected" ? "text-bear" : "text-gold"}>{r.status}</span>
                     {r.status !== "pending" && <span className="text-text-muted"> · {fmtDateTime(r.updatedAt)}</span>}
@@ -70,7 +70,7 @@ export function PaymentsPanel() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {r.hasProof && <button type="button" className="btn-secondary text-sm" onClick={() => void viewProof(r.id)}>{proof?.id === r.id ? "Hide proof" : "View proof"}</button>}
-                  {r.status === "pending" && (
+                  {r.status === "pending" && (!r.plan || r.plan === "elite") && (
                     <>
                       <button type="button" className="btn-primary text-sm" onClick={() => setAct({ r, action: "approve" })}>Approve</button>
                       <button type="button" className="btn-secondary text-sm text-bear" onClick={() => setAct({ r, action: "reject" })}>Reject</button>

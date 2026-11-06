@@ -20,12 +20,11 @@ const hasNoExpiry = (meta: Meta | null | undefined) => meta?.plan === "elite" &&
 /** ELITE kept from before expiry existed: no end date until the owner assigns one. */
 export const isUnlimitedElite = hasNoExpiry;
 
-export type MemberState = "free" | "active" | "unlimited" | "expired" | "suspended" | "analyzer";
+export type MemberState = "free" | "active" | "unlimited" | "expired" | "suspended";
 
 /** What the dashboard shows for a member. */
 export function memberState(meta: Meta | null | undefined, now: number): MemberState {
   const plan = meta?.plan;
-  if (plan === "analyzer") return meta?.suspended === true ? "suspended" : "analyzer";
   if (plan !== "elite") return "free";
   if (meta?.suspended === true) return "suspended";
   if (hasNoExpiry(meta)) return "unlimited";
@@ -52,11 +51,6 @@ export function planEliteApproval(meta: Meta | null | undefined, now: number, da
   const base = extensionBase(meta, now);
   const until = base + days * DAY_MS;
   return { kind: base > now ? "extended" : "started", patch: { plan: "elite", eliteUntil: until }, until };
-}
-
-/** Legacy Analyzer purchase: never downgrades somebody on ELITE. */
-export function planAnalyzerApproval(meta: Meta | null | undefined): MetaPatch | null {
-  return meta?.plan === "elite" ? null : { plan: "analyzer" };
 }
 
 export type MemberAction = "activate" | "renew" | "setExpiry" | "suspend" | "unsuspend" | "revoke";
@@ -88,7 +82,7 @@ export function planMemberAction(meta: Meta | null | undefined, action: MemberAc
       return { ok: true, patch: { eliteUntil: until } };
     }
     case "suspend": {
-      if (meta?.plan !== "elite" && meta?.plan !== "analyzer") return { ok: false, error: "nothingToSuspend" };
+      if (meta?.plan !== "elite") return { ok: false, error: "nothingToSuspend" };
       if (meta.suspended === true) return { ok: false, error: "alreadySuspended" };
       return { ok: true, patch: { suspended: true } };
     }
@@ -97,7 +91,7 @@ export function planMemberAction(meta: Meta | null | undefined, action: MemberAc
       return { ok: true, patch: { suspended: null } };
     }
     case "revoke": {
-      if (meta?.plan !== "elite" && meta?.plan !== "analyzer") return { ok: false, error: "alreadyFree" };
+      if (meta?.plan !== "elite") return { ok: false, error: "alreadyFree" };
       return { ok: true, patch: { plan: null, eliteUntil: null, suspended: null } };
     }
   }

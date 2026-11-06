@@ -2,27 +2,23 @@ import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getRedis } from "@/lib/userStore";
 
-export type Plan = "free" | "analyzer" | "elite";
-
-/** Plans a user can buy (what a payment request can ask for). */
-export type PaidPlan = "analyzer" | "elite";
-export const PAID_PLANS: readonly PaidPlan[] = ["analyzer", "elite"];
-export function isPaidPlan(v: unknown): v is PaidPlan {
-  return v === "analyzer" || v === "elite";
-}
+/**
+ * The only two plans: FREE and ATLAS ELITE. (Accounts that still carry the retired "analyzer" value in their Clerk
+ * metadata are simply FREE; the stored value is never touched or deleted.)
+ */
+export type Plan = "free" | "elite";
 
 // Single source of truth for what each plan includes. Change limits here,
 // not in scattered checks elsewhere in the app.
 const DAILY_ANALYZE_LIMIT: Record<Plan, number> = {
   free: 3,
-  analyzer: 20, // Analyzer-only paid plan: 20/day, none of Elite's other perks
   elite: 20,
 };
 
 /** User-facing message when today's analysis allowance is used up. */
 export function analyzeLimitReachedMessage(plan: Plan, limit: number): string {
   return plan === "free"
-    ? `You've used all ${limit} free analyses for today. This resets at midnight UTC, or upgrade for ${DAILY_ANALYZE_LIMIT.analyzer} a day.`
+    ? `You've used all ${limit} free analyses for today. This resets at midnight UTC. Upgrade to ATLAS ELITE for ${DAILY_ANALYZE_LIMIT.elite} a day.`
     : `You've used all ${limit} analyses for today. This resets at midnight UTC.`;
 }
 
@@ -34,13 +30,11 @@ export function analyzeLimitReachedMessage(plan: Plan, limit: number): string {
  */
 export function effectivePlan(meta: Record<string, unknown> | null | undefined, now: number = Date.now()): Plan {
   const raw = meta?.plan;
-  if (raw !== "elite" && raw !== "analyzer") return "free";
+  if (raw !== "elite") return "free";
   if (meta?.suspended === true) return "free";
-  if (raw === "elite") {
-    const until = meta?.eliteUntil;
-    if (until !== undefined && until !== null && (typeof until !== "number" || !Number.isFinite(until) || until <= now)) return "free";
-  }
-  return raw;
+  const until = meta?.eliteUntil;
+  if (until !== undefined && until !== null && (typeof until !== "number" || !Number.isFinite(until) || until <= now)) return "free";
+  return "elite";
 }
 
 /**
@@ -164,4 +158,3 @@ export async function peekAnalyzeUsage(userId: string): Promise<UsageResult> {
     return usageUnavailable(plan, limit);
   }
 }
-// ANALYZER-PLAN-2346

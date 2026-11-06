@@ -52,9 +52,9 @@ export const CARD_CONTENT: Record<
     label: { en: "ATLAS ANALYZER", ar: "محلل أطلس", fr: "ANALYSEUR ATLAS" },
     headline: { en: "Check a coin's trend before you trade", ar: "افحص اتجاه العملة قبل أن تتداول", fr: "Vérifiez la tendance d'une crypto avant de trader" },
     sentence: {
-      en: "Free analyses every day with a free account. More with Analyzer Pro or Atlas Elite.",
-      ar: "تحليلات مجانية كل يوم مع حساب مجاني. المزيد مع Analyzer Pro أو أطلس Elite.",
-      fr: "Des analyses gratuites chaque jour avec un compte gratuit. Davantage avec Analyzer Pro ou Atlas Elite.",
+      en: "Free analyses every day with a free account. More with Atlas Elite.",
+      ar: "تحليلات مجانية كل يوم مع حساب مجاني. المزيد مع أطلس Elite.",
+      fr: "Des analyses gratuites chaque jour avec un compte gratuit. Davantage avec Atlas Elite.",
     },
   },
   academy: {

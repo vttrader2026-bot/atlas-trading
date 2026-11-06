@@ -222,8 +222,7 @@ describe("membership rules (pure)", () => {
     expect(effectivePlan({ plan: "elite", eliteUntil: "soon" }, NOW)).toBe("free");
     expect(effectivePlan({ plan: "elite", eliteUntil: NaN }, NOW)).toBe("free");
     expect(effectivePlan({ plan: "elite", suspended: true }, NOW)).toBe("free");
-    expect(effectivePlan({ plan: "analyzer" }, NOW)).toBe("analyzer");
-    expect(effectivePlan({ plan: "analyzer", suspended: true }, NOW)).toBe("free");
+    expect(effectivePlan({ plan: "analyzer" }, NOW)).toBe("free"); // retired plan value: old accounts are FREE
     expect(effectivePlan({}, NOW)).toBe("free");
     expect(effectivePlan(null, NOW)).toBe("free");
   });
@@ -368,14 +367,13 @@ describe("payment management", () => {
     expect(h.users.m1.privateMetadata).toEqual({ plan: "elite" });
     expect(h.hashes["payments:requests"].p1).toMatchObject({ status: "approved" });
   });
-  it("a legacy Analyzer payment never downgrades an ELITE member, and still works for others", async () => {
-    h.hashes["payments:requests"] = { p1: pay({ plan: "analyzer" }) };
+  it("an old Analyzer-plan request cannot be approved (the plan no longer exists) but can be rejected", async () => {
+    h.hashes["payments:requests"] = { p1: pay({ plan: "analyzer" as never }) };
     h.users.m1.privateMetadata = { plan: "elite", eliteUntil: NOW + DAY_MS };
-    await decide("approve");
+    expect((await decide("approve")).status).toBe(409);
     expect(h.users.m1.privateMetadata).toEqual({ plan: "elite", eliteUntil: NOW + DAY_MS });
-    h.hashes["payments:requests"] = { p2: pay({ id: "p2", userId: "free1", plan: "analyzer" }) };
-    await decide("approve", "p2");
-    expect(h.users.free1.privateMetadata).toEqual({ plan: "analyzer" });
+    expect(h.hashes["payments:requests"].p1).toMatchObject({ status: "pending" });
+    expect((await decide("reject")).status).toBe(200);
   });
   it("a request without a plan (created before Analyzer existed) means ELITE", async () => {
     h.hashes["payments:requests"] = { p1: { ...pay(), plan: undefined } };
