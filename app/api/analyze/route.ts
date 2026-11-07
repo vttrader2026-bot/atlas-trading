@@ -1,29 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { providersConfigured, runAnalysis } from "@/lib/ai";
 import { auth } from "@clerk/nextjs/server";
 import { USAGE_UNAVAILABLE_MESSAGE, analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
 import { getTicker24h } from "@/lib/binance";
 import { applyEngineToAnalysis, engineFactsBlock } from "@/lib/analyzerEngineApply";
 import { engineForScreenshot } from "@/lib/analyzerEngineServer";
 
-// Google-maintained aliases for the current Gemini releases — avoid
-// hardcoding specific dated model names that Google later retires.
-// Flash and Flash-Lite draw from separate free-tier quota pools, so
-// falling back to Flash-Lite is a real second chance on the same key —
-// unlike rotating between multiple keys, which shares one quota per
-// Google Cloud project and doesn't actually add capacity.
-const MODEL_PRIMARY = "gemini-flash-latest";
-const MODEL_FALLBACK = "gemini-flash-lite-latest";
+// Providers, models, free-tier rules and the time budget live in lib/ai (free providers only).
 
-// Per-attempt timeout for the Gemini call. Vercel serverless functions have
-// their own hard ceiling, so this just makes sure a hung request fails fast
-// and cleanly (as a caught, logged error) rather than running out the clock
-// and surfacing a raw platform timeout to the user.
-const GEMINI_TIMEOUT_MS = 25_000;
-
-// User-facing message for any transient AI-provider failure (503 overload,
-// 429 after both models are exhausted, timeouts, or network errors). Never
-// expose provider name, retry counts, or other internal detail here — that
-// only goes to console.error for server-side logs.
 function serviceUnavailableMessage(lang: string): string {
   return lang === "ar"
     ? "المحلل غير متاح مؤقتًا — نشهد إقبالاً كبيرًا حاليًا. يرجى المحاولة مرة أخرى بعد لحظات."
@@ -161,43 +145,6 @@ ${languageLine}
 Before returning JSON, silently check every human-readable string and remove any unnecessary English when Arabic is selected.`;
 }
 
-// Google's free-tier models occasionally return 503 "high demand" errors.
-// These are transient, so retry a few times with a short backoff before
-// giving up and surfacing an error to the user.
-async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Promise<Response> {
-  let lastRes: Response | undefined;
-  for (let i = 0; i < attempts; i++) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, { ...init, signal: controller.signal });
-      clearTimeout(timeout);
-      if (res.ok) return res;
-      // Only retry on transient server-side errors, not on bad requests/auth issues.
-      if (res.status !== 503 && res.status !== 429) return res;
-      lastRes = res;
-    } catch (err) {
-      clearTimeout(timeout);
-      // Timeout (AbortError) or a network-level failure. Treat exactly like
-      // a transient 503 for retry purposes, and log the real cause.
-      const isAbort = err instanceof Error && err.name === "AbortError";
-      console.error(
-        isAbort ? `Gemini request timed out after ${GEMINI_TIMEOUT_MS}ms` : "Gemini request failed",
-        !isAbort ? err : ""
-      );
-      lastRes = undefined;
-      if (i === attempts - 1) throw err;
-    }
-    if (i < attempts - 1) {
-      await new Promise((r) => setTimeout(r, 800 * (i + 1)));
-    }
-  }
-  if (!lastRes) {
-    // Every attempt threw (timeout/network) rather than returning a Response.
-    throw new Error("All retry attempts failed with no response");
-  }
-  return lastRes;
-}
 
 // Upload limits. Vercel rejects bodies over ~4.5 MB before this runs; this is the app-level guard.
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -220,13 +167,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error("analyze: GEMINI_API_KEY is not configured");
+  if (!providersConfigured(true)) {
+    console.error("analyze: no free AI provider is configured");
     return NextResponse.json({ error: "The analyzer is temporarily unavailable." }, { status: 503 });
   }
 
-  let usageInfo: { plan: string; remaining: number; limit: number } | null = null;
   // Read-only check — do NOT consume a use yet. We only spend one of the
   // user's daily attempts once the analysis genuinely succeeds, below.
   const usage = await peekAnalyzeUsage(userId);
@@ -293,95 +238,25 @@ export async function POST(req: NextRequest) {
   const { engine, pair: verifiedPair } = await engineForScreenshot(context.pair, context.timeframe);
   const engineBlock = engineFactsBlock(engine, verifiedPair ?? context.pair ?? "the chart");
 
-  function callGemini(model: string) {
-    return fetchWithRetry(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: buildPrompt(lang, context, livePrice, engineBlock) },
-                { inline_data: { mime_type: mimeType, data: base64 } },
-              ],
-            },
-          ],
-          generationConfig: {
-            responseMimeType: "application/json",
-          },
-        }),
-      }
-    );
-  }
-
-  let geminiRes: Response;
-  try {
-    geminiRes = await callGemini(MODEL_PRIMARY);
-
-    // Flash and Flash-Lite have separate daily quotas on the same key, so a
-    // 429 on one is worth one real retry on the other before giving up.
-    if (!geminiRes.ok && geminiRes.status === 429) {
-      console.error(`Gemini ${MODEL_PRIMARY} hit 429 — falling back to ${MODEL_FALLBACK}`);
-      geminiRes = await callGemini(MODEL_FALLBACK);
+  const result = await runAnalysis({ prompt: buildPrompt(lang, context, livePrice, engineBlock), image: { mime: mimeType, base64 } });
+  if (!result.ok) {
+    // Nothing is consumed on any failure: the counter is only touched after a usable analysis exists.
+    if (result.kind === "empty") {
+      return NextResponse.json({ error: "The analyzer returned an empty response. Try a different image." }, { status: 502 });
     }
-  } catch (err) {
-    // Every retry attempt timed out or failed at the network level. This is
-    // exactly the same class of "temporarily unavailable" failure as a 503
-    // from the provider — never surface the raw cause to the user.
-    console.error("Gemini call failed after retries (timeout or network error):", err);
+    if (result.kind === "invalid") {
+      return NextResponse.json({ error: "The analyzer's response couldn't be read. Try again in a moment." }, { status: 502 });
+    }
     return NextResponse.json({ error: serviceUnavailableMessage(lang) }, { status: 503 });
   }
 
-  if (!geminiRes.ok) {
-    const detail = await geminiRes.text();
-    // Log the real detail server-side (visible in Vercel's function logs),
-    // but never send raw API error text to whoever's using the site.
-    console.error(`Gemini API error (${geminiRes.status}):`, detail.slice(0, 500));
-
-    if (geminiRes.status === 503) {
-      return NextResponse.json({ error: serviceUnavailableMessage(lang) }, { status: 503 });
-    }
-    if (geminiRes.status === 429) {
-      // Both primary and fallback models are exhausted for the day — still
-      // a provider-capacity issue from the user's point of view, not
-      // something they can act on, so same generic message.
-      return NextResponse.json({ error: serviceUnavailableMessage(lang) }, { status: 429 });
-    }
-    return NextResponse.json(
-      { error: "The analyzer couldn't complete this read. Try again in a moment." },
-      { status: 502 }
-    );
-  }
-
-  const data = await geminiRes.json();
-  const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!text) {
-    console.error("Gemini returned an empty response.");
-    return NextResponse.json(
-      { error: "The analyzer returned an empty response. Try a different image." },
-      { status: 502 }
-    );
-  }
-
-  try {
-    const parsed = JSON.parse(text);
-    // Engine output replaces anything the model wrote about levels or the plan.
-    applyEngineToAnalysis(parsed, engine, lang);
-    if (verifiedPair) parsed.pair = verifiedPair;
-    const consumed = await consumeAnalyzeUsage(userId);
-    // The counter is authoritative: if it cannot confirm this use (outage or a parallel request took the last one), the analysis is withheld.
-    if (consumed.unavailable) return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
-    if (!consumed.allowed) return NextResponse.json({ error: analyzeLimitReachedMessage(consumed.plan, consumed.limit) }, { status: 429 });
-    usageInfo = { plan: consumed.plan, remaining: consumed.remaining, limit: consumed.limit };
-    return NextResponse.json({ ...parsed, _usage: usageInfo });
-  } catch {
-    console.error("Couldn't parse Gemini response as JSON:", text.slice(0, 500));
-    return NextResponse.json(
-      { error: "The analyzer's response couldn't be read. Try again in a moment." },
-      { status: 502 }
-    );
-  }
+  const parsed = result.parsed;
+  // Engine output replaces anything the model wrote about levels or the plan.
+  applyEngineToAnalysis(parsed, engine, lang);
+  if (verifiedPair) parsed.pair = verifiedPair;
+  const consumed = await consumeAnalyzeUsage(userId);
+  // The counter is authoritative: if it cannot confirm this use (outage or a parallel request took the last one), the analysis is withheld.
+  if (consumed.unavailable) return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
+  if (!consumed.allowed) return NextResponse.json({ error: analyzeLimitReachedMessage(consumed.plan, consumed.limit) }, { status: 429 });
+  return NextResponse.json({ ...parsed, _usage: { plan: consumed.plan, remaining: consumed.remaining, limit: consumed.limit } });
 }

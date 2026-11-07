@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { providersConfigured, runAnalysis } from "@/lib/ai";
 import { auth } from "@clerk/nextjs/server";
 import { USAGE_UNAVAILABLE_MESSAGE, analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
 import { getCandles, MarketDataError, type Interval } from "@/lib/marketData";
@@ -7,12 +8,7 @@ import { buildPrompt, computeFacts, HIGHER_TF, LOWER_TF, type Facts } from "@/li
 import { analyzeCandles, closedCandles, type EngineResult } from "@/lib/analyzerEngine";
 import { applyEngineToAnalysis } from "@/lib/analyzerEngineApply";
 
-// Same models, same retry policy, same per-attempt timeout as the
-// screenshot-based Analyzer (app/api/analyze/route.ts) — this route is a
-// second INPUT path into the exact same AI analysis feature, not a new one.
-const MODEL_PRIMARY = "gemini-flash-latest";
-const MODEL_FALLBACK = "gemini-flash-lite-latest";
-const GEMINI_TIMEOUT_MS = 25_000;
+// Providers, models, free-tier rules and the time budget live in lib/ai (free providers only).
 
 function serviceUnavailableMessage(lang: string): string {
   return lang === "ar"
@@ -22,32 +18,6 @@ function serviceUnavailableMessage(lang: string): string {
     : "Analyzer temporarily unavailable — we're experiencing high demand. Please try again in a moment.";
 }
 
-async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Promise<Response> {
-  let lastRes: Response | undefined;
-  for (let i = 0; i < attempts; i++) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, { ...init, signal: controller.signal });
-      clearTimeout(timeout);
-      if (res.ok) return res;
-      if (res.status !== 503 && res.status !== 429) return res;
-      lastRes = res;
-    } catch (err) {
-      clearTimeout(timeout);
-      const isAbort = err instanceof Error && err.name === "AbortError";
-      console.error(
-        isAbort ? `Gemini request timed out after ${GEMINI_TIMEOUT_MS}ms` : "Gemini request failed",
-        !isAbort ? err : ""
-      );
-      lastRes = undefined;
-      if (i === attempts - 1) throw err;
-    }
-    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 800 * (i + 1)));
-  }
-  if (!lastRes) throw new Error("All retry attempts failed with no response");
-  return lastRes;
-}
 
 
 export const maxDuration = 30;
@@ -69,9 +39,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Please sign in to use the Analyzer." }, { status: 401 });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error("analyze-chart: GEMINI_API_KEY is not configured");
+  if (!providersConfigured(false)) {
+    console.error("analyze-chart: no free AI provider is configured");
     return NextResponse.json({ error: "The analyzer is temporarily unavailable." }, { status: 503 });
   }
 
@@ -170,71 +139,30 @@ export async function POST(req: NextRequest) {
     engine,
   });
 
-  function callGemini(model: string) {
-    return fetchWithRetry(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" },
-        }),
-      }
-    );
-  }
-
-  let geminiRes: Response;
-  try {
-    geminiRes = await callGemini(MODEL_PRIMARY);
-    if (!geminiRes.ok && geminiRes.status === 429) {
-      console.error(`Gemini ${MODEL_PRIMARY} hit 429 — falling back to ${MODEL_FALLBACK}`);
-      geminiRes = await callGemini(MODEL_FALLBACK);
+  const result = await runAnalysis({ prompt });
+  if (!result.ok) {
+    // Nothing is consumed on any failure: the counter is only touched after a usable analysis exists.
+    if (result.kind === "empty") {
+      return NextResponse.json({ error: "The analyzer returned an empty response. Try again." }, { status: 502 });
     }
-  } catch (err) {
-    console.error("Gemini call failed after retries (timeout or network error):", err);
+    if (result.kind === "invalid") {
+      return NextResponse.json({ error: "The analyzer's response couldn't be read. Try again in a moment." }, { status: 502 });
+    }
     return NextResponse.json({ error: serviceUnavailableMessage(lang) }, { status: 503 });
   }
 
-  if (!geminiRes.ok) {
-    const detail = await geminiRes.text();
-    console.error(`Gemini API error (${geminiRes.status}):`, detail.slice(0, 500));
-    if (geminiRes.status === 503) {
-      return NextResponse.json({ error: serviceUnavailableMessage(lang) }, { status: 503 });
-    }
-    if (geminiRes.status === 429) {
-      return NextResponse.json({ error: serviceUnavailableMessage(lang) }, { status: 429 });
-    }
-    return NextResponse.json(
-      { error: "The analyzer couldn't complete this read. Try again in a moment." },
-      { status: 502 }
-    );
-  }
-
-  const data = await geminiRes.json();
-  const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    console.error("Gemini returned an empty response.");
-    return NextResponse.json({ error: "The analyzer returned an empty response. Try again." }, { status: 502 });
-  }
-
-  try {
-    const parsed = JSON.parse(text);
-    // Engine output replaces anything the model wrote about levels or the plan.
-    applyEngineToAnalysis(parsed, engine, lang);
-    const consumed = await consumeAnalyzeUsage(userId);
-    // The counter is authoritative: if it cannot confirm this use (outage or a parallel request took the last one), the analysis is withheld.
-    if (consumed.unavailable) return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
-    if (!consumed.allowed) return NextResponse.json({ error: analyzeLimitReachedMessage(consumed.plan, consumed.limit) }, { status: 429 });
-    return NextResponse.json({
-      ...parsed,
-      pair: pairLabel,
-      timeframe: interval,
-      _symbol: pairSymbol,
-      _usage: { plan: consumed.plan, remaining: consumed.remaining, limit: consumed.limit },
-    });
-  } catch {
-    console.error("Couldn't parse Gemini response as JSON:", text.slice(0, 500));
-    return NextResponse.json({ error: "The analyzer's response couldn't be read. Try again in a moment." }, { status: 502 });
-  }
+  const parsed = result.parsed;
+  // Engine output replaces anything the model wrote about levels or the plan.
+  applyEngineToAnalysis(parsed, engine, lang);
+  const consumed = await consumeAnalyzeUsage(userId);
+  // The counter is authoritative: if it cannot confirm this use (outage or a parallel request took the last one), the analysis is withheld.
+  if (consumed.unavailable) return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
+  if (!consumed.allowed) return NextResponse.json({ error: analyzeLimitReachedMessage(consumed.plan, consumed.limit) }, { status: 429 });
+  return NextResponse.json({
+    ...parsed,
+    pair: pairLabel,
+    timeframe: interval,
+    _symbol: pairSymbol,
+    _usage: { plan: consumed.plan, remaining: consumed.remaining, limit: consumed.limit },
+  });
 }

@@ -172,6 +172,21 @@ describe("chart route", () => {
     expect(res.status).toBe(503);
     expect(h.consume).not.toHaveBeenCalled();
   });
+
+  it("every free provider failing (both routes) gives a friendly error and consumes nothing", async () => {
+    stubGemini(false);
+    for (const res of [await chartPOST(chartReq()), await shotPOST(shotReq({ pair: "BTC/USDT", timeframe: "1H" }))]) {
+      expect(res.status).toBe(503);
+      expect(JSON.stringify(await res.json())).toMatch(/temporarily unavailable/i);
+    }
+    expect(h.consume).not.toHaveBeenCalled();
+  });
+
+  it("an unreadable model answer consumes nothing", async () => {
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "not json" }] } }] }), { status: 200 }));
+    expect((await chartPOST(chartReq())).status).toBe(502);
+    expect(h.consume).not.toHaveBeenCalled();
+  });
 });
 
 describe("usage counter outage (both routes fail closed)", () => {

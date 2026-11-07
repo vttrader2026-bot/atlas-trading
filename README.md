@@ -74,3 +74,14 @@ Open http://localhost:3000.
 
 Next.js 16 (App Router) + TypeScript + Tailwind CSS v4. Gemini API powers
 the analyzer; everything else (Binance data, journal) needs no backend.
+
+## Analyzer AI providers (free only)
+
+The Analyzer calls `lib/ai` only. Default chain: Gemini Flash, then Gemini Flash-Lite (`GEMINI_API_KEY`).
+Keep billing OFF on the Google Cloud project that owns the key; free quota running out then fails safely.
+
+Optional, off by default: set `ANALYZER_PROVIDERS=gemini,groq,openrouter` plus
+`GROQ_API_KEY` + `GROQ_MODEL`, and/or `OPENROUTER_API_KEY` + `OPENROUTER_MODEL` (must end in `:free`).
+Add `GROQ_SUPPORTS_IMAGES=true` / `OPENROUTER_SUPPORTS_IMAGES=true` only after confirming the model reads images.
+`GEMINI_MODEL_PRIMARY` / `GEMINI_MODEL_FALLBACK` accept only models in `FREE_GEMINI_MODELS` (`lib/ai/config.ts`).
+No paid provider exists in the code. A failed analysis never consumes a daily use.
