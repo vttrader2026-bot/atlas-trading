@@ -18,8 +18,13 @@ export const callGemini: Adapter = async (entry, req, timeoutMs) => {
       return { ok: false, kind: "unavailable", status: res.status };
     }
     const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    return typeof text === "string" && text.trim() ? { ok: true, text } : { ok: false, kind: "empty" };
+    // Newer models may return several parts (e.g. a thinking part first): use only the visible answer text.
+    const answerParts: { text?: unknown; thought?: unknown }[] = data?.candidates?.[0]?.content?.parts ?? [];
+    const text = answerParts
+      .filter((x) => x && x.thought !== true && typeof x.text === "string")
+      .map((x) => x.text as string)
+      .join("");
+    return text.trim() ? { ok: true, text } : { ok: false, kind: "empty" };
   } catch (err) {
     const abort = err instanceof Error && err.name === "AbortError";
     console.error(abort ? `Gemini ${entry.model} timed out` : `Gemini ${entry.model} request failed`);

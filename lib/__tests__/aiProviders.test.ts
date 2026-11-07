@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- request-body fixtures are loosely typed */
 // AI-PROVIDERS-v1: free-only provider chain. No network: fetch is stubbed.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -8,6 +9,40 @@ const quiet = () => {};
 const GOOD = JSON.stringify({ marketStructure: { state: "Bullish" }, tradePlan: { direction: "Wait" } });
 const geminiOk = (text = GOOD) => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }), { status: 200 });
 const compatOk = (text = GOOD) => new Response(JSON.stringify({ choices: [{ message: { content: text } }] }), { status: 200 });
+
+describe("Gemini model selection", () => {
+  it("Flash is primary and Gemini 3.5 Flash-Lite is the fallback; the unavailable 2.5 Flash-Lite is not a default", () => {
+    expect(DEFAULT_GEMINI_PRIMARY).toBe("gemini-2.5-flash");
+    expect(DEFAULT_GEMINI_FALLBACK).toBe("gemini-3.5-flash-lite");
+    const c = buildChain({ GEMINI_API_KEY: "k" }, { needsImage: true }, quiet);
+    expect(c.map((e) => e.model)).toEqual(["gemini-2.5-flash", "gemini-3.5-flash-lite"]);
+    expect(c.every((e) => e.supportsImages)).toBe(true);
+  });
+  it("accepts free models set through env, including 3.5 Flash-Lite as primary", () => {
+    const c = buildChain({ GEMINI_API_KEY: "k", GEMINI_MODEL_PRIMARY: "gemini-3.5-flash", GEMINI_MODEL_FALLBACK: "gemini-3.5-flash-lite" }, { needsImage: false }, quiet);
+    expect(c.map((e) => e.model)).toEqual(["gemini-3.5-flash", "gemini-3.5-flash-lite"]);
+  });
+  it("calls the standard generateContent endpoint with inline image data and JSON output for the fallback model", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const seen: { url: string; body: any }[] = [];
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      seen.push({ url, body: JSON.parse(String(init.body)) });
+      return url.includes("gemini-2.5-flash:") ? new Response("gone", { status: 404 }) : geminiOk();
+    });
+    const r = await runAnalysis({ prompt: "p", image: { mime: "image/png", base64: "AAAA" } }, { GEMINI_API_KEY: "k" });
+    vi.unstubAllGlobals();
+    expect(r.ok && r.model).toBe("gemini-3.5-flash-lite");
+    expect(seen[1].url).toBe("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent");
+    expect(seen[1].body.contents[0].parts[1].inline_data).toEqual({ mime_type: "image/png", data: "AAAA" });
+    expect(seen[1].body.generationConfig.responseMimeType).toBe("application/json");
+  });
+  it("reads only visible answer text when a response has several parts (thinking parts are skipped)", async () => {
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "reasoning...", thought: true }, { text: GOOD }] } }] }), { status: 200 }));
+    const r = await runAnalysis({ prompt: "p" }, { GEMINI_API_KEY: "k" });
+    vi.unstubAllGlobals();
+    expect(r.ok).toBe(true);
+  });
+});
 
 describe("chain configuration is free-only", () => {
   it("defaults to Gemini Flash then Flash-Lite and nothing else", () => {

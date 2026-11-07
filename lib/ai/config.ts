@@ -12,13 +12,15 @@ import type { ChainEntry } from "./types";
 /** Pinned free-tier Gemini models (Google's pricing page lists these as "Free of charge"). Update when Google changes them. */
 export const FREE_GEMINI_MODELS = [
   "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
   "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
   "gemini-3.1-flash-lite",
+  // Still accepted through env for older keys, but no longer a default: Google no longer offers it to new users.
+  "gemini-2.5-flash-lite",
 ] as const;
 
 export const DEFAULT_GEMINI_PRIMARY = "gemini-2.5-flash";
-export const DEFAULT_GEMINI_FALLBACK = "gemini-2.5-flash-lite";
+export const DEFAULT_GEMINI_FALLBACK = "gemini-3.5-flash-lite";
 
 export const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
 export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
