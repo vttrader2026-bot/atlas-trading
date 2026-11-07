@@ -35,14 +35,23 @@ export default function WorkflowPage() {
   const [hasDraft, setHasDraft] = useState(false);
   const [watch, setWatch] = useState<number | null>(null);
 
+  // ACCESS-v1: personal data is read only for an authenticated user; visitors never load it.
   useEffect(() => {
+    if (!isLoaded) return;
     void Promise.resolve().then(() => {
-      setTrades(loadTrades());
-      setAnalyses(loadHistory().length);
-      setHasDraft(loadDraft() !== null);
+      if (isSignedIn) {
+        setTrades(loadTrades());
+        setAnalyses(loadHistory().length);
+        setHasDraft(loadDraft() !== null);
+      } else {
+        setTrades([]);
+        setAnalyses(0);
+        setHasDraft(false);
+        setWatch(null);
+      }
       setMounted(true);
     });
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
