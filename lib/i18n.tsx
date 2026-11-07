@@ -868,6 +868,8 @@ const en: Dict = {
       "Rules, not magic: Breakout = within 1% of the 24h high and green. Pullback = up 3%+ over 24h but at least 3% off that high. High volume = top 40 pairs by 24h quote volume. Near high/low = within 1% of the 24h high/low. Range = 24h change within ±1%. This is a screen to narrow your own research, not a signal to trade.",
   },
   tradeFeed: {
+    activeSignal: "Active Signal",
+    signalSignInPrompt: "Sign in or create a free account to open this setup. You will return straight to it.",
     title: "Trade Feed",
     subtitle: "Trade setups published by Atlas. Not financial advice - use them to check your own thinking.",
     loading: "Loading trades...",
@@ -1830,6 +1832,8 @@ const ar: Dict = {
       "قواعد واضحة لا سحر: اختراق = ضمن 1% من أعلى 24 ساعة وبتغير إيجابي. ارتداد = صعود 3%+ خلال 24 ساعة لكن بانخفاض 3% على الأقل عن ذلك الأعلى. حجم مرتفع = أعلى 40 زوجًا من حيث حجم التداول خلال 24 ساعة. قرب الأعلى/الأدنى = ضمن 1% من أعلى/أدنى 24 ساعة. نطاق = تغير 24 ساعة ضمن ±1%. هذا فحص لتضييق بحثك الخاص، وليس إشارة للتداول.",
   },
   tradeFeed: {
+    activeSignal: "إشارة نشطة",
+    signalSignInPrompt: "سجّل الدخول أو أنشئ حسابًا مجانيًا لفتح هذه الصفقة. ستعود إليها مباشرة.",
     title: "خلاصة الصفقات",
     subtitle: "إعدادات صفقات نشرها أطلس. ليست نصيحة مالية — استخدمها لمراجعة تفكيرك الخاص.",
     loading: "جارٍ تحميل الصفقات...",
@@ -2794,6 +2798,8 @@ const fr: Dict = {
       "Des règles, pas de la magie : Cassure = à moins de 1% du haut 24h et en hausse. Repli = +3% ou plus sur 24h mais à au moins 3% de ce haut. Volume élevé = top 40 des paires par volume en cote sur 24h. Proche du haut/bas = à moins de 1% du haut/bas 24h. Range = variation 24h dans ±1%. Ceci est un filtre pour affiner votre propre recherche, pas un signal de trading.",
   },
   tradeFeed: {
+    activeSignal: "Signal actif",
+    signalSignInPrompt: "Connectez-vous ou créez un compte gratuit pour ouvrir ce setup. Vous y reviendrez directement.",
     title: "Fil de trades",
     subtitle: "Configurations de trade publiées par Atlas. Pas un conseil financier - utilisez-les pour vérifier votre propre raisonnement.",
     loading: "Chargement des trades...",

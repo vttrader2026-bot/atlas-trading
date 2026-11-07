@@ -10,6 +10,9 @@ import { CATEGORY_META, type AssetCategory } from "@/lib/marketIntelAssets";
 import { GROUP_STYLE } from "@/lib/marketGroups";
 import { ChangePill, CoinLogo } from "@/components/market/MarketBits";
 import AnalysisPanel from "@/components/charts/AnalysisPanel";
+import ActiveSignalBadge from "@/components/tradefeed/ActiveSignalBadge";
+import { useActiveSignals } from "@/lib/useActiveSignals";
+import type { ActiveSignalRef } from "@/lib/activeSignals";
 
 type ApiAsset = {
   symbol: string;
@@ -50,6 +53,7 @@ const REFRESH_MS = 5 * 60 * 1000;
 
 export default function MarketIntelligencePage() {
   const { lang } = useLanguage() as { lang: MiLang };
+  const signalFor = useActiveSignals(); // ACTIVE-SIGNAL-v1
   const tr = (key: string) => miT(lang, key);
   const { isLoaded, isSignedIn } = useAuth();
 
@@ -293,7 +297,7 @@ export default function MarketIntelligencePage() {
                     </tr>
                   )}
                   {filtered.map((asset) => (
-                    <AssetRow key={asset.symbol} asset={asset} tr={tr} onViewChart={setChartSymbol} />
+                    <AssetRow key={asset.symbol} asset={asset} tr={tr} onViewChart={setChartSymbol} signal={signalFor(asset.symbol)} />
                   ))}
                 </tbody>
               </table>
@@ -302,7 +306,7 @@ export default function MarketIntelligencePage() {
             <div className="sm:hidden divide-y divide-line">
               {filtered.length === 0 && <div className="text-center py-12 text-base text-text-muted">{tr("empty")}</div>}
               {filtered.map((asset) => (
-                <AssetCardMobile key={asset.symbol} asset={asset} tr={tr} onViewChart={setChartSymbol} />
+                <AssetCardMobile key={asset.symbol} asset={asset} tr={tr} onViewChart={setChartSymbol} signal={signalFor(asset.symbol)} />
               ))}
             </div>
           </div>
@@ -461,15 +465,18 @@ function AssetRow({
   asset,
   tr,
   onViewChart,
+  signal,
 }: {
   asset: ApiAsset;
   tr: (k: string) => string;
   onViewChart: (symbol: string) => void;
+  signal: ActiveSignalRef | null;
 }) {
   return (
     <tr className="mkt-row group border-t border-line">
       <td className="mkt-td text-text-muted font-data text-sm">#{asset.rank}</td>
       <td className="mkt-td">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <button
           onClick={() => onViewChart(asset.symbol)}
           className="flex items-center gap-3 group-hover:text-gold transition-colors text-start"
@@ -488,6 +495,8 @@ function AssetRow({
             </span>
           )}
         </button>
+        <ActiveSignalBadge signal={signal} coin={asset.symbol} />
+        </div>
       </td>
       <td className="mkt-td font-data text-end text-base font-medium">${formatPrice(asset.price)}</td>
       <td className="mkt-td text-end">
@@ -510,12 +519,15 @@ function AssetCardMobile({
   asset,
   tr,
   onViewChart,
+  signal,
 }: {
   asset: ApiAsset;
   tr: (k: string) => string;
   onViewChart: (symbol: string) => void;
+  signal: ActiveSignalRef | null;
 }) {
   return (
+    <div>
     <button
       onClick={() => onViewChart(asset.symbol)}
       className="flex items-start gap-3 px-4 py-4 active:bg-surface-raised/50 transition-colors w-full text-start"
@@ -543,6 +555,12 @@ function AssetCardMobile({
         </div>
       </div>
     </button>
+    {signal && (
+      <div className="ps-[4.25rem] pe-4 pb-3 -mt-2">
+        <ActiveSignalBadge signal={signal} coin={asset.symbol} />
+      </div>
+    )}
+    </div>
   );
 }
 // MI-REDESIGN-1951

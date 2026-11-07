@@ -9,6 +9,8 @@ import { useLanguage } from "@/lib/i18n";
 import AnalysisPanel from "@/components/charts/AnalysisPanel";
 import { ChangePill, CoinLogo, RangeBar } from "@/components/market/MarketBits";
 import StarButton from "@/components/watchlist/StarButton";
+import ActiveSignalBadge from "@/components/tradefeed/ActiveSignalBadge";
+import { useActiveSignals } from "@/lib/useActiveSignals";
 import { DEFAULT_SORT, SORT_KEYS, defaultDir, sortRows, type SortDir, type SortKey } from "@/lib/radarSort";
 
 const FILTERS: { key: RadarTag | "all"; labelKey: string }[] = [
@@ -49,6 +51,7 @@ function dirOptions(key: SortKey): { value: SortDir; labelKey: string }[] {
 
 export default function RadarPage() {
   const { t } = useLanguage();
+  const signalFor = useActiveSignals(); // ACTIVE-SIGNAL-v1
   const tickers = useLiveTickers();
   const [error, setError] = useState(false);
   // undefined = still loading, null = unavailable (fall back to built-in rules), Set = live spot list
@@ -249,17 +252,20 @@ export default function RadarPage() {
                       return (
                         <tr key={row.ticker.symbol} className="mkt-row group border-t border-line">
                           <td className="mkt-td">
-                            <button
-                              onClick={() => setChartSymbol(base)}
-                              title={t("radar.viewChart")}
-                              className="flex items-center gap-3 group-hover:text-gold transition-colors text-start"
-                            >
-                              <CoinLogo base={base} size={36} />
-                              <span className="font-data">
-                                <span className="font-semibold text-base">{base}</span>
-                                <span className="text-text-muted text-sm">/USDT</span>
-                              </span>
-                            </button>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                              <button
+                                onClick={() => setChartSymbol(base)}
+                                title={t("radar.viewChart")}
+                                className="flex items-center gap-3 group-hover:text-gold transition-colors text-start"
+                              >
+                                <CoinLogo base={base} size={36} />
+                                <span className="font-data">
+                                  <span className="font-semibold text-base">{base}</span>
+                                  <span className="text-text-muted text-sm">/USDT</span>
+                                </span>
+                              </button>
+                              <ActiveSignalBadge signal={signalFor(base)} coin={base} />
+                            </div>
                           </td>
                           <td className="mkt-td font-data text-end text-base font-medium">
                             ${formatPrice(row.ticker.lastPrice)}
@@ -306,8 +312,10 @@ export default function RadarPage() {
                 )}
                 {filtered.map((row) => {
                   const base = row.ticker.symbol.replace("USDT", "");
+                  const sig = signalFor(base);
                   return (
-                    <div key={row.ticker.symbol} className="flex items-stretch">
+                    <div key={row.ticker.symbol}>
+                    <div className="flex items-stretch">
                     <button
                       onClick={() => setChartSymbol(base)}
                       className="flex items-center gap-3 ps-4 pe-2 py-3.5 flex-1 min-w-0 text-start active:bg-surface-raised/50 transition-colors"
@@ -331,6 +339,12 @@ export default function RadarPage() {
                       </div>
                     </button>
                     <StarButton symbol={row.ticker.symbol} className="items-center pe-3" />
+                    </div>
+                    {sig && (
+                      <div className="ps-[4.25rem] pe-4 pb-3 -mt-1">
+                        <ActiveSignalBadge signal={sig} coin={base} />
+                      </div>
+                    )}
                     </div>
                   );
                 })}

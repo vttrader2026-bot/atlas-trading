@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { authHref } from "@/lib/activeSignals";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
@@ -96,6 +97,24 @@ export default function TradeFeedPage() {
   const [watchBusy, setWatchBusy] = useState<string | null>(null);
   const [journalBySignal, setJournalBySignal] = useState<Record<string, string>>({});
   const [planSignalId, setPlanSignalId] = useState<string | null>(null);
+  // ACTIVE-SIGNAL-v1: /trade-feed?signal=<id> scrolls to that setup and highlights it briefly.
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const focused = useRef(false);
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("signal");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (id) setFocusId(id);
+  }, []);
+  useEffect(() => {
+    if (!focusId || focused.current || trades === null) return;
+    const el = document.getElementById(`signal-${focusId}`);
+    if (!el) return;
+    focused.current = true;
+    el.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    const timer = setTimeout(() => setFocusId(null), 5000);
+    return () => clearTimeout(timer);
+  }, [focusId, trades, locked]);
 
   useEffect(() => {
     const refresh = () => {
@@ -299,6 +318,7 @@ export default function TradeFeedPage() {
             <div className="font-medium">
               {lang === "ar" ? "انضم إلى Atlas Trading مجانًا" : "Join Atlas Trading for free"}
             </div>
+            {focusId && <p className="mt-1 text-sm font-medium text-gold">{t("tradeFeed.signalSignInPrompt")}</p>}
             <p className="text-sm text-text-muted leading-relaxed mt-1">
               {lang === "ar"
                 ? "استفد من خلاصة الصفقات العامة، والمحلل الذكي، والرادار، وخطة الصفقة، وأدوات المخاطر، والسجل."
@@ -307,12 +327,12 @@ export default function TradeFeedPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Link
-              href="/sign-in"
+              href={authHref("sign-in", focusId)}
               className="px-3 py-1.5 rounded-md border border-line text-sm text-text-muted hover:text-text hover:border-text-muted transition-colors whitespace-nowrap"
             >
               {lang === "ar" ? "تسجيل الدخول" : "Sign In"}
             </Link>
-            <Link href="/sign-up" className="btn-primary whitespace-nowrap">
+            <Link href={authHref("sign-up", focusId)} className="btn-primary whitespace-nowrap">
               {lang === "ar" ? "أنشئ حسابك المجاني ←" : "Create your free account →"}
             </Link>
           </div>
@@ -349,15 +369,19 @@ export default function TradeFeedPage() {
       <div className="mt-4 grid sm:grid-cols-2 gap-4">
         {trades && mixed(trades, locked).map((item) => {
           if ("locked" in item) {
-            return <LockedSignalCard key={item.id} signal={item} logo={<CoinLogo pair={item.pair} />} />;
+            return (
+              <div key={item.id} id={`signal-${item.id}`} className={`rounded-2xl transition-shadow duration-500 ${focusId === item.id ? "ring-2 ring-gold shadow-[0_0_28px_-6px_var(--gold)]" : ""}`}>
+                <LockedSignalCard signal={item} logo={<CoinLogo pair={item.pair} />} />
+              </div>
+            );
           }
           const trade = item;
           const ticker = tickers[binanceSymbol(trade.pair)];
           const live = ticker ? parseFloat(ticker.lastPrice) : NaN;
 
           return (
+            <div key={trade.id} id={`signal-${trade.id}`} className={`rounded-2xl transition-shadow duration-500 ${focusId === trade.id ? "ring-2 ring-gold shadow-[0_0_28px_-6px_var(--gold)]" : ""}`}>
             <SignalCard
-              key={trade.id}
               trade={trade}
               livePrice={Number.isFinite(live) && live > 0 ? live : null}
               logo={<CoinLogo pair={trade.pair} />}
@@ -397,6 +421,7 @@ export default function TradeFeedPage() {
                 ) : null
               }
             />
+            </div>
           );
         })}
       </div>
