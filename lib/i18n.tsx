@@ -182,6 +182,7 @@ const en: Dict = {
     },
   },
   nav: {
+    home: "Home",
     dashboard: "Dashboard",
     workflow: "Workflow",
     markets: "Markets",
@@ -1145,6 +1146,7 @@ const ar: Dict = {
     },
   },
   nav: {
+    home: "الرئيسية",
     dashboard: "لوحة التحكم",
     workflow: "مسار التداول",
     markets: "الأسواق",
@@ -2106,6 +2108,7 @@ const fr: Dict = {
     },
   },
   nav: {
+    home: "Accueil",
     dashboard: "Tableau de bord",
     workflow: "Workflow",
     markets: "Marchés",

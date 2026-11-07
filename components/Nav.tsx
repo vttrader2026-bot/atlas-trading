@@ -206,10 +206,19 @@ export default function Nav() {
     { href: "/watchlist", label: t("nav.watchlist") },
   ];
   const mkActive = MARKETS.some((i) => isOn(pathname, i.href));
+  const homeLink = {
+    href: "/",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px]" aria-hidden="true">
+        <path d="M4 11.5 12 5l8 6.5M6.5 10.5V19h11v-8.5M10 19v-4.5h4V19" />
+      </svg>
+    ),
+    label: t("nav.home"),
+  };
   const dashLink = { href: "/journal", icon: <IconOverview className="w-[18px] h-[18px]" />, label: t("nav.dashboard") };
   const workflowLink = { href: "/workflow", icon: <IconTradeFeed className="w-[18px] h-[18px]" />, label: t("nav.workflow") };
   const academyLink = { href: "/academy", icon: <IconAcademy className="w-[18px] h-[18px]" />, label: t("nav.academy") };
-  const COMMAND_LINKS = [dashLink, workflowLink];
+  const COMMAND_LINKS = [homeLink, dashLink, workflowLink];
 
   const eliteLabel = lang === "ar" ? "إيليت" : "Elite";
   const eliteActive = pathname === "/elite";
@@ -297,7 +306,7 @@ export default function Nav() {
         <div className="sm:hidden absolute inset-x-0 top-full z-50 border-t border-line bg-surface shadow-lg max-h-[calc(100vh-3.5rem)] overflow-y-auto">
           <nav className="max-w-6xl mx-auto px-4 py-2">
             <div className="flex flex-col py-2">
-              {[dashLink, workflowLink].map((link) => (
+              {[homeLink, dashLink, workflowLink].map((link) => (
                 <Link key={link.href} href={link.href} className={`px-2 py-2.5 text-sm transition-colors ${isOn(pathname, link.href) ? "text-text" : "text-text-muted hover:text-text"}`}>
                   {link.label}
                 </Link>
