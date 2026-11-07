@@ -203,6 +203,7 @@ const en: Dict = {
   },
   workflow: {
     eyebrow: "TRADING WORKFLOW",
+    stepWord: "STEP",
     title: "From idea to review, one step at a time",
     subtitle: "Six simple steps that take you from finding a coin to reviewing the result. Use any step at any time.",
     guestHint: "to see your own activity here.",
@@ -1165,6 +1166,7 @@ const ar: Dict = {
   },
   workflow: {
     eyebrow: "مسار التداول",
+    stepWord: "الخطوة",
     title: "من الفكرة إلى المراجعة، خطوة بخطوة",
     subtitle: "ست خطوات بسيطة تأخذك من اكتشاف العملة إلى مراجعة النتيجة. استخدم أي خطوة في أي وقت.",
     guestHint: "لترى نشاطك الخاص هنا.",
@@ -2125,6 +2127,7 @@ const fr: Dict = {
   },
   workflow: {
     eyebrow: "WORKFLOW DE TRADING",
+    stepWord: "ÉTAPE",
     title: "De l'idée au bilan, une étape à la fois",
     subtitle: "Six étapes simples pour aller de la découverte d'une crypto à l'analyse du résultat. Utilisez n'importe quelle étape à tout moment.",
     guestHint: "pour voir ici votre propre activité.",
