@@ -89,7 +89,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${sora.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
+        <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up" signInFallbackRedirectUrl="/workflow" signUpFallbackRedirectUrl="/workflow">
         <LanguageProvider>
           <RegisterServiceWorker />
           <Nav />

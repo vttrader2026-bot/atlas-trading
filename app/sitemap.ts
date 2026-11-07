@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const BASE = "https://www.atlastrading.app";
-const ROUTES = ["", "/radar", "/analyzer", "/trade-plan", "/journal", "/risk", "/ticker"];
+const ROUTES = ["", "/workflow", "/radar", "/analyzer", "/trade-plan", "/journal", "/risk", "/ticker"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return ROUTES.map((route) => ({

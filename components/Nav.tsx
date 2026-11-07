@@ -11,12 +11,8 @@ import ThemeToggle from "@/components/ThemeToggle";
 import {
   IconOverview,
   IconRadar,
-  IconMarketIntel,
-  IconAnalyzer,
   IconAcademy,
-  IconWatchlist,
   IconTradeFeed,
-  IconJournal,
 } from "@/components/icons";
 
 const LANG_OPTIONS: { code: "en" | "ar" | "fr"; label: string }[] = [
@@ -96,7 +92,7 @@ const isOn = (pathname: string, href: string) => pathname === href || pathname.s
 // Desktop "Trade Management" dropdown (Trade Plan, Journal, Risk Calculator). The command bar scrolls
 // horizontally, which would clip an absolutely positioned menu, so the menu is fixed-positioned from the
 // button's rectangle when opened. Closes on outside click, Escape, scroll, resize or choosing an item.
-function TradeManagementMenu({ label, items, pathname }: { label: string; items: { href: string; label: string }[]; pathname: string }) {
+function DropdownMenu({ label, items, pathname, icon }: { label: string; items: { href: string; label: string }[]; pathname: string; icon: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -153,7 +149,7 @@ function TradeManagementMenu({ label, items, pathname }: { label: string; items:
         }`}
       >
         <span className={`flex shrink-0 items-center lg:hidden transition-colors duration-150 ${active ? "text-gold" : "text-text-muted group-hover:text-text"}`}>
-          <IconJournal className="w-[18px] h-[18px]" />
+          {icon}
         </span>
         <span className="hidden lg:inline">{label}</span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" className={`hidden lg:block transition-transform ${open ? "rotate-180" : ""}`}>
@@ -194,83 +190,26 @@ export default function Nav() {
   const { lang, setLang, t } = useLanguage();
   const { isLoaded, isSignedIn } = useAuth();
   const [open, setOpen] = useState(false);
-  const [tmOpen, setTmOpen] = useState(false); // mobile "Trade Management" group
+  const [mkOpen, setMkOpen] = useState(false); // mobile "Markets" group
 
   // Close the mobile menu whenever the route changes.
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  const marketIntelLabel = t("nav.marketIntel");
-  // Trade Management groups the three tools that used to be separate links; their routes are unchanged.
-  const TRADE_MGMT = [
-    { href: "/trade-plan", label: t("nav.tradePlan") },
-    { href: "/journal", label: t("nav.journal") },
-    { href: "/risk", label: t("nav.riskCalculator") },
+  // WORKFLOW-v1: simplified primary navigation. Dashboard opens the Journal (trade dashboard and performance);
+  // Markets groups Radar, Market Intelligence and Watchlist. Every other route (Analyzer, Trade Plan, Trade Feed,
+  // Risk Calculator, ...) is unchanged and reachable from the Workflow page, the footer and direct links.
+  const MARKETS = [
+    { href: "/radar", label: t("nav.radar") },
+    { href: "/market-intelligence", label: t("nav.marketIntel") },
+    { href: "/watchlist", label: t("nav.watchlist") },
   ];
-  const tmActive = TRADE_MGMT.some((i) => isOn(pathname, i.href));
-
-  // Desktop "ATLAS Command Bar" — the five primary market-intelligence
-  // destinations. Trade Plan, Risk, and Journal are intentionally not
-  // listed here (hidden from navigation per the redesign), but their
-  // routes, pages, and data are untouched and still reachable directly,
-  // from the footer, and from the mobile menu below.
-  const COMMAND_LINKS = [
-    { href: "/", icon: <IconOverview className="w-[18px] h-[18px]" />, label: t("nav.overview") },
-    { href: "/radar", icon: <IconRadar className="w-[18px] h-[18px]" />, label: t("nav.radar") },
-    {
-      href: "/market-intelligence",
-      icon: <IconMarketIntel className="w-[18px] h-[18px]" />,
-      label: marketIntelLabel,
-    },
-    {
-      href: "/analyzer",
-      icon: <IconAnalyzer className="w-[18px] h-[18px]" />,
-      label: t("nav.analyzer"),
-    },
-    {
-      href: "/watchlist",
-      icon: <IconWatchlist className="w-[18px] h-[18px]" />,
-      label: t("nav.watchlist"),
-    },
-    {
-      href: "/trade-feed",
-      icon: <IconTradeFeed className="w-[18px] h-[18px]" />,
-      label: t("nav.tradeFeed"),
-    },
-    {
-      href: "/academy",
-      icon: <IconAcademy className="w-[18px] h-[18px]" />,
-      label: t("nav.academy"),
-    },
-  ];
-
-  // Mobile menu is unchanged by this redesign: all tools, including Trade
-  // Plan, Risk, and Journal, remain exactly where they were.
-  const MOBILE_GROUPS: { label: string; links: { href: string; label: string }[] }[] = [
-    {
-      label: "MARKETS",
-      links: [
-        { href: "/radar", label: t("nav.radar") },
-        { href: "/watchlist", label: t("nav.watchlist") },
-        { href: "/market-intelligence", label: marketIntelLabel },
-        { href: "/trade-feed", label: t("nav.tradeFeed") },
-      ],
-    },
-    {
-      label: "TRADING",
-      links: [
-        { href: "/analyzer", label: t("nav.analyzer") },
-      ],
-    },
-    {
-      label: "LEARN",
-      links: [
-        { href: "/academy", label: t("nav.academy") },
-        { href: "/share", label: lang === "ar" ? "مشاركة" : lang === "fr" ? "Partager" : "Share" },
-      ],
-    },
-  ];
+  const mkActive = MARKETS.some((i) => isOn(pathname, i.href));
+  const dashLink = { href: "/journal", icon: <IconOverview className="w-[18px] h-[18px]" />, label: t("nav.dashboard") };
+  const workflowLink = { href: "/workflow", icon: <IconTradeFeed className="w-[18px] h-[18px]" />, label: t("nav.workflow") };
+  const academyLink = { href: "/academy", icon: <IconAcademy className="w-[18px] h-[18px]" />, label: t("nav.academy") };
+  const COMMAND_LINKS = [dashLink, workflowLink];
 
   const eliteLabel = lang === "ar" ? "إيليت" : "Elite";
   const eliteActive = pathname === "/elite";
@@ -319,16 +258,10 @@ export default function Nav() {
         >
           <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-none rounded-lg border border-line/70 bg-surface/50 p-0.5 xl:p-1">
             {COMMAND_LINKS.map((link) => (
-              <Fragment key={link.href}>
-                <CommandNavLink
-                  href={link.href}
-                  icon={link.icon}
-                  label={link.label}
-                  active={pathname === link.href || pathname.startsWith(`${link.href}/`)}
-                />
-                {link.href === "/trade-feed" && <TradeManagementMenu label={t("nav.tradeManagement")} items={TRADE_MGMT} pathname={pathname} />}
-              </Fragment>
+              <CommandNavLink key={link.href} href={link.href} icon={link.icon} label={link.label} active={isOn(pathname, link.href)} />
             ))}
+            <DropdownMenu label={t("nav.markets")} items={MARKETS} pathname={pathname} icon={<IconRadar className="w-[18px] h-[18px]" />} />
+            <CommandNavLink href={academyLink.href} icon={academyLink.icon} label={academyLink.label} active={isOn(pathname, academyLink.href)} />
           </div>
           <Link href="/elite" className={`${elitePillClass} ms-1 xl:ms-2 px-2 lg:px-2.5 xl:px-3 py-1.5`} aria-label={eliteLabel} title={eliteLabel}>
             {"⚜"}
@@ -363,55 +296,36 @@ export default function Nav() {
       {open && (
         <div className="sm:hidden absolute inset-x-0 top-full z-50 border-t border-line bg-surface shadow-lg max-h-[calc(100vh-3.5rem)] overflow-y-auto">
           <nav className="max-w-6xl mx-auto px-4 py-2">
-            {MOBILE_GROUPS.map((group) => (
-              <div key={group.label} className="py-2 border-b border-line last:border-b-0">
-                <div className="px-2 text-label">{group.label}</div>
-                <div className="mt-1 flex flex-col">
-                  {group.links.map((link) => {
-                    const active = pathname === link.href;
-                    return (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        className={`px-2 py-2 text-sm transition-colors ${
-                          active ? "text-text" : "text-text-muted hover:text-text"
-                        }`}
-                      >
-                        {link.label}
-                      </Link>
-                    );
-                  })}
-                  {group.label === "TRADING" && (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setTmOpen((v) => !v)}
-                        aria-expanded={tmOpen || tmActive}
-                        className={`flex w-full items-center justify-between px-2 py-2 text-sm transition-colors ${tmActive ? "text-text" : "text-text-muted hover:text-text"}`}
-                      >
-                        <span>{t("nav.tradeManagement")}</span>
-                        <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" className={`transition-transform ${tmOpen || tmActive ? "rotate-180" : ""}`}>
-                          <path d="M2 3.5l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </button>
-                      {(tmOpen || tmActive) && (
-                        <div className="ms-3 flex flex-col border-s border-line ps-2">
-                          {TRADE_MGMT.map((item) => (
-                            <Link
-                              key={item.href}
-                              href={item.href}
-                              className={`px-2 py-2 text-sm transition-colors ${isOn(pathname, item.href) ? "text-text" : "text-text-muted hover:text-text"}`}
-                            >
-                              {item.label}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+            <div className="flex flex-col py-2">
+              {[dashLink, workflowLink].map((link) => (
+                <Link key={link.href} href={link.href} className={`px-2 py-2.5 text-sm transition-colors ${isOn(pathname, link.href) ? "text-text" : "text-text-muted hover:text-text"}`}>
+                  {link.label}
+                </Link>
+              ))}
+              <button
+                type="button"
+                onClick={() => setMkOpen((v) => !v)}
+                aria-expanded={mkOpen || mkActive}
+                className={`flex w-full items-center justify-between px-2 py-2.5 text-sm transition-colors ${mkActive ? "text-text" : "text-text-muted hover:text-text"}`}
+              >
+                <span>{t("nav.markets")}</span>
+                <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" className={`transition-transform ${mkOpen || mkActive ? "rotate-180" : ""}`}>
+                  <path d="M2 3.5l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {(mkOpen || mkActive) && (
+                <div className="ms-3 flex flex-col border-s border-line ps-2">
+                  {MARKETS.map((item) => (
+                    <Link key={item.href} href={item.href} className={`px-2 py-2 text-sm transition-colors ${isOn(pathname, item.href) ? "text-text" : "text-text-muted hover:text-text"}`}>
+                      {item.label}
+                    </Link>
+                  ))}
                 </div>
-              </div>
-            ))}
+              )}
+              <Link href={academyLink.href} className={`px-2 py-2.5 text-sm transition-colors ${isOn(pathname, academyLink.href) ? "text-text" : "text-text-muted hover:text-text"}`}>
+                {academyLink.label}
+              </Link>
+            </div>
           </nav>
 
           <div className="max-w-6xl mx-auto px-4 py-3 border-t border-line">

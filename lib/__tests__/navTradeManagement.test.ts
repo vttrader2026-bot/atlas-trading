@@ -6,25 +6,27 @@ const nav = readFileSync("components/Nav.tsx", "utf8");
 const i18n = readFileSync("lib/i18n.tsx", "utf8");
 const feed = readFileSync("app/trade-feed/page.tsx", "utf8");
 
-describe("Trade Management navigation", () => {
-  it("groups Trade Plan, Journal and Risk Calculator, keeping their routes", () => {
-    expect(nav).toContain('{ href: "/trade-plan", label: t("nav.tradePlan") }');
-    expect(nav).toContain('{ href: "/journal", label: t("nav.journal") }');
-    expect(nav).toContain('{ href: "/risk", label: t("nav.riskCalculator") }');
+describe("Simplified navigation (WORKFLOW-v1)", () => {
+  it("shows Dashboard, Workflow, Markets and Academy", () => {
+    for (const k of ["nav.dashboard", "nav.workflow", "nav.markets", "nav.academy"]) expect(nav).toContain(`t("${k}")`);
+    expect(nav).toContain('href: "/workflow"');
+    expect(nav).toContain('href: "/journal", icon');
   });
-  it("is a dropdown on desktop (menu semantics, Escape / outside click) and a group on mobile", () => {
-    expect(nav).toContain("TradeManagementMenu");
+  it("Markets groups Radar, Market Intelligence and Watchlist", () => {
+    for (const href of ["/radar", "/market-intelligence", "/watchlist"]) expect(nav).toContain(`{ href: "${href}", label:`);
+  });
+  it("Markets is a dropdown on desktop (menu semantics, Escape / outside click) and a group on mobile", () => {
+    expect(nav).toContain("DropdownMenu");
     for (const needle of ['aria-haspopup="menu"', 'role="menu"', 'role="menuitem"', '"Escape"', "mousedown"]) expect(nav).toContain(needle);
-    expect(nav).toContain("setTmOpen"); // mobile accordion
+    expect(nav).toContain("setMkOpen");
   });
-  it("the three tools are no longer separate mobile links", () => {
-    const mobile = nav.slice(nav.indexOf("const MOBILE_GROUPS"), nav.indexOf("const eliteLabel"));
-    for (const href of ["/trade-plan", "/journal", "/risk"]) expect(mobile).not.toContain(`href: "${href}"`);
+  it("keeps the Elite link, account controls and RTL-aware menu placement", () => {
+    expect(nav).toContain('href="/elite"');
+    expect(nav).toContain('document.documentElement.dir === "rtl"');
   });
   it("is labelled in English, Arabic and French", () => {
+    for (const k of ["dashboard", "workflow", "markets"]) expect(i18n.match(new RegExp(`    ${k}: "`, "g"))?.length).toBeGreaterThanOrEqual(3);
     expect(i18n.match(/tradeManagement: "/g)?.length).toBe(3);
-    expect(i18n.match(/riskCalculator: "/g)?.length).toBe(3);
-    expect(i18n).toContain('tradeManagement: "Trade Management"');
   });
 });
 
