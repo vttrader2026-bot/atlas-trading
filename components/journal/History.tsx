@@ -6,7 +6,7 @@ import { price, signedPct, signedUsd, tone, usd } from "./format";
 
 export type Query = { query: string; status: StatusFilter; sort: SortKey; desc: boolean };
 
-function Num({ children, cls = "" }: { children: React.ReactNode; cls?: string }) {
+export function Num({ children, cls = "" }: { children: React.ReactNode; cls?: string }) {
   return <span dir="ltr" className={`font-data ${cls}`} style={{ unicodeBidi: "isolate", display: "inline-block" }}>{children}</span>;
 }
 

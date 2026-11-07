@@ -3,7 +3,7 @@
 // ATLAS-JOURNAL-v2
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Trade, computeDashboard, filterAndSort, loadTrades, saveTrades, statusOf, unrealizedPnl } from "@/lib/journal";
+import { Trade, computeDashboard, loadTrades, saveTrades, statusOf, unrealizedPnl } from "@/lib/journal";
 import { useLanguage } from "@/lib/i18n";
 import { loadDraft } from "@/lib/tradePlan";
 import { planToTrade } from "@/lib/planBridge";
@@ -11,7 +11,8 @@ import { getKlinesFrom, getTicker24h } from "@/lib/binance";
 import { partialRealizedTotal } from "@/lib/exits";
 import { applyAutoSl, findAutoSlTouches, newMonitorState } from "@/lib/autoSl";
 import Overview from "@/components/journal/Overview";
-import History, { Query } from "@/components/journal/History";
+import type { Query } from "@/components/journal/History";
+import TradeViews, { type View } from "@/components/journal/TradeViews";
 import TradeDetails from "@/components/journal/TradeDetails";
 import TradeForm, { tradeToForm } from "@/components/journal/TradeForm";
 import { todayLocal } from "@/components/journal/format";
@@ -38,6 +39,7 @@ export default function JournalPage() {
   const pendingPlan = useRef<Pending>(null);
   const [picker, setPicker] = useState<Picker>(null);
   const [q, setQ] = useState<Query>({ query: "", status: "all", sort: "date", desc: true });
+  const [view, setView] = useState<View>("open"); // JOURNAL-TABS-v1
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -49,6 +51,8 @@ export default function JournalPage() {
     if (id) {
       setHighlight(id);
       setSelected(id);
+      const linked = loadTrades().find((x) => x.id === id);
+      if (linked) setView(statusOf(linked)); // open the tab the linked trade lives in
     }
     return () => window.removeEventListener("atlas-journal-updated", refresh);
   }, []);
@@ -125,7 +129,6 @@ export default function JournalPage() {
     return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
   }, [trades, prices]);
   const partial = useMemo(() => partialRealizedTotal(trades), [trades]);
-  const rows = useMemo(() => filterAndSort(trades, q), [trades, q]);
   const current = trades.find((x) => x.id === selected) ?? null;
 
   function startNew() {
@@ -204,6 +207,7 @@ export default function JournalPage() {
     setEditing(null);
     setMsg(t("journal.saved"));
     setHighlight(finalTrade.id);
+    setView(statusOf(finalTrade)); // a trade closed in the form moves to the Closed tab; partial exits keep it Open
   }
 
   function onDelete() {
@@ -287,7 +291,7 @@ export default function JournalPage() {
       {trades.length === 0 ? (
         <div className="mt-8 card p-10 text-center text-text-muted text-sm">{t("journal.noTrades")}</div>
       ) : (
-        <History rows={rows} q={q} setQ={setQ} prices={prices} onOpen={setSelected} highlight={highlight} t={t} />
+        <TradeViews trades={trades} view={view} setView={setView} q={q} setQ={setQ} prices={prices} onOpen={setSelected} onCloseTrade={(tr) => startEdit(tr, true)} highlight={highlight} t={t} />
       )}
 
       {current && (
