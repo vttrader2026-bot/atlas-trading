@@ -217,8 +217,19 @@ export default function Nav() {
   };
   const dashLink = { href: "/journal", icon: <IconOverview className="w-[18px] h-[18px]" />, label: t("nav.dashboard") };
   const workflowLink = { href: "/workflow", icon: <IconTradeFeed className="w-[18px] h-[18px]" />, label: t("nav.workflow") };
+  // INVESTOR-NAV: long-term investing module (private; signed-out visitors are sent to sign-in and returned).
+  const investorLink = {
+    href: "/investor",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px]" aria-hidden="true">
+        <path d="M12 3a9 9 0 1 0 9 9h-9V3Z" />
+        <path d="M15.5 3.7A9 9 0 0 1 20.3 8.5h-4.8V3.7Z" />
+      </svg>
+    ),
+    label: t("nav.investor"),
+  };
   const academyLink = { href: "/academy", icon: <IconAcademy className="w-[18px] h-[18px]" />, label: t("nav.academy") };
-  const COMMAND_LINKS = [homeLink, dashLink, workflowLink];
+  const COMMAND_LINKS = [homeLink, dashLink, workflowLink, investorLink];
 
   const eliteLabel = lang === "ar" ? "إيليت" : "Elite";
   const eliteActive = pathname === "/elite";
@@ -306,7 +317,7 @@ export default function Nav() {
         <div className="sm:hidden absolute inset-x-0 top-full z-50 border-t border-line bg-surface shadow-lg max-h-[calc(100vh-3.5rem)] overflow-y-auto">
           <nav className="max-w-6xl mx-auto px-4 py-2">
             <div className="flex flex-col py-2">
-              {[homeLink, dashLink, workflowLink].map((link) => (
+              {COMMAND_LINKS.map((link) => (
                 <Link key={link.href} href={link.href} className={`px-2 py-2.5 text-sm transition-colors ${isOn(pathname, link.href) ? "text-text" : "text-text-muted hover:text-text"}`}>
                   {link.label}
                 </Link>

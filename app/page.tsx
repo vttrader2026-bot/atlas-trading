@@ -10,6 +10,7 @@ import ProductShowcase from "@/components/home/ProductShowcase";
 import IntelSection from "@/components/home/IntelSection";
 import ToolsSection from "@/components/home/ToolsSection";
 import CommunitySection from "@/components/home/CommunitySection";
+import InvestorSection from "@/components/home/InvestorSection";
 import HomeSection from "@/components/home/HomeSection";
 
 export default function Home() {
@@ -75,6 +76,11 @@ export default function Home() {
       {/* 5. TRADING TOOLS */}
       <HomeSection eyebrow={t("homeV2.tools.eyebrow")} heading={t("homeV2.tools.heading")} subtitle={t("homeV2.tools.subtitle")}>
         <ToolsSection />
+      </HomeSection>
+
+      {/* ATLAS INVESTOR: long-term investing feature (private, sign-in required) */}
+      <HomeSection eyebrow={t("investor.homeEyebrow")} heading={t("investor.homeHeading")}>
+        <InvestorSection />
       </HomeSection>
 
       {/* 6. COMMUNITY & ACADEMY */}

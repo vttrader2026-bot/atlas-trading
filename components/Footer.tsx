@@ -17,6 +17,7 @@ export default function Footer() {
     { href: "/trade-plan", label: t("nav.tradePlan") },
     { href: "/risk", label: t("nav.risk") },
     { href: "/journal", label: t("nav.journal") },
+    { href: "/investor", label: t("investor.footerLink") },
     { href: "/academy", label: t("nav.academy") },
     { href: "/share", label: lang === "ar" ? "مشاركة" : lang === "fr" ? "Partager" : "Share" },
   ];

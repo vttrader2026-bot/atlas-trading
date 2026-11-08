@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { journalEn, journalFr, journalAr, planEn, planFr, planAr } from "@/lib/i18nJournal";
+import { investorEn, investorFr, investorAr } from "@/lib/i18nInvestor";
 import { feedEn, feedFr, feedAr, sigJournalEn, sigJournalFr, sigJournalAr, sigPlanEn, sigPlanFr, sigPlanAr } from "@/lib/i18nSignals";
 
 export type Lang = "en" | "ar" | "fr";
@@ -185,6 +186,7 @@ const en: Dict = {
     home: "Home",
     dashboard: "Dashboard",
     workflow: "Workflow",
+    investor: "Investor",
     markets: "Markets",
     overview: "Overview",
     radar: "Radar",
@@ -459,6 +461,7 @@ const en: Dict = {
     emptyRisk: "Enter your balance, risk %, entry price and stop-loss to see the results.",
     emptyPosition: "Enter your balance, investment amount, entry price and stop-loss to see the results.",
   },
+  investor: { ...investorEn },
   journal: {
     title: "Journal",
     subtitle: "Saved on this device. Sign in to sync it across your devices. Export anytime.",
@@ -1151,6 +1154,7 @@ const ar: Dict = {
     home: "الرئيسية",
     dashboard: "لوحة التحكم",
     workflow: "مسار التداول",
+    investor: "المستثمر",
     markets: "الأسواق",
     overview: "نظرة عامة",
     radar: "الرادار",
@@ -1424,6 +1428,7 @@ const ar: Dict = {
     emptyRisk: "أدخل رصيدك ونسبة المخاطرة وسعر الدخول ووقف الخسارة لرؤية النتائج.",
     emptyPosition: "أدخل رصيدك ومبلغ الاستثمار وسعر الدخول ووقف الخسارة لرؤية النتائج.",
   },
+  investor: { ...investorAr },
   journal: {
     title: "السجل",
     subtitle: "يُحفظ على هذا الجهاز. سجّل الدخول لمزامنته بين أجهزتك. يمكنك التصدير في أي وقت.",
@@ -2115,6 +2120,7 @@ const fr: Dict = {
     home: "Accueil",
     dashboard: "Tableau de bord",
     workflow: "Workflow",
+    investor: "Investisseur",
     markets: "Marchés",
     overview: "Aperçu",
     radar: "Radar",
@@ -2389,6 +2395,7 @@ const fr: Dict = {
     emptyRisk: "Entrez votre solde, le risque %, le prix d'entrée et le stop-loss pour voir les résultats.",
     emptyPosition: "Entrez votre solde, le montant investi, le prix d'entrée et le stop-loss pour voir les résultats.",
   },
+  investor: { ...investorFr },
   journal: {
     title: "Journal",
     subtitle: "Enregistré sur cet appareil. Connectez-vous pour le synchroniser entre vos appareils. Exportez à tout moment.",

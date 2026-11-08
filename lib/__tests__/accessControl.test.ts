@@ -38,6 +38,13 @@ describe("server-side route protection", () => {
   it("keeps /workflow and other public pages public", async () => {
     for (const p of ["/workflow", "/", "/radar", "/academy", "/trade-feed"]) expect(await run(p, null)).toBeUndefined();
   });
+  it("protects /investor the same way (INVESTOR-v1)", async () => {
+    const res = await run("/investor", null);
+    expect(res!.status).toBe(307);
+    expect(new URL(res!.headers.get("location")!).searchParams.get("redirect_url")).toBe("/investor");
+    expect(await run("/investor", "user_1")).toBeUndefined();
+    expect(isPrivatePath("/investor/x")).toBe(true);
+  });
   it("path helpers", () => {
     expect(isPrivatePath("/journal")).toBe(true);
     expect(isPrivatePath("/journalism")).toBe(false);

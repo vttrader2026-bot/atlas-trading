@@ -260,6 +260,14 @@ export default function WorkflowPage() {
         })}
       </ol>
 
+      <aside className="mt-10 rounded-xl border border-line bg-surface/60 p-5 flex flex-wrap items-center gap-4" data-investor-link>
+        <div className="flex-1 min-w-56">
+          <h2 className="font-heading text-base font-semibold">{t("investor.workflowTitle")}</h2>
+          <p className="mt-1 text-sm text-text-muted leading-relaxed">{t("investor.workflowBody")}</p>
+        </div>
+        <Link href="/investor" className="btn-secondary">{t("investor.workflowCta")}</Link>
+      </aside>
+
       <p className="mt-10 border-t border-line pt-5 font-data text-xs leading-relaxed text-text-muted">{t("workflow.note")}</p>
     </main>
   );

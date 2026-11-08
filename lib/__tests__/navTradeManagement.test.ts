@@ -10,8 +10,8 @@ describe("Simplified navigation (WORKFLOW-v1)", () => {
   it("Home links to the public homepage and comes before Dashboard, as a visible link on desktop and mobile", () => {
     expect(nav).toContain('href: "/",\n    icon:');
     expect(nav).toContain('t("nav.home")');
-    expect(nav).toContain("const COMMAND_LINKS = [homeLink, dashLink, workflowLink];");
-    expect(nav).toContain("{[homeLink, dashLink, workflowLink].map((link) => (");
+    expect(nav).toContain("const COMMAND_LINKS = [homeLink, dashLink, workflowLink, investorLink];");
+    expect(nav).toContain("{COMMAND_LINKS.map((link) => (");
     expect(i18n.match(/    home: "/g)?.length).toBeGreaterThanOrEqual(3);
   });
   it("shows Dashboard, Workflow, Markets and Academy", () => {
