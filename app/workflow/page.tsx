@@ -91,6 +91,7 @@ export default function WorkflowPage() {
       href: "/radar",
       tools: [
         { href: "/radar", label: t("nav.radar") },
+        { href: "/market-intelligence", label: t("nav.marketIntel") },
         { href: "/watchlist", label: t("nav.watchlist") },
         { href: "/trade-feed", label: t("nav.tradeFeed") },
       ],

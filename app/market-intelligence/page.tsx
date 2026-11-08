@@ -10,6 +10,7 @@ import { CATEGORY_META, type AssetCategory } from "@/lib/marketIntelAssets";
 import { GROUP_STYLE } from "@/lib/marketGroups";
 import { ChangePill, CoinLogo } from "@/components/market/MarketBits";
 import AnalysisPanel from "@/components/charts/AnalysisPanel";
+import StarButton from "@/components/watchlist/StarButton";
 import ActiveSignalBadge from "@/components/tradefeed/ActiveSignalBadge";
 import { useActiveSignals } from "@/lib/useActiveSignals";
 import type { ActiveSignalRef } from "@/lib/activeSignals";
@@ -52,7 +53,9 @@ type SortKey = "rank" | "change24h" | "perf7d" | "perf30d" | "volume" | "name";
 const REFRESH_MS = 5 * 60 * 1000;
 
 export default function MarketIntelligencePage() {
-  const { lang } = useLanguage() as { lang: MiLang };
+  const language = useLanguage();
+  const lang = language.lang as MiLang;
+  const watchLabel = language.t("nav.watchlist");
   const signalFor = useActiveSignals(); // ACTIVE-SIGNAL-v1
   const tr = (key: string) => miT(lang, key);
   const { isLoaded, isSignedIn } = useAuth();
@@ -274,9 +277,10 @@ export default function MarketIntelligencePage() {
 
           <div className="mt-4 panel overflow-hidden">
             <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full min-w-[860px]">
+              <table className="w-full min-w-[910px]">
                 <thead className="bg-surface-raised/40 text-text-muted">
                   <tr>
+                     <th className="mkt-th text-start w-12"><span className="sr-only">{watchLabel}</span></th>
                      <th className="mkt-th text-start w-12">{tr("col.rank")}</th>
                      <th className="mkt-th text-start">{tr("col.asset")}</th>
                     <th className="mkt-th text-end">{tr("col.price")}</th>
@@ -291,7 +295,7 @@ export default function MarketIntelligencePage() {
                 <tbody>
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="text-center py-12 text-base text-text-muted">
+                      <td colSpan={10} className="text-center py-12 text-base text-text-muted">
                         {tr("empty")}
                       </td>
                     </tr>
@@ -474,6 +478,9 @@ function AssetRow({
 }) {
   return (
     <tr className="mkt-row group border-t border-line">
+      <td className="mkt-td pe-0" data-mi-star>
+        <StarButton symbol={asset.symbol} />
+      </td>
       <td className="mkt-td text-text-muted font-data text-sm">#{asset.rank}</td>
       <td className="mkt-td">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -528,9 +535,11 @@ function AssetCardMobile({
 }) {
   return (
     <div>
+    {/* The star is a sibling of the card button (never nested inside it), so tapping it cannot open the chart. */}
+    <div className="flex items-start" data-mi-card>
     <button
       onClick={() => onViewChart(asset.symbol)}
-      className="flex items-start gap-3 px-4 py-4 active:bg-surface-raised/50 transition-colors w-full text-start"
+      className="flex items-start gap-3 ps-4 pe-1 py-4 active:bg-surface-raised/50 transition-colors flex-1 min-w-0 text-start"
     >
       <CoinLogo base={asset.symbol} size={40} />
       <div className="min-w-0 flex-1">
@@ -555,6 +564,8 @@ function AssetCardMobile({
         </div>
       </div>
     </button>
+    <StarButton symbol={asset.symbol} className="items-start pt-3 pe-2" />
+    </div>
     {signal && (
       <div className="ps-[4.25rem] pe-4 pb-3 -mt-2">
         <ActiveSignalBadge signal={signal} coin={asset.symbol} />

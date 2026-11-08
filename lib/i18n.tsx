@@ -212,7 +212,7 @@ const en: Dict = {
     guestHint: "to see your own activity here.",
     note: "Atlas never places orders. Execution happens on your exchange, and progress shows only trades you have recorded yourself.",
     steps: {
-      discover: { name: "DISCOVER", desc: "Find coins worth watching with the Radar and keep them on your Watchlist.", cta: "Open Radar" },
+      discover: { name: "DISCOVER", desc: "Find coins worth watching with the Radar and Market Intelligence, and keep them on your Watchlist.", cta: "Open Radar" },
       analyze: { name: "ANALYZE", desc: "Study the live chart and run the AI Analyzer for structure, levels and context.", cta: "Open Analyzer" },
       plan: { name: "PLAN", desc: "Turn your analysis into an entry, a stop and targets with a sized Trade Plan.", cta: "Open Trade Plan" },
       execute: { name: "EXECUTE", desc: "Place the order on your own exchange, then confirm it by logging the trade.", cta: "Log executed trade" },
@@ -1180,7 +1180,7 @@ const ar: Dict = {
     guestHint: "لترى نشاطك الخاص هنا.",
     note: "لا ينفّذ Atlas أي أوامر. التنفيذ يتم على منصتك، ويعرض التقدم الصفقات التي سجّلتها أنت فقط.",
     steps: {
-      discover: { name: "اكتشف", desc: "اعثر على عملات تستحق المتابعة عبر الرادار واحفظها في قائمة المتابعة.", cta: "افتح الرادار" },
+      discover: { name: "اكتشف", desc: "اعثر على عملات تستحق المتابعة عبر الرادار وذكاء السوق، واحفظها في قائمة المتابعة.", cta: "افتح الرادار" },
       analyze: { name: "حلّل", desc: "ادرس الشارت المباشر وشغّل المحلل الذكي لمعرفة الهيكل والمستويات والسياق.", cta: "افتح المحلل" },
       plan: { name: "خطّط", desc: "حوّل تحليلك إلى دخول ووقف خسارة وأهداف عبر خطة صفقة بحجم محسوب.", cta: "افتح خطة الصفقة" },
       execute: { name: "نفّذ", desc: "ضع الأمر على منصتك الخاصة ثم أكّده بتسجيل الصفقة.", cta: "سجّل صفقة منفّذة" },
@@ -2146,7 +2146,7 @@ const fr: Dict = {
     guestHint: "pour voir ici votre propre activité.",
     note: "Atlas ne passe jamais d'ordres. L'exécution se fait sur votre plateforme, et la progression n'affiche que les trades que vous avez enregistrés vous-même.",
     steps: {
-      discover: { name: "DÉCOUVRIR", desc: "Repérez les cryptos à surveiller avec le Radar et gardez-les dans votre Suivi.", cta: "Ouvrir le Radar" },
+      discover: { name: "DÉCOUVRIR", desc: "Repérez les cryptos à surveiller avec le Radar et Intelligence Marché, et gardez-les dans votre Suivi.", cta: "Ouvrir le Radar" },
       analyze: { name: "ANALYSER", desc: "Étudiez le graphique en direct et lancez l'analyseur IA pour la structure, les niveaux et le contexte.", cta: "Ouvrir l'analyseur" },
       plan: { name: "PLANIFIER", desc: "Transformez votre analyse en entrée, stop et objectifs avec un plan de trade dimensionné.", cta: "Ouvrir le plan de trade" },
       execute: { name: "EXÉCUTER", desc: "Passez l'ordre sur votre propre plateforme, puis confirmez-le en enregistrant le trade.", cta: "Enregistrer un trade exécuté" },
