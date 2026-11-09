@@ -21,6 +21,7 @@ import { confirmPlanIfElite, outcomeText } from "@/lib/eliteConfirmClient";
 import { isLiveSignal, isLongSignal, signalToTrade, type SignalLink } from "@/lib/signalLink";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 import { normalizeSymbol, baseOf } from "@/lib/watchlist";
+import NotificationCard from "@/components/NotificationCard";
 
 const nowMs = () => Date.now();
 
@@ -255,6 +256,8 @@ export default function JournalPage() {
           <button type="button" onClick={startNew} className="btn-primary">{t("journal.addTrade")}</button>
         </div>
       </div>
+
+      <NotificationCard />
 
       {msg && <p className="mt-4 text-sm text-text-muted" role="status">{msg}</p>}
 

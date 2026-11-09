@@ -6,45 +6,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import { useLanguage } from "@/lib/i18n";
-import { useAuth, UserButton } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSelect from "@/components/LanguageSelect";
+import NotificationBell from "@/components/NotificationBell";
+import AccountMenu from "@/components/AccountMenu";
 import {
   IconOverview,
   IconRadar,
   IconAcademy,
   IconTradeFeed,
 } from "@/components/icons";
-
-const LANG_OPTIONS: { code: "en" | "ar" | "fr"; label: string }[] = [
-  { code: "en", label: "EN" },
-  { code: "ar", label: "AR" },
-  { code: "fr", label: "FR" },
-];
-
-function LangSwitcher({
-  lang,
-  setLang,
-}: {
-  lang: "en" | "ar" | "fr";
-  setLang: (l: "en" | "ar" | "fr") => void;
-}) {
-  return (
-    <div className="shrink-0 flex items-center gap-0.5 rounded-md border border-line p-0.5">
-      {LANG_OPTIONS.map((opt) => (
-        <button
-          key={opt.code}
-          type="button"
-          onClick={() => setLang(opt.code)}
-          className={`px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
-            lang === opt.code ? "bg-gold/15 text-gold" : "text-text-muted hover:text-text"
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 // Desktop "command bar" nav item: compact icon + label, with a restrained
 // active indicator (filled pill + gold underline) rather than a loud tab.
@@ -187,7 +159,7 @@ function DropdownMenu({ label, items, pathname, icon }: { label: string; items: 
 
 export default function Nav() {
   const pathname = usePathname();
-  const { lang, setLang, t } = useLanguage();
+  const { lang, t } = useLanguage();
   const { isLoaded, isSignedIn } = useAuth();
   const [open, setOpen] = useState(false);
   const [mkOpen, setMkOpen] = useState(false); // mobile "Markets" group
@@ -251,17 +223,18 @@ export default function Nav() {
       )}
       {isLoaded && isSignedIn && (
         <>
+          <NotificationBell />
           <Link
             href="/account"
             className="shrink-0 px-2 py-1 text-xs text-text-muted hover:text-text transition-colors"
           >
             {t("nav.account")}
           </Link>
-          <UserButton />
+          <AccountMenu />
         </>
       )}
       <ThemeToggle />
-      <LangSwitcher lang={lang} setLang={setLang} />
+      <LanguageSelect />
     </>
   );
 
@@ -291,7 +264,9 @@ export default function Nav() {
 
         <div className="hidden sm:flex items-center gap-2 shrink-0 ms-auto">{controls}</div>
 
-        <div className="flex sm:hidden items-center gap-2 ms-auto">
+        <div className="flex sm:hidden items-center gap-1.5 ms-auto">
+          {isLoaded && isSignedIn && <NotificationBell />}
+          <LanguageSelect />
           <ThemeToggle />
           <button
             type="button"
@@ -373,10 +348,9 @@ export default function Nav() {
                 >
                   {t("nav.account")}
                 </Link>
-                <UserButton />
+                <AccountMenu />
               </>
             )}
-            <LangSwitcher lang={lang} setLang={setLang} />
           </div>
         </div>
       )}

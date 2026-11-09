@@ -6,17 +6,19 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
 import { saveDraft } from "@/lib/tradePlan";
-import { enablePush, disablePush, thisDeviceSubscribed } from "@/lib/pushClient";
+import { enablePush, disablePush, thisDeviceSubscribed, permissionState, type PermissionState } from "@/lib/pushClient";
 import { defaultPrefs, type NotificationPrefs } from "@/lib/notificationPrefs";
 import type { SavedPlan } from "@/lib/savedPlans";
 
 function Toggle({
   label,
+  hint,
   checked,
   disabled,
   onChange,
 }: {
   label: string;
+  hint?: string;
   checked: boolean;
   disabled?: boolean;
   onChange: (value: boolean) => void;
@@ -30,7 +32,10 @@ function Toggle({
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
       />
-      <span>{label}</span>
+      <span>
+        {label}
+        {hint && <span className="block text-xs text-text-muted">{hint}</span>}
+      </span>
     </label>
   );
 }
@@ -44,6 +49,7 @@ export default function AccountPage() {
   const [plans, setPlans] = useState<SavedPlan[] | null>(null);
   const [plansFailed, setPlansFailed] = useState(false);
   const [deviceOn, setDeviceOn] = useState<boolean | null>(null);
+  const [perm, setPerm] = useState<PermissionState | null>(null);
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -71,17 +77,27 @@ export default function AccountPage() {
     if (!isSignedIn) return;
     let cancelled = false;
     thisDeviceSubscribed().then((on) => {
-      if (!cancelled) setDeviceOn(on);
+      if (cancelled) return;
+      setDeviceOn(on);
+      setPerm(permissionState());
     });
     return () => {
       cancelled = true;
     };
   }, [isSignedIn]);
 
+  // Opened from the header bell, the account menu or the Dashboard card (/account#notifications).
+  useEffect(() => {
+    if (!isSignedIn || window.location.hash !== "#notifications") return;
+    const id = window.setTimeout(() => document.getElementById("notifications")?.scrollIntoView({ block: "start" }), 150);
+    return () => window.clearTimeout(id);
+  }, [isSignedIn]);
+
   async function toggleMaster(on: boolean) {
     setPrefsMsg(null);
     if (on) {
       const result = await enablePush(lang);
+      setPerm(permissionState());
       if (result !== "ok") {
         setPrefsMsg(
           t(
@@ -185,9 +201,19 @@ export default function AccountPage() {
 
       {isLoaded && isSignedIn && (
         <div className="mt-8 space-y-8">
-          <section className="rounded-xl border border-white/10 p-6">
+          <section id="notifications" className="rounded-xl border border-white/10 p-6 scroll-mt-20">
             <h2 className="text-lg font-semibold">{t("account.notificationsTitle")}</h2>
             <p className="text-text-muted text-sm mt-1 max-w-xl">{t("account.notificationsNote")}</p>
+            {perm && (
+              <p className="mt-3 text-xs flex flex-wrap items-center gap-x-2 gap-y-1" data-notif-status={perm}>
+                <span className="text-text-muted">{t("account.permLabel")}:</span>
+                <span className={perm === "granted" ? "text-bull font-medium" : perm === "denied" ? "text-bear font-medium" : "font-medium"}>
+                  {t(`account.perm${perm === "granted" ? "Granted" : perm === "denied" ? "Denied" : perm === "default" ? "Default" : "Unsupported"}`)}
+                </span>
+                {deviceOn !== null && <span className="text-text-muted">· {deviceOn ? t("account.deviceOn") : t("account.deviceOff")}</span>}
+              </p>
+            )}
+            {perm === "denied" && <p className="mt-1 text-xs text-text-muted max-w-xl">{t("account.pushDenied")}</p>}
             <div className="mt-4 space-y-3">
               <Toggle
                 label={t("account.notifyEnabled")}
@@ -215,22 +241,22 @@ export default function AccountPage() {
                 />
                 <Toggle
                   label={t("account.notifyPromo")}
+                  hint={t("account.promoHint")}
                   checked={prefs.promotional}
                   disabled={!prefs.enabled}
                   onChange={(v) => updatePref({ promotional: v })}
                 />
                 <Toggle
-                  label={
-                    lang === "ar"
-                      ? "تنبيه منتصف الليل بتجديد التحليلات المجانية"
-                      : "Midnight free-analyses reset reminder"
-                  }
+                  label={t("account.notifyAnalyzerReset")}
                   checked={prefs.analyzerReset}
                   disabled={!prefs.enabled}
                   onChange={(v) => updatePref({ analyzerReset: v })}
                 />
               </div>
             </div>
+            {prefs.enabled && !(prefs.tradeFeed || prefs.market || prefs.educational || prefs.promotional || prefs.analyzerReset) && (
+              <p role="status" className="mt-3 text-xs text-gold max-w-xl">{t("account.pickHint")}</p>
+            )}
             {prefs.enabled && deviceOn === false && (
               <button
                 type="button"

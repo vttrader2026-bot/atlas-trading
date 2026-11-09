@@ -16,6 +16,13 @@ function keyToBytes(base64Url: string): Uint8Array {
   return out;
 }
 
+export type PermissionState = "unsupported" | "default" | "granted" | "denied";
+
+/** Current browser notification permission, without asking for anything. */
+export function permissionState(): PermissionState {
+  return pushSupported() ? Notification.permission : "unsupported";
+}
+
 export type EnableResult = "ok" | "unsupported" | "denied" | "error";
 
 /** Asks permission, subscribes this browser and registers it with the account. */
