@@ -41,6 +41,13 @@ describe("notification bell", () => {
     expect((nav.match(/<NotificationBell \/>/g) ?? []).length).toBe(2);
     expect(nav).toContain("{isLoaded && isSignedIn && <NotificationBell />}");
   });
+  it("is a prominent gold bell: 44px target, theme-token gold on a gold tint, no unread dot (no reliable unread status exists)", () => {
+    const b = src("components/NotificationBell.tsx");
+    expect(b).toContain("h-11 w-11");
+    expect(b).toContain("bg-gold/15");
+    expect(b).toContain("text-gold");
+    expect(b).not.toMatch(/unread|badge|rounded-full bg-/i);
+  });
   it("the settings section has the anchor and scrolls to it", () => {
     const acc = src("app/account/page.tsx");
     expect(acc).toContain('id="notifications"');
