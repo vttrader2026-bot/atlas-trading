@@ -33,7 +33,7 @@ vi.mock("@/lib/userStore", () => ({
 vi.mock("@/lib/plan", async (orig) => ({ ...(await orig<typeof import("@/lib/plan")>()), getUserPlan: async (u: string) => h.plans[u] ?? "free" }));
 
 import {
-  analyzerResetPayload, dailyTeaserPayload, educationalPayload, eliteNowPayload, normalizeLang, notifyFreeUsersAnalyzerReset,
+  analyzerResetPayload, educationalPayload, eliteNowPayload, normalizeLang, notifyFreeUsersAnalyzerReset,
   radarDigestPayload, sendToUser, testPayload, tpSlPayload, tradeClosedPayload, tradePayload, type Lang,
 } from "@/lib/push";
 import { analyzeLimitForPlan } from "@/lib/plan";
@@ -49,7 +49,6 @@ const ENGLISH_WORDS = /\b(hit|closed|Daily|Setup Approaching|Market Activity|Fro
 
 const builders: Array<[string, (l: Lang) => { title: string; body: string }]> = [
   ["test", (l) => testPayload(l)],
-  ["daily teaser", (l) => dailyTeaserPayload(l)],
   ["radar", (l) => radarDigestPayload(l)],
   ["academy", (l) => educationalPayload(lesson, l)],
   ["elite promo", (l) => eliteNowPayload(l)],
@@ -81,7 +80,7 @@ describe("every notification has real Arabic, French and English text", () => {
   it("English keeps its existing wording", () => {
     expect(tpSlPayload(trade, "TP1", "en").title).toBe("TP1 hit: BTC/USDT");
     expect(tradeClosedPayload(trade, "en").title).toBe("Trade closed: BTC/USDT");
-    expect(dailyTeaserPayload("en").title).toBe("⚜️ Atlas Trading — Daily Setup Approaching");
+    expect(radarDigestPayload("en").title).toBe("Atlas Radar — Market Activity Is Building");
   });
   it("Academy and Elite use the same French text as the website", () => {
     expect(educationalPayload(lesson, "fr").body).toBe(lesson.summary.fr);
@@ -185,7 +184,7 @@ describe("wiring", () => {
   it("triggers, schedules and preference checks are untouched", () => {
     const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { crons: Array<{ path: string; schedule: string }> };
     expect(vercel.crons.map((c) => `${c.path} ${c.schedule}`)).toEqual([
-      "/api/cron/analyzer-reset 0 0 * * *", "/api/cron/daily-teaser 30 23 * * *", "/api/cron/radar-alerts 45 12 * * *",
+      "/api/cron/analyzer-reset 0 0 * * *", "/api/cron/radar-alerts 45 12 * * *",
       "/api/cron/educational 0 15 * * 1,3,5", "/api/cron/elite-promo 0 16 * * 4", "/api/cron/market-intel-snapshot 30 0 * * *",
     ]);
     const push = readFileSync("lib/push.ts", "utf8");

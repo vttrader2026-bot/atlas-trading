@@ -324,67 +324,6 @@ export async function notifyFreeUsersAnalyzerReset(): Promise<{ sent: number; re
   return { sent, reason: "ok" };
 }
 
-export function dailyTeaserPayload(lang: Lang): Payload {
-  if (lang === "ar") {
-    return {
-      title: "⚜️ Atlas Trading — اقتراب إعداد اليوم",
-      body:
-        "الشمعة اليومية تقترب من الإغلاق. راجع السوق واستعد " +
-        "لإعداد سبوت محتمل الليلة على Atlas Trading.",
-      url: "https://www.atlastrading.app/trade-feed",
-      tag: "daily-teaser",
-    };
-  }
-  if (lang === "fr") {
-    return {
-      title: "⚜️ Atlas Trading — Le setup du jour approche",
-      body:
-        "La bougie journalière approche de sa clôture. Analysez le marché et préparez-vous " +
-        "à un éventuel setup spot ce soir sur Atlas Trading.",
-      url: "https://www.atlastrading.app/trade-feed",
-      tag: "daily-teaser",
-    };
-  }
-  return {
-    title: "⚜️ Atlas Trading — Daily Setup Approaching",
-    body:
-      "The daily candle is approaching its close. Review the market and " +
-      "get ready for tonight's potential spot setup on Atlas Trading.",
-    url: "https://www.atlastrading.app/trade-feed",
-    tag: "daily-teaser",
-  };
-}
-
-export async function notifyDailyTeaser(): Promise<{ sent: number; reason: string }> {
-  const redis = getRedis();
-  if (!redis || !configure()) return { sent: 0, reason: "redis-or-vapid-not-configured" };
-
-  const day = new Date().toISOString().slice(0, 10);
-  const guardKey = `push:daily-teaser-sent:${day}`;
-  const firstRunToday = await redis.set(guardKey, "1", { nx: true, ex: 60 * 60 * 26 });
-  if (!firstRunToday) {
-    return { sent: 0, reason: "already-sent-today" };
-  }
-
-  let sent = 0;
-  try {
-    const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
-    for (let i = 0; i < userIds.length; i += 20) {
-      await Promise.allSettled(
-        userIds.slice(i, i + 20).map(async (userId) => {
-          const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
-          if (!prefs.enabled || !prefs.tradeFeed) return;
-          const delivered = await sendToUser(userId, (lang) => dailyTeaserPayload(lang));
-          if (delivered > 0) sent++;
-        }),
-      );
-    }
-  } catch (err) {
-    console.error("push: notifyDailyTeaser failed", err);
-  }
-  return { sent, reason: "ok" };
-}
-
 const RADAR_ALERT_COOLDOWN_SEC = 20 * 60 * 60; // don't re-alert the same symbol+setup for ~a day
 const RADAR_ALERT_MAX_PER_RUN = 5; // cap how many symbols count toward "genuinely useful" per run
 
