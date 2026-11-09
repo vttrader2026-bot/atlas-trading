@@ -5,6 +5,7 @@ import {
   subsKey,
   endpointId,
   isAllowedEndpoint,
+  normalizeLang,
   type StoredSub,
 } from "@/lib/push";
 
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
   const sub: StoredSub = {
     endpoint,
     keys: { p256dh, auth },
-    lang: b.lang === "ar" ? "ar" : "en",
+    lang: normalizeLang(b.lang),
     createdAt: Date.now(),
   };
   try {

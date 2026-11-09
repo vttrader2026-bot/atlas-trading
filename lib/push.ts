@@ -2,14 +2,19 @@ import webpush from "web-push";
 import { createHash } from "crypto";
 import { getRedis } from "@/lib/userStore";
 import { normalizePrefs } from "@/lib/notificationPrefs";
-import { getUserPlan } from "@/lib/plan";
+import { analyzeLimitForPlan, getUserPlan } from "@/lib/plan";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 import { buildRadarRows, type RadarRow } from "@/lib/radar";
 import { getAllTickers24h, getTicker24h, getSpotTradingSymbols } from "@/lib/binance";
 import { lessons, type Lesson } from "@/lib/academy-content";
 import { baseSymbol, coinNameFor } from "@/lib/coinName";
 
-type Lang = "en" | "ar";
+export type Lang = "en" | "ar" | "fr";
+
+/** Anything that is not exactly "ar" or "fr" (old or missing values) falls back to English. */
+export function normalizeLang(v: unknown): Lang {
+  return v === "ar" || v === "fr" ? v : "en";
+}
 
 export type StoredSub = {
   endpoint: string;
@@ -18,7 +23,9 @@ export type StoredSub = {
   createdAt: number;
 };
 
-type Payload = { title: string; body: string; url: string; tag?: string };
+// `lang` and `dir` are Notification options: Arabic notifications are marked right-to-left so the text and the
+// Latin pair names inside it are laid out correctly. sendToUser fills them in from the subscription's language.
+type Payload = { title: string; body: string; url: string; tag?: string; lang?: string; dir?: "rtl" | "ltr" };
 
 export const PUSH_USERS_KEY = "push:users";
 export const subsKey = (userId: string) => `user:${userId}:push`;
@@ -62,6 +69,8 @@ export function tradePayload(trade: PublishedTrade, _lang: Lang, coinName?: stri
     body: "New signal: " + (coinName && coinName.toUpperCase() !== symbol ? coinName + " (" + symbol + ")" : symbol),
     url: "https://www.atlastrading.app/trade-feed",
     tag: "signal-" + trade.id,
+    lang: "en",
+    dir: "ltr",
   };
 }
 
@@ -71,7 +80,9 @@ export function testPayload(lang: Lang): Payload {
     body:
       lang === "ar"
         ? "إشعار تجريبي — يعمل بنجاح."
-        : "Test notification - it works.",
+        : lang === "fr"
+          ? "Notification de test - tout fonctionne."
+          : "Test notification - it works.",
     url: "/account",
     tag: "atlas-test",
   };
@@ -95,6 +106,15 @@ export function tpSlPayload(trade: PublishedTrade, level: HitLevel, lang: Lang):
       body: isSl
         ? "تم إغلاق صفقة " + trade.pair + " عند وقف الخسارة."
         : "وصلت صفقة " + trade.pair + " إلى " + label + ".",
+      url: "/trade-feed",
+      tag: "trade-" + trade.id + "-" + level,
+    };
+  }
+  if (lang === "fr") {
+    const label = TP_LABEL_EN[level] || level;
+    return {
+      title: isSl ? "Stop-loss atteint : " + trade.pair : label + " atteint : " + trade.pair,
+      body: isSl ? trade.pair + " clôturé au stop-loss." : trade.pair + " a atteint " + label + ".",
       url: "/trade-feed",
       tag: "trade-" + trade.id + "-" + level,
     };
@@ -129,6 +149,10 @@ export async function notifyTpSlSubscribers(trade: PublishedTrade, level: HitLev
   }
 }
 
+function withLocale(p: Payload, lang: Lang): Payload {
+  return { ...p, lang: p.lang ?? lang, dir: p.dir ?? (lang === "ar" ? "rtl" : "ltr") };
+}
+
 export async function sendToUser(userId: string, build: (lang: Lang) => Payload): Promise<number> {
   const redis = getRedis();
   if (!redis || !configure()) return 0;
@@ -140,7 +164,7 @@ export async function sendToUser(userId: string, build: (lang: Lang) => Payload)
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: sub.keys },
-          JSON.stringify(build("ar")),
+          JSON.stringify(withLocale(build(normalizeLang(sub.lang)), normalizeLang(sub.lang))),
           { TTL: 3600 },
         );
         delivered++;
@@ -197,6 +221,14 @@ export function tradeClosedPayload(trade: PublishedTrade, lang: Lang): Payload {
       tag: "trade-" + trade.id + "-closed",
     };
   }
+  if (lang === "fr") {
+    return {
+      title: "Trade clôturé : " + trade.pair,
+      body: "Le trade " + trade.pair + " a été clôturé.",
+      url: "/trade-feed",
+      tag: "trade-" + trade.id + "-closed",
+    };
+  }
   return {
     title: "Trade closed: " + trade.pair,
     body: trade.pair + " has been closed.",
@@ -224,13 +256,34 @@ export async function notifyTradeClosedSubscribers(trade: PublishedTrade): Promi
   }
 }
 
-export function analyzerResetPayload(): Payload {
+function freeAnalysesText(lang: Lang, n: number): string {
+  if (lang === "ar") return n === 1 ? "تحليل مجاني واحد" : n === 2 ? "تحليلان مجانيان" : n + " تحليلات مجانية";
+  if (lang === "fr") return n === 1 ? "1 analyse gratuite" : n + " analyses gratuites";
+  return n === 1 ? "1 free analysis" : n + " free analyses";
+}
+
+// `limit` is the FREE plan's daily analysis allowance (lib/plan.ts is the single source of truth).
+export function analyzerResetPayload(lang: Lang = "ar", limit: number = analyzeLimitForPlan("free")): Payload {
+  const n = freeAnalysesText(lang, limit);
+  if (lang === "fr") {
+    return {
+      title: "\u{1F916} Votre analyse du jour est prête",
+      body: "Vous avez " + n + " aujourd'hui. Utilisez-les pour analyser le graphique avant de prendre votre décision.",
+      url: "/analyzer",
+      tag: "analyzer-daily-reset",
+    };
+  }
+  if (lang === "en") {
+    return {
+      title: "\u{1F916} Your daily analysis is ready",
+      body: "You have " + n + " today. Use them to analyze the chart before making your decision.",
+      url: "/analyzer",
+      tag: "analyzer-daily-reset",
+    };
+  }
   return {
     title: "\u{1F916} تحليلك اليومي جاهز",
-    body:
-      "لديك تحليلان مجانيان " +
-      "اليوم. استخدمهما لتحليل " +
-      "الشارت قبل اتخاذ قرارك.",
+    body: "لديك " + n + " اليوم. استخدمها لتحليل الشارت قبل اتخاذ قرارك.",
     url: "/analyzer",
     tag: "analyzer-daily-reset",
   };
@@ -247,6 +300,7 @@ export async function notifyFreeUsersAnalyzerReset(): Promise<{ sent: number; re
     return { sent: 0, reason: "already-sent-today" };
   }
 
+  const limit = analyzeLimitForPlan("free");
   let sent = 0;
   try {
     const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
@@ -259,7 +313,7 @@ export async function notifyFreeUsersAnalyzerReset(): Promise<{ sent: number; re
           if (!prefs.enabled || !prefs.analyzerReset) return;
           const plan = await getUserPlan(userId);
           if (plan !== "free") return;
-          const delivered = await sendToUser(userId, () => analyzerResetPayload());
+          const delivered = await sendToUser(userId, (lang) => analyzerResetPayload(lang, limit));
           if (delivered > 0) sent++;
         }),
       );
@@ -277,6 +331,16 @@ export function dailyTeaserPayload(lang: Lang): Payload {
       body:
         "الشمعة اليومية تقترب من الإغلاق. راجع السوق واستعد " +
         "لإعداد سبوت محتمل الليلة على Atlas Trading.",
+      url: "https://www.atlastrading.app/trade-feed",
+      tag: "daily-teaser",
+    };
+  }
+  if (lang === "fr") {
+    return {
+      title: "⚜️ Atlas Trading — Le setup du jour approche",
+      body:
+        "La bougie journalière approche de sa clôture. Analysez le marché et préparez-vous " +
+        "à un éventuel setup spot ce soir sur Atlas Trading.",
       url: "https://www.atlastrading.app/trade-feed",
       tag: "daily-teaser",
     };
@@ -351,6 +415,16 @@ export function radarDigestPayload(lang: Lang): Payload {
       tag: "radar-digest",
     };
   }
+  if (lang === "fr") {
+    return {
+      title: "Atlas Radar — L'activité du marché s'intensifie",
+      body:
+        "Consultez le marché pour repérer les cassures, les repliements et les setups de force " +
+        "relative qualifiés avant la session de trading américaine principale.",
+      url: "/radar",
+      tag: "radar-digest",
+    };
+  }
   return {
     title: "Atlas Radar — Market Activity Is Building",
     body:
@@ -419,6 +493,14 @@ export function educationalPayload(lesson: Lesson, lang: Lang): Payload {
       tag: "academy-" + lesson.slug,
     };
   }
+  if (lang === "fr") {
+    return {
+      title: "De l'Académie Atlas : " + lesson.title.fr,
+      body: lesson.summary.fr,
+      url: "/academy/" + lesson.slug,
+      tag: "academy-" + lesson.slug,
+    };
+  }
   return {
     title: "From Atlas Academy: " + lesson.title.en,
     body: lesson.summary.en,
@@ -466,6 +548,14 @@ export function eliteNowPayload(lang: Lang): Payload {
     return {
       title: "Atlas Elite",
       body: "افتح إشارات سبوت حصرية، وأدوات تحليل متقدمة، وإدارة كاملة للصفقات — كل ذلك في عضوية واحدة.",
+      url: "/elite",
+      tag: "elite-promo",
+    };
+  }
+  if (lang === "fr") {
+    return {
+      title: "Atlas Elite",
+      body: "Débloquez des signaux spot exclusifs, des outils d'analyse avancés et une gestion complète des trades — le tout dans un seul abonnement.",
       url: "/elite",
       tag: "elite-promo",
     };

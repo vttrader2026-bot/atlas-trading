@@ -33,6 +33,8 @@ self.addEventListener("push", (event) => {
       icon: "/brand/icon-192.png",
       badge: "/brand/icon-192.png",
       tag: data.tag,
+      lang: data.lang,
+      dir: data.dir || "auto",
       data: { url: data.url || "/" },
     })
   );
