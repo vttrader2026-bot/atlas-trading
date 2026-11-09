@@ -18,6 +18,17 @@ import {
 } from "lightweight-charts";
 import type { Candle } from "@/lib/marketDataTypes";
 import { calcEMA, calcMACD, calcRSI } from "@/lib/indicators";
+import {
+  CLICK_SLOP_PX,
+  hitTest,
+  isDegenerateTrend,
+  snapTime,
+  type Drawing,
+  type DrawingDraft,
+  type Pt,
+  type Tool,
+} from "@/lib/chartDrawings";
+import { DrawingsPrimitive } from "@/components/charts/drawingsPrimitive";
 
 function cssVar(name: string): string {
   if (typeof window === "undefined") return "";
@@ -58,11 +69,22 @@ export default function AnalysisChart({
   candles,
   toggles,
   fullscreen,
+  tool,
+  drawings,
+  selectedId,
+  onCreate,
+  onSelect,
 }: {
   candles: Candle[];
   toggles: IndicatorToggles;
   /** Taller layout when the panel is in its expanded/fullscreen mode. */
   fullscreen: boolean;
+  /** Basic drawing tools: state is owned by AnalysisPanel so it survives chart rebuilds. */
+  tool: Tool;
+  drawings: Drawing[];
+  selectedId: string | null;
+  onCreate: (d: DrawingDraft) => void;
+  onSelect: (id: string | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -77,6 +99,9 @@ export default function AnalysisChart({
   const macdHistRef = useRef<ISeriesApi<"Histogram"> | null>(null);
 
   const colors = useMemo(() => readThemeColors(), []);
+  const times = useMemo(() => candles.map((c) => toTime(c.openTime) as number), [candles]);
+  const primRef = useRef<DrawingsPrimitive | null>(null);
+  const pendingRef = useRef<Pt | null>(null); // trendline start waiting for its end point
 
   // Build the chart, its fixed panes, and every series once per mount.
   useEffect(() => {
@@ -139,6 +164,11 @@ export default function AnalysisChart({
     );
     chart.panes()[2]?.setStretchFactor(0);
 
+    const prim = new DrawingsPrimitive();
+    prim.setState({ color: colors.gold });
+    candleSeries.attachPrimitive(prim);
+    primRef.current = prim;
+
     chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
     volumeSeriesRef.current = volumeSeries;
@@ -153,6 +183,7 @@ export default function AnalysisChart({
     return () => {
       chart.remove();
       chartRef.current = null;
+      primRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -189,8 +220,107 @@ export default function AnalysisChart({
       histogram.map((p) => ({ time: toTime(p.time), value: p.value, color: p.value >= 0 ? `${colors.bull}90` : `${colors.bear}90` }))
     );
 
+    primRef.current?.setState({ times });
     chartRef.current?.timeScale().fitContent();
-  }, [candles, colors]);
+  }, [candles, colors, times]);
+
+  // Hand the drawings (owned by the panel) to the primitive; it repaints itself.
+  useEffect(() => {
+    primRef.current?.setState({ drawings, selectedId });
+  }, [drawings, selectedId]);
+
+  // Drawing interaction. Cursor mode leaves the chart's own pan/zoom untouched;
+  // a drawing tool pauses pan/zoom so a drag draws instead of moving the chart.
+  useEffect(() => {
+    const container = containerRef.current;
+    const chart = chartRef.current;
+    const series = candleSeriesRef.current;
+    const prim = primRef.current;
+    if (!container || !chart || !series || !prim) return;
+
+    const drawing = tool !== "cursor";
+    chart.applyOptions({ handleScroll: !drawing, handleScale: !drawing });
+    container.style.touchAction = drawing ? "none" : "";
+    pendingRef.current = null;
+    prim.setState({ preview: null });
+
+    // Pointer position -> pixel in the price pane + the candle time / price under it.
+    const locate = (e: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const paneH = chart.panes()[0]?.getHeight() ?? 0;
+      if (x < 0 || y < 0 || x > chart.timeScale().width() || y > paneH) return null;
+      const time = snapTime(times, chart.timeScale().coordinateToLogical(x) ?? NaN);
+      const price = series.coordinateToPrice(y);
+      if (time === null || price === null) return null;
+      return { x, y, pt: { time, price: price as number } };
+    };
+
+    const finishTrend = (a: Pt, b: Pt) => {
+      pendingRef.current = null;
+      prim.setState({ preview: null });
+      if (!isDegenerateTrend(a, b)) onCreate({ kind: "trend", a, b });
+    };
+
+    let down: { x: number; y: number; hadStart: boolean } | null = null;
+
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const p = locate(e);
+      if (!p) {
+        down = null;
+        return;
+      }
+      down = { x: p.x, y: p.y, hadStart: pendingRef.current !== null };
+      if (tool === "trend" && !pendingRef.current) {
+        pendingRef.current = p.pt;
+        prim.setState({ preview: { a: p.pt, b: null } });
+      }
+      if (drawing) {
+        try { container.setPointerCapture(e.pointerId); } catch { /* not capturable: fine */ }
+      }
+    };
+
+    const onMove = (e: PointerEvent) => {
+      const a = pendingRef.current;
+      if (tool !== "trend" || !a) return;
+      const p = locate(e);
+      if (p) prim.setState({ preview: { a, b: p.pt } });
+    };
+
+    const onUp = (e: PointerEvent) => {
+      const d = down;
+      down = null;
+      const p = locate(e);
+      if (!d || !p) return;
+      const moved = Math.hypot(p.x - d.x, p.y - d.y) > CLICK_SLOP_PX;
+      if (tool === "cursor") {
+        if (!moved) onSelect(hitTest(prim.projectAll(), p.x, p.y));
+      } else if (tool === "hline") {
+        if (!moved) onCreate({ kind: "hline", price: p.pt.price });
+      } else {
+        const a = pendingRef.current;
+        // drag = start..end in one gesture; otherwise the first tap set the start and this tap ends it
+        if (a && (moved || d.hadStart)) finishTrend(a, p.pt);
+      }
+    };
+
+    const onCancel = () => {
+      down = null;
+    };
+
+    container.addEventListener("pointerdown", onDown, true);
+    container.addEventListener("pointermove", onMove, true);
+    container.addEventListener("pointerup", onUp, true);
+    container.addEventListener("pointercancel", onCancel, true);
+    return () => {
+      container.removeEventListener("pointerdown", onDown, true);
+      container.removeEventListener("pointermove", onMove, true);
+      container.removeEventListener("pointerup", onUp, true);
+      container.removeEventListener("pointercancel", onCancel, true);
+    };
+  }, [tool, times, onCreate, onSelect]);
 
   // Apply indicator toggle visibility + pane sizing without re-fetching data.
   useEffect(() => {
