@@ -21,6 +21,7 @@ import { calcEMA, calcMACD, calcRSI } from "@/lib/indicators";
 import {
   CLICK_SLOP_PX,
   hitTest,
+  isDegenerateRect,
   isDegenerateTrend,
   snapTime,
   type Drawing,
@@ -257,10 +258,14 @@ export default function AnalysisChart({
       return { x, y, pt: { time, price: price as number } };
     };
 
-    const finishTrend = (a: Pt, b: Pt) => {
+    // trendline and rectangle share the same two-point gesture (drag, or tap-tap on touch)
+    const twoPoint = tool === "trend" || tool === "rect";
+    const finishTwoPoint = (a: Pt, b: Pt) => {
       pendingRef.current = null;
       prim.setState({ preview: null });
-      if (!isDegenerateTrend(a, b)) onCreate({ kind: "trend", a, b });
+      if (tool === "rect") {
+        if (!isDegenerateRect(a, b)) onCreate({ kind: "rect", a, b });
+      } else if (!isDegenerateTrend(a, b)) onCreate({ kind: "trend", a, b });
     };
 
     let down: { x: number; y: number; hadStart: boolean } | null = null;
@@ -273,9 +278,9 @@ export default function AnalysisChart({
         return;
       }
       down = { x: p.x, y: p.y, hadStart: pendingRef.current !== null };
-      if (tool === "trend" && !pendingRef.current) {
+      if (twoPoint && !pendingRef.current) {
         pendingRef.current = p.pt;
-        prim.setState({ preview: { a: p.pt, b: null } });
+        prim.setState({ preview: { a: p.pt, b: null, rect: tool === "rect" } });
       }
       if (drawing) {
         try { container.setPointerCapture(e.pointerId); } catch { /* not capturable: fine */ }
@@ -284,9 +289,9 @@ export default function AnalysisChart({
 
     const onMove = (e: PointerEvent) => {
       const a = pendingRef.current;
-      if (tool !== "trend" || !a) return;
+      if (!twoPoint || !a) return;
       const p = locate(e);
-      if (p) prim.setState({ preview: { a, b: p.pt } });
+      if (p) prim.setState({ preview: { a, b: p.pt, rect: tool === "rect" } });
     };
 
     const onUp = (e: PointerEvent) => {
@@ -302,7 +307,7 @@ export default function AnalysisChart({
       } else {
         const a = pendingRef.current;
         // drag = start..end in one gesture; otherwise the first tap set the start and this tap ends it
-        if (a && (moved || d.hadStart)) finishTrend(a, p.pt);
+        if (a && (moved || d.hadStart)) finishTwoPoint(a, p.pt);
       }
     };
 

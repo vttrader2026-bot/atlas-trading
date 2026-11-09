@@ -234,6 +234,7 @@ export default function AnalysisPanel({
               ["cursor", "chart.draw.cursor", <path key="c" d="M5 3l14 7-6 2-2 6L5 3z" />],
               ["hline", "chart.draw.hline", <path key="h" d="M3 12h18M3 12h0M21 12h0" />],
               ["trend", "chart.draw.trend", <g key="t"><path d="M5 18L19 6" /><circle cx="5" cy="18" r="1.6" /><circle cx="19" cy="6" r="1.6" /></g>],
+              ["rect", "chart.draw.rect", <rect key="r" x="4" y="7" width="16" height="10" rx="1" />],
             ] as [Tool, string, React.ReactNode][]
           ).map(([key, label, icon]) => (
             <button
@@ -271,7 +272,7 @@ export default function AnalysisPanel({
           {/* Overlay (not in the flow) so choosing a tool never shifts the chart. */}
           {tool !== "cursor" && (
             <p role="status" className="pointer-events-none absolute start-2 top-2 z-10 max-w-[80%] rounded bg-surface/85 px-2 py-1 text-[11px] leading-snug text-gold">
-              {tool === "hline" ? t("chart.draw.hintHline") : t("chart.draw.hintTrend")}
+              {tool === "hline" ? t("chart.draw.hintHline") : tool === "rect" ? t("chart.draw.hintRect") : t("chart.draw.hintTrend")}
             </p>
           )}
           {klines.status === "loading" && (

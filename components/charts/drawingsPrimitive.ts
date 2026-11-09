@@ -14,7 +14,7 @@ import type {
 } from "lightweight-charts";
 import { timeToLogical, type Drawing, type Geo, type Pt } from "@/lib/chartDrawings";
 
-type Preview = { a: Pt; b: Pt | null } | null;
+type Preview = { a: Pt; b: Pt | null; rect?: boolean } | null;
 
 export class DrawingsPrimitive implements ISeriesPrimitive<Time> {
   private chart: IChartApiBase<Time> | null = null;
@@ -64,7 +64,7 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time> {
     }
     const x1 = this.x(d.a.time), y1 = this.y(d.a.price), x2 = this.x(d.b.time), y2 = this.y(d.b.price);
     if (x1 === null || y1 === null || x2 === null || y2 === null) return null;
-    return { id: d.id, kind: "trend", x1, y1, x2, y2 };
+    return { id: d.id, kind: d.kind, x1, y1, x2, y2 };
   }
 
   projectAll(): Geo[] {
@@ -86,17 +86,27 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time> {
             ctx.strokeStyle = this.color;
             ctx.fillStyle = this.color;
             ctx.lineWidth = selected ? 3 : 1.5;
+            if (g.kind === "rect") {
+              // translucent fill + visible border; the fill stays light so candles remain readable
+              ctx.globalAlpha = selected ? 0.22 : 0.14;
+              ctx.fillRect(g.x1, g.y1, g.x2 - g.x1, g.y2 - g.y1);
+              ctx.globalAlpha = 1;
+              ctx.strokeRect(g.x1, g.y1, g.x2 - g.x1, g.y2 - g.y1);
+            }
             ctx.beginPath();
             if (g.kind === "hline") {
               ctx.moveTo(0, g.y);
               ctx.lineTo(mediaSize.width, g.y);
-            } else {
+            } else if (g.kind === "trend") {
               ctx.moveTo(g.x1, g.y1);
               ctx.lineTo(g.x2, g.y2);
             }
             ctx.stroke();
             if (selected) {
-              const pts = g.kind === "hline" ? [[24, g.y]] : [[g.x1, g.y1], [g.x2, g.y2]];
+              const pts =
+                g.kind === "hline" ? [[24, g.y]]
+                : g.kind === "rect" ? [[g.x1, g.y1], [g.x2, g.y1], [g.x1, g.y2], [g.x2, g.y2]]
+                : [[g.x1, g.y1], [g.x2, g.y2]];
               for (const [px, py] of pts) {
                 ctx.beginPath();
                 ctx.arc(px, py, 5, 0, Math.PI * 2);
@@ -118,8 +128,11 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time> {
                 ctx.lineWidth = 1.5;
                 ctx.setLineDash([5, 4]);
                 ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
+                if (p.rect) ctx.rect(x1, y1, x2 - x1, y2 - y1);
+                else {
+                  ctx.moveTo(x1, y1);
+                  ctx.lineTo(x2, y2);
+                }
                 ctx.stroke();
                 ctx.setLineDash([]);
               }

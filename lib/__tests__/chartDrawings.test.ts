@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { dictionaries } from "@/lib/i18n";
 import {
-  addDrawing, distToSegment, hitTest, isDegenerateTrend, MAX_DRAWINGS, nearestIndex,
+  addDrawing, distToRectBorder, distToSegment, hitTest, isDegenerateRect, isDegenerateTrend, MAX_DRAWINGS, nearestIndex,
   removeDrawing, snapTime, timeToLogical, type Drawing, type Geo,
 } from "@/lib/chartDrawings";
 
@@ -59,6 +59,47 @@ describe("selection", () => {
   });
 });
 
+describe("rectangle / price zone", () => {
+  const rect: Geo = { id: "r", kind: "rect", x1: 100, y1: 50, x2: 300, y2: 150 };
+  it("measures distance to the border from inside and outside, whichever corner was drawn first", () => {
+    expect(distToRectBorder(100, 80, 100, 50, 300, 150)).toBe(0);
+    expect(distToRectBorder(200, 100, 100, 50, 300, 150)).toBe(50);
+    expect(distToRectBorder(90, 50, 300, 150, 100, 50)).toBe(10);
+    expect(distToRectBorder(103, 45, 100, 50, 300, 150)).toBe(5);
+  });
+  it("selects on the border and on the filled interior, but not outside", () => {
+    expect(hitTest([rect], 200, 52)).toBe("r");
+    expect(hitTest([rect], 200, 100)).toBe("r");
+    expect(hitTest([rect], 200, 400)).toBeNull();
+    expect(hitTest([rect], 50, 100)).toBeNull();
+  });
+  it("keeps a line that crosses a zone selectable, and the zone selectable around it", () => {
+    const geos: Geo[] = [{ id: "h", kind: "hline", y: 100 }, rect]; // rectangle drawn after the line
+    expect(hitTest(geos, 200, 102)).toBe("h");
+    expect(hitTest(geos, 200, 70)).toBe("r");
+  });
+  it("a later rectangle wins where two zones overlap", () => {
+    const a: Geo = { id: "a", kind: "rect", x1: 0, y1: 0, x2: 100, y2: 100 };
+    const b: Geo = { id: "b", kind: "rect", x1: 40, y1: 40, x2: 160, y2: 160 };
+    expect(hitTest([a, b], 70, 70)).toBe("b");
+    expect(hitTest([a, b], 10, 10)).toBe("a");
+  });
+  it("ignores a flat or empty box", () => {
+    expect(isDegenerateRect({ time: 1, price: 2 }, { time: 1, price: 9 })).toBe(true);
+    expect(isDegenerateRect({ time: 1, price: 2 }, { time: 5, price: 2 })).toBe(true);
+    expect(isDegenerateRect({ time: 1, price: 2 }, { time: 5, price: 9 })).toBe(false);
+  });
+  it("shares the 50-drawing cap with the other tools and deletes only the selected zone", () => {
+    const r = (id: string): Drawing => ({ id, kind: "rect", a: { time: 1, price: 1 }, b: { time: 2, price: 2 } });
+    let l: Drawing[] = [{ id: "h", kind: "hline", price: 1 }];
+    for (let i = 0; i < MAX_DRAWINGS + 5; i++) l = addDrawing(l, r(`r${i}`));
+    expect(l).toHaveLength(MAX_DRAWINGS);
+    expect(l[0].id).toBe("h");
+    expect(removeDrawing(l, "r3")).toHaveLength(MAX_DRAWINGS - 1);
+    expect(removeDrawing(l, "r3").some((d) => d.id === "h")).toBe(true);
+  });
+});
+
 describe("add and delete", () => {
   const h = (id: string): Drawing => ({ id, kind: "hline", price: 1 });
   it("adds, deletes only the selected one, and ignores no selection", () => {
@@ -100,12 +141,21 @@ describe("wiring", () => {
     expect(prim).toContain("logicalToCoordinate");
     expect(prim).toContain("priceToCoordinate");
   });
+  it("the toolbar offers Rectangle, and the rectangle reuses the two-point gesture and selection/delete", () => {
+    expect(panel).toContain('["rect", "chart.draw.rect"');
+    expect(panel).toContain('tool === "rect" ? t("chart.draw.hintRect")');
+    expect(chart).toContain('const twoPoint = tool === "trend" || tool === "rect"');
+    expect(chart).toContain("isDegenerateRect(a, b)");
+    expect(chart).toContain("onSelect(hitTest(prim.projectAll()");
+    expect(prim).toContain("fillRect");
+    expect(prim).toContain("strokeRect");
+  });
   it("pauses pan/zoom only while a drawing tool is active", () => {
     expect(chart).toContain("handleScroll: !drawing, handleScale: !drawing");
     expect(chart).toContain('tool !== "cursor"');
   });
   it("EN, FR and AR have every drawing-tool string", () => {
-    const keys = ["toolbar", "cursor", "hline", "trend", "delete", "hintHline", "hintTrend"];
+    const keys = ["toolbar", "cursor", "hline", "trend", "rect", "delete", "hintHline", "hintTrend", "hintRect"];
     for (const l of ["en", "fr", "ar"] as const) {
       const d = (dictionaries[l].chart as unknown as { draw: Record<string, string> }).draw;
       for (const k of keys) expect(d[k]?.length).toBeGreaterThan(0);
