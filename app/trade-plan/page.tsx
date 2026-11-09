@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
+import { normalizeSymbol, baseOf } from "@/lib/watchlist";
 import { TradePlanDraft, TIMEFRAMES, emptyDraft, loadDraft, saveDraft, clearDraft, missingTargets, normalizeTimeframe, type SizeMode } from "@/lib/tradePlan";
 import { loadTrades, saveTrades } from "@/lib/journal";
 import { computePlan } from "@/lib/planCalc";
@@ -57,7 +58,24 @@ export default function TradePlanPage() {
     if (stored) setDraft(stored);
     setConfirmDate(todayLocal());
     setLoaded(true);
-    const sid = new URLSearchParams(window.location.search).get("signal");
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get("signal");
+    // /trade-plan?pair=BTC (from Smart Actions): fill the coin only into an empty plan, never over work in progress.
+    const want = !sid && params.get("pair") ? normalizeSymbol(params.get("pair")) : null;
+    if (want) {
+      const pair = `${baseOf(want)}/USDT`;
+      window.history.replaceState(null, "", window.location.pathname);
+      const cur = stored ?? emptyDraft;
+      const hasWork = [cur.entry, cur.invalidation, cur.tp1, cur.tp2, cur.tp3, cur.entryZone, cur.reasoning].some((v) => v.trim() !== "");
+      if (cur.pair !== pair) {
+        if (hasWork || cur.signal) setSignalMsg(t("tradePlan.pairKept").replace("{coin}", pair));
+        else {
+          const next = { ...cur, pair, id: cur.id ?? crypto.randomUUID(), status: cur.status ?? "draft" };
+          setDraft(next);
+          saveDraft(next);
+        }
+      }
+    }
     if (!sid && !stored?.signal) return;
     let off = false;
     (async () => {

@@ -1,10 +1,11 @@
 "use client";
 // ATLAS INVESTOR V1. Private (see lib/privateRoutes.ts). Manual records only: no exchange connection, no orders.
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/lib/i18n";
 import { useLiveTickers } from "@/lib/useLiveTickers";
 import { resolvePrices, summarize } from "@/lib/investor/calc";
 import type { InvestorDoc } from "@/lib/investor/model";
+import { isSupportedTicker } from "@/lib/investor/assets";
 import { useInvestor, type CommitResult } from "@/components/investor/useInvestor";
 import { fill } from "@/components/investor/fmt";
 import Dashboard from "@/components/investor/Dashboard";
@@ -25,6 +26,18 @@ export default function InvestorPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [draft, setDraft] = useState<PurchaseDraft | null>(null);
   const [sell, setSell] = useState<{ asset: string; price: number | null } | null>(null);
+
+  // /investor?asset=BTC (from Smart Actions): open the usual purchase form with the coin filled in. Only the 17 supported coins; nothing is saved until Save.
+  useEffect(() => {
+    const a = new URLSearchParams(window.location.search).get("asset")?.trim().toUpperCase();
+    if (!a) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    if (!isSupportedTicker(a)) return;
+    // Opening the purchase form from an external link is the point of this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDraft({ asset: a });
+    setTab("Ledger");
+  }, []);
 
   const prices = useMemo(() => resolvePrices(live, doc.manualPrices), [live, doc.manualPrices]);
   const summary = useMemo(() => summarize(doc, prices), [doc, prices]);

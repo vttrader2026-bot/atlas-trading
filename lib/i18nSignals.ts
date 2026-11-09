@@ -227,6 +227,7 @@ export const sigJournalAr: Dict = {
 
 export const sigPlanEn: Dict = {
   fromSignal: "Imported from an Atlas signal",
+  pairKept: "Your plan in progress was kept. Clear it first to plan {coin}.",
   replaceTitle: "Replace your current draft?",
   replaceBody: "You have a draft in progress. Importing this signal replaces it.",
   replace: "Replace with signal",
@@ -250,6 +251,7 @@ export const sigPlanEn: Dict = {
 };
 export const sigPlanFr: Dict = {
   fromSignal: "Importé depuis un signal Atlas",
+  pairKept: "Votre plan en cours a été conservé. Effacez-le d'abord pour planifier {coin}.",
   replaceTitle: "Remplacer votre brouillon actuel ?",
   replaceBody: "Vous avez un brouillon en cours. L'import de ce signal le remplace.",
   replace: "Remplacer par le signal",
@@ -273,6 +275,7 @@ export const sigPlanFr: Dict = {
 };
 export const sigPlanAr: Dict = {
   fromSignal: "مستورد من إشارة Atlas",
+  pairKept: "تم الاحتفاظ بخطتك الحالية. امسحها أولاً لتخطيط صفقة على {coin}.",
   replaceTitle: "استبدال المسودة الحالية؟",
   replaceBody: "لديك مسودة قيد العمل. استيراد هذه الإشارة سيستبدلها.",
   replace: "استبدال بالإشارة",

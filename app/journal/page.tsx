@@ -20,6 +20,7 @@ import { fetchFeed, syncLocalRecords } from "@/lib/signalSync";
 import { confirmPlanIfElite, outcomeText } from "@/lib/eliteConfirmClient";
 import { isLiveSignal, isLongSignal, signalToTrade, type SignalLink } from "@/lib/signalLink";
 import type { PublishedTrade } from "@/lib/tradeFeed";
+import { normalizeSymbol, baseOf } from "@/lib/watchlist";
 
 const nowMs = () => Date.now();
 
@@ -47,7 +48,14 @@ export default function JournalPage() {
     setTrades(loadTrades());
     const refresh = () => setTrades(loadTrades());
     window.addEventListener("atlas-journal-updated", refresh);
-    const id = new URLSearchParams(window.location.search).get("trade");
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("trade");
+    // /journal?pair=BTC (from Smart Actions): open the empty "new trade" form with the coin filled in. Nothing is saved until Save.
+    const want = !id && params.get("pair") ? normalizeSymbol(params.get("pair")) : null;
+    if (want) {
+      window.history.replaceState(null, "", window.location.pathname);
+      setEditing({ base: null, initial: { ...tradeToForm(null), pair: `${baseOf(want)}/USDT` }, key: Date.now() });
+    }
     if (id) {
       setHighlight(id);
       setSelected(id);

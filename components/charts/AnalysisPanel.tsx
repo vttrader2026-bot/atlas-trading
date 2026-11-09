@@ -16,6 +16,7 @@ import { useLanguage } from "@/lib/i18n";
 import AnalysisResult from "@/components/analyzer/AnalysisResult";
 import type { AnalysisData } from "@/components/analyzer/types";
 import AnalysisChart, { DEFAULT_TOGGLES, type IndicatorToggles } from "@/components/charts/AnalysisChart";
+import SmartActions from "@/components/SmartActions";
 import { addDrawing, removeDrawing, type Drawing, type DrawingDraft, type Tool } from "@/lib/chartDrawings";
 
 type Analysis = AnalysisData;
@@ -332,6 +333,8 @@ export default function AnalysisPanel({
         </div>
 
         {analysis && <AnalysisResult data={analysis} analyzedAt={analyzedAt} />}
+
+        <SmartActions base={baseAsset} analyzed={!!analysis} />
       </div>
     </div>
   );
