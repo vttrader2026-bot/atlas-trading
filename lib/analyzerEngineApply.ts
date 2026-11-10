@@ -93,11 +93,6 @@ export const REASON_TEXT: Record<ReasonCode, Record<Lang, string>> = {
     ar: "إغلاق الاختراق غير مدعوم بحجم تداول أعلى من المتوسط.",
     fr: "La clôture de cassure n'est pas appuyée par un volume supérieur à la moyenne.",
   },
-  OVERBOUGHT: {
-    en: "Momentum is stretched (RSI overbought); a better price is likely to come.",
-    ar: "الزخم مفرط (RSI في التشبع الشرائي)؛ من المرجح أن يأتي سعر أفضل.",
-    fr: "L'élan est étiré (RSI suracheté) ; un meilleur prix est probable.",
-  },
   NO_TARGET_ROOM: {
     en: "There is no structural resistance above to set an honest first target.",
     ar: "لا توجد مقاومة هيكلية أعلاه لتحديد هدف أول موثوق.",
