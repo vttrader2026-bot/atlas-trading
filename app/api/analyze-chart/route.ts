@@ -121,7 +121,17 @@ export async function POST(req: NextRequest) {
     engine = analyzeCandles({ candles: mainClosed, interval, higherCandles: hiClosed, stale: result.stale, nowMs: Date.now() });
   } catch (err) {
     if (err instanceof MarketDataError) {
-      return NextResponse.json({ error: err.code, message: err.message }, { status: 502 });
+      // Distinct code for operators in the logs; the user gets a plain-language message only.
+      console.error(`analyze-chart: market data failed [${err.code}] ${baseAsset}/${quoteAsset} ${interval}`);
+      const notListed = err.code === "UNKNOWN_SYMBOL" || err.code === "UNSUPPORTED_PAIR";
+      return NextResponse.json(
+        {
+          error: notListed
+            ? "This pair isn't available as a Binance Spot USDT market. Choose another pair."
+            : "Could not verify real market data for this pair right now. Try again in a moment.",
+        },
+        { status: notListed ? 404 : 502 }
+      );
     }
     console.error("analyze-chart: market data fetch failed", err);
     return NextResponse.json({ error: "Could not load real market data for this pair right now." }, { status: 502 });

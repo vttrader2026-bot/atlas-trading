@@ -8,13 +8,13 @@ import Image from "next/image";
 import { useLanguage } from "@/lib/i18n";
 import { getRemainingUses, recordUse, DAILY_ANALYZE_LIMIT } from "@/lib/usageLimit";
 import { useAuth } from "@clerk/nextjs";
+import PairPicker from "@/components/analyzer/PairPicker";
 import AnalysisResult from "@/components/analyzer/AnalysisResult";
 import type { AnalysisData } from "@/components/analyzer/types";
 import { recordAnalysis } from "@/lib/analysisHistory";
 
 type Analysis = AnalysisData;
 
-const PAIRS = ["auto", "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"];
 const TIMEFRAMES = ["auto", "15M", "1H", "4H", "1D", "1W"];
 
 export default function AnalyzerPage() {
@@ -32,8 +32,6 @@ function AnalyzerPageInner() {
 
   const queryPair = searchParams.get("pair");
   const initialPair = queryPair || "auto";
-  const pairOptions =
-    queryPair && !PAIRS.includes(queryPair) ? [...PAIRS, queryPair] : PAIRS;
   const queryTimeframe = searchParams.get("timeframe");
   const initialTimeframe = queryTimeframe || "auto";
   const timeframeOptions =
@@ -180,13 +178,7 @@ function AnalyzerPageInner() {
       {isSignedIn && (
         <>
       <div className="mt-6 grid sm:grid-cols-3 gap-3">
-        <Select label={t("analyzer.pairLabel")} value={pair} onChange={setPair}>
-          {pairOptions.map((p) => (
-            <option key={p} value={p}>
-              {p === "auto" ? t("analyzer.autoDetect") : p}
-            </option>
-          ))}
-        </Select>
+        <PairPicker value={pair} onChange={setPair} />
         <Select label={t("analyzer.timeframeLabel")} value={timeframe} onChange={setTimeframe}>
           {timeframeOptions.map((tf) => (
             <option key={tf} value={tf}>

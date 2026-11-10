@@ -137,18 +137,76 @@ export function clusterZones(swings: Swing[], tolerancePct = 0.6): Zone[] {
   });
 }
 
+/** A breakout bar needs at least this multiple of the prior 20-candle average volume. */
+export const BREAKOUT_VOLUME_MULT = 1.5;
+/** How many closed candles (the breakout candle plus the ones after it) a volume-confirmed breakout stays remembered. */
+export const BREAKOUT_CONFIRM_WINDOW = 3;
+
+export type BreakoutBar = {
+  index: number;
+  /** Highest close of the 20 candles before the breakout candle: the level it broke. */
+  level: number;
+  /** Breakout candle volume / its prior 20-candle average. */
+  volumeRatio: number;
+};
+
+/**
+ * THE breakout definition used everywhere (volumeReport and the engine's retest rule). Candle `i` of a
+ * closed-candle series is a volume-confirmed breakout bar when it
+ *  1. closes above the highest close of the 20 candles before it,
+ *  2. has a bullish body, and
+ *  3. trades at least BREAKOUT_VOLUME_MULT x the average volume of those 20 candles.
+ */
+export function breakoutBarAt(closed: Candle[], i: number): BreakoutBar | null {
+  if (i < 20 || i >= closed.length) return null;
+  const c = closed[i];
+  const prior = closed.slice(i - 20, i);
+  const avg = prior.reduce((acc, x) => acc + x.volume, 0) / 20;
+  if (!(avg > 0)) return null;
+  const level = Math.max(...prior.map((x) => x.close));
+  const volumeRatio = c.volume / avg;
+  if (!(c.close > level) || !(c.close > c.open) || volumeRatio < BREAKOUT_VOLUME_MULT) return null;
+  return { index: i, level, volumeRatio };
+}
+
+/**
+ * The most recent volume-confirmed breakout bar inside the confirmation window that price has held above:
+ * no later close fell back to or below the level it broke. `barsAgo` 0 is the last closed candle.
+ */
+export function recentBreakout(
+  closed: Candle[],
+  window = BREAKOUT_CONFIRM_WINDOW,
+  /** Optional resistance the breakout candle must also close above (e.g. the zone's top). */
+  aboveLevel = -Infinity
+): (BreakoutBar & { barsAgo: number }) | null {
+  const n = closed.length;
+  for (let j = n - 1; j >= Math.max(20, n - window); j--) {
+    const bar = breakoutBarAt(closed, j);
+    if (!bar || !(closed[j].close > aboveLevel)) continue;
+    const hold = Math.max(bar.level, aboveLevel);
+    if (closed.slice(j + 1).every((c) => c.close > hold)) return { ...bar, barsAgo: n - 1 - j };
+  }
+  return null;
+}
+
 export type VolumeReport = {
   lastVsAvg20: number | null; // last CLOSED candle's volume / 20-candle average
   avg5VsAvg20: number | null; // short-term vs longer-term average (expansion / contraction)
   trend: "expanding" | "contracting" | "flat" | "unknown";
-  /** Volume of the last closed candle relative to its 20-candle average, when it also made a new 20-candle high/low close. */
+  /**
+   * "high-close-on-high-volume" = a volume-confirmed breakout bar (see breakoutBarAt) happened on the last
+   * closed candle or within BREAKOUT_CONFIRM_WINDOW and price has held above the level it broke.
+   * "low-close-on-high-volume" = the last closed candle closed below the prior 20-candle lowest close on high volume.
+   */
   breakoutConfirmation: "high-close-on-high-volume" | "low-close-on-high-volume" | "none" | "unknown";
+  /** Candles since the remembered breakout bar (0 = last closed candle); null when there is none. */
+  breakoutBarsAgo: number | null;
 };
 
 export function volumeReport(candles: Candle[]): VolumeReport {
   const closed = candles.filter((c) => c.status === "closed");
   if (closed.length < 21) {
-    return { lastVsAvg20: null, avg5VsAvg20: null, trend: "unknown", breakoutConfirmation: "unknown" };
+    return { lastVsAvg20: null, avg5VsAvg20: null, trend: "unknown", breakoutConfirmation: "unknown", breakoutBarsAgo: null };
   }
   const avg = (arr: Candle[]) => arr.reduce((s, c) => s + c.volume, 0) / arr.length;
   const last = closed[closed.length - 1];
@@ -159,16 +217,15 @@ export function volumeReport(candles: Candle[]): VolumeReport {
   const avg5VsAvg20 = avg20 > 0 ? avg5 / avg20 : null;
   const trend: VolumeReport["trend"] =
     avg5VsAvg20 === null ? "unknown" : avg5VsAvg20 > 1.2 ? "expanding" : avg5VsAvg20 < 0.8 ? "contracting" : "flat";
-  const highestClose = Math.max(...prior20.map((c) => c.close));
   const lowestClose = Math.min(...prior20.map((c) => c.close));
-  const bigVolume = lastVsAvg20 !== null && lastVsAvg20 >= 1.5;
-  const breakoutConfirmation: VolumeReport["breakoutConfirmation"] =
-    bigVolume && last.close > highestClose
-      ? "high-close-on-high-volume"
-      : bigVolume && last.close < lowestClose
-        ? "low-close-on-high-volume"
-        : "none";
-  return { lastVsAvg20, avg5VsAvg20, trend, breakoutConfirmation };
+  const bigVolume = lastVsAvg20 !== null && lastVsAvg20 >= BREAKOUT_VOLUME_MULT;
+  const breakout = recentBreakout(closed);
+  const breakoutConfirmation: VolumeReport["breakoutConfirmation"] = breakout
+    ? "high-close-on-high-volume"
+    : bigVolume && last.close < lowestClose
+      ? "low-close-on-high-volume"
+      : "none";
+  return { lastVsAvg20, avg5VsAvg20, trend, breakoutConfirmation, breakoutBarsAgo: breakout ? breakout.barsAgo : null };
 }
 
 export type SetupConsistency = { ok: true } | { ok: false; reason: string };

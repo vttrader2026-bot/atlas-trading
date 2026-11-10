@@ -11,6 +11,7 @@ const h = vi.hoisted(() => ({
   getCandles: vi.fn(),
   gemini: vi.fn(),
   ticker: "122.8",
+  detected: { pair: "X", timeframe: "X" } as { pair: string; timeframe: string },
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: h.userId }) }));
@@ -38,8 +39,8 @@ const extendedCandles = () => build(100, SEGS([[131, 5]]), { endMs: NOW });
 
 // A careless model: invents every level and a long trade.
 const modelJson = () => ({
-  pair: "X",
-  timeframe: "X",
+  pair: h.detected.pair,
+  timeframe: h.detected.timeframe,
   marketStructure: { state: "Bearish", explanation: "Price bounced at 118.2." },
   trend: { direction: "Bearish", strength: "Strong", explanation: "ok" },
   momentum: "m",
@@ -87,6 +88,7 @@ beforeEach(() => {
   h.getCandles.mockReset().mockImplementation(async () => ({ pair: { symbol: "TESTUSDT" }, candles: validCandles(), stale: false }));
   h.gemini.mockReset();
   h.ticker = "122.8";
+  h.detected = { pair: "X", timeframe: "X" };
   stubGemini();
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -350,5 +352,77 @@ describe("input validation and information hygiene", () => {
       const data: any = await res.json();
       expect(data.tradePlan.direction).not.toMatch(/short/i);
     }
+  });
+});
+
+describe("screenshot route: Auto-detect and manual override", () => {
+  const detect = (pair: string, timeframe: string) => (h.detected = { pair, timeframe });
+
+  it("Auto-detect: a valid detected pair + timeframe are verified against candles", async () => {
+    detect("QNT/USDT", "1H");
+    const body: any = await (await shotPOST(shotReq({ pair: "auto", timeframe: "auto" }))).json();
+    expect(h.getCandles).toHaveBeenCalledWith("QNT", "1h", expect.objectContaining({ quoteAsset: "USDT" }));
+    expect(body.pair).toBe("QNT/USDT");
+    expect(body.timeframe).toBe("1H");
+    expect(body.verdict).toBe("VALID_SETUP");
+  });
+
+  it("Auto-detect accepts QNTUSDT / BINANCE:QNTUSDT forms", async () => {
+    detect("BINANCE:QNTUSDT", "60");
+    await shotPOST(shotReq({ pair: "auto", timeframe: "auto" }));
+    expect(h.getCandles).toHaveBeenCalledWith("QNT", "1h", expect.anything());
+  });
+
+  it("manual pair/timeframe override whatever the AI detected", async () => {
+    detect("BTC/USDT", "4H");
+    await shotPOST(shotReq({ pair: "QNT/USDT", timeframe: "1H" }));
+    expect(h.getCandles).toHaveBeenCalledWith("QNT", "1h", expect.anything());
+    expect(h.getCandles).not.toHaveBeenCalledWith("BTC", expect.anything(), expect.anything());
+  });
+
+  it("manual pair + Auto timeframe uses the detected timeframe only", async () => {
+    detect("BTC/USDT", "4H");
+    await shotPOST(shotReq({ pair: "QNT/USDT", timeframe: "auto" }));
+    expect(h.getCandles).toHaveBeenCalledWith("QNT", "4h", expect.anything());
+  });
+
+  it("uncertain detection asks the user to choose and fetches no candles", async () => {
+    detect("Unclear", "Unclear");
+    const body: any = await (await shotPOST(shotReq({ pair: "auto", timeframe: "auto" }))).json();
+    expect(body.verdict).toBe("VISUAL_READ_ONLY");
+    expect(body._engine.reasons).toEqual(["PAIR_REQUIRED", "TIMEFRAME_REQUIRED"]);
+    expect(h.getCandles).not.toHaveBeenCalled();
+  });
+
+  it("a detected pair that is not a Binance Spot USDT market asks for a pair, not 'not verified'", async () => {
+    detect("FAKE/USDT", "1H");
+    h.getCandles.mockRejectedValue(new MarketDataError("UNKNOWN_SYMBOL", "FAKEUSDT is not listed"));
+    const body: any = await (await shotPOST(shotReq({ pair: "auto", timeframe: "auto" }))).json();
+    expect(body._engine.reasons).toEqual(["PAIR_REQUIRED"]);
+  });
+
+  it("each MarketDataError code is logged distinctly and never shown to the user", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const code of ["UPSTREAM_TIMEOUT", "INVALID_CANDLE_DATA", "MALFORMED_RESPONSE"] as const) {
+      h.getCandles.mockRejectedValue(new MarketDataError(code, "secret internal detail"));
+      const res = await shotPOST(shotReq({ pair: "QNT/USDT", timeframe: "1H" }));
+      const text = JSON.stringify(await res.json());
+      expect(text).not.toContain(code);
+      expect(text).not.toContain("secret internal detail");
+      expect(err.mock.calls.some((c) => String(c[0]).includes(`[${code}]`))).toBe(true);
+    }
+  });
+
+  it("chart route: friendly error, no raw code or message, distinct log", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    h.getCandles.mockRejectedValue(new MarketDataError("INVALID_CANDLE_DATA", "gap at index 4"));
+    const res = await chartPOST(chartReq());
+    const body: any = await res.json();
+    expect(res.status).toBe(502);
+    expect(JSON.stringify(body)).not.toMatch(/INVALID_CANDLE_DATA|gap at index/);
+    expect(err.mock.calls.some((c) => String(c[0]).includes("[INVALID_CANDLE_DATA]"))).toBe(true);
+    h.getCandles.mockRejectedValue(new MarketDataError("UNKNOWN_SYMBOL", "x"));
+    const res2 = await chartPOST(chartReq({ baseAsset: "NOPE" }));
+    expect(res2.status).toBe(404);
   });
 });

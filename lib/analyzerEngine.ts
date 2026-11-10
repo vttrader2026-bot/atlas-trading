@@ -21,9 +21,13 @@ import type { Candle, Interval } from "@/lib/marketDataTypes";
 import { INTERVAL_MS, SUPPORTED_INTERVALS } from "@/lib/marketDataTypes";
 import { calcATR, calcEMA, calcMACD, calcRSI, latest } from "@/lib/indicators";
 import {
+  BREAKOUT_CONFIRM_WINDOW,
+  BREAKOUT_VOLUME_MULT,
+  breakoutBarAt,
   classifyStructure,
   clusterZones,
   findSwings,
+  recentBreakout,
   volumeReport,
   type StructureReport,
   type Swing,
@@ -61,7 +65,11 @@ export const ENGINE_CONFIG = {
   /** The pullback "touches" the broken zone when its low comes within this many ATRs of the zone's top. */
   retestTouchAtr: 0.25,
   /** A breakout bar needs at least this multiple of the prior 20-candle average volume. */
-  breakoutVolumeMult: 1.5,
+  breakoutVolumeMult: BREAKOUT_VOLUME_MULT,
+  /** A volume-confirmed breakout candle stays remembered for this many closed candles (itself included). */
+  breakoutConfirmWindow: BREAKOUT_CONFIRM_WINDOW,
+  /** RSI at/above the overbought level for this many closed candles in a row is sustained, not a brief breakout spike. */
+  rsiSustainedBars: 3,
 } as const;
 
 // ───────────────────────── types ─────────────────────────
@@ -263,6 +271,59 @@ export function resolveScreenshotMarket(
   return { ok: true, baseAsset, interval };
 }
 
+const NOT_DETECTED = new Set(["", "AUTO", "UNCLEAR", "UNKNOWN", "N/A", "NA", "NONE", "NULL", "UNDEFINED", "NOT VISIBLE", "NOT SPECIFIED"]);
+
+const TIMEFRAME_ALIASES: Record<string, Interval> = {
+  "15": "15m", "15m": "15m", "15min": "15m", "15 min": "15m", "15 minutes": "15m",
+  "60": "1h", "1h": "1h", "1hr": "1h", "1 hour": "1h", "60m": "1h", "h1": "1h",
+  "240": "4h", "4h": "4h", "4hr": "4h", "4 hour": "4h", "4 hours": "4h", "240m": "4h", "h4": "4h",
+  "d": "1d", "1d": "1d", "day": "1d", "1 day": "1d", "daily": "1d", "d1": "1d",
+  "w": "1w", "1w": "1w", "week": "1w", "1 week": "1w", "weekly": "1w", "w1": "1w",
+};
+
+/**
+ * Validates what the AI read off a screenshot. Returns only values that are a plain Binance-style USDT pair and a
+ * supported timeframe; anything uncertain ("Unclear", a perp, a cross pair, an odd timeframe) comes back null so the
+ * caller asks the user to choose instead of verifying a guess.
+ */
+export function normalizeDetectedMarket(
+  pair: unknown,
+  timeframe: unknown
+): { pair: string | null; timeframe: Interval | null } {
+  let outPair: string | null = null;
+  if (typeof pair === "string") {
+    const raw = pair.includes(":") ? pair.split(":").pop() ?? "" : pair; // "BINANCE:BTCUSDT" → "BTCUSDT"
+    const p = raw.trim().toUpperCase();
+    if (!NOT_DETECTED.has(p)) {
+      const r = resolveScreenshotMarket(p, "1h");
+      if (r.ok) outPair = `${r.baseAsset}/USDT`;
+    }
+  }
+  let outTf: Interval | null = null;
+  if (typeof timeframe === "string") {
+    const t = timeframe.trim().toLowerCase();
+    if (!NOT_DETECTED.has(t.toUpperCase())) outTf = TIMEFRAME_ALIASES[t] ?? (isSupportedTimeframe(t) ? t : null);
+  }
+  return { pair: outPair, timeframe: outTf };
+}
+
+const isManual = (v: string | null | undefined) => !!v && v.trim() !== "" && v.trim().toLowerCase() !== "auto";
+
+/** Manual selections always win; AI detection only fills what the user left on Auto. */
+export function chooseScreenshotMarket(
+  manual: { pair?: string | null; timeframe?: string | null },
+  detected: { pair: string | null; timeframe: string | null }
+): { pair: string | null; timeframe: string | null; pairDetected: boolean; timeframeDetected: boolean } {
+  const pairManual = isManual(manual.pair);
+  const tfManual = isManual(manual.timeframe);
+  return {
+    pair: pairManual ? (manual.pair as string) : detected.pair,
+    timeframe: tfManual ? (manual.timeframe as string) : detected.timeframe,
+    pairDetected: !pairManual && detected.pair !== null,
+    timeframeDetected: !tfManual && detected.timeframe !== null,
+  };
+}
+
 // ───────────────────────── market reading ─────────────────────────
 
 function trendFrom(structure: StructureReport, price: number, ema20: number | null, ema50: number | null, ema200: number | null) {
@@ -289,9 +350,9 @@ function readMacd(closed: Candle[]): MarketReading["macd"] {
   return line === null || signal === null || histogram === null ? null : { line, signal, histogram };
 }
 
-type Reading = { market: MarketReading; zones: Zone[]; closed: Candle[]; swings: Swing[] };
+export type Reading = { market: MarketReading; zones: Zone[]; closed: Candle[]; swings: Swing[] };
 
-function readMarket(closed: Candle[]): Reading | null {
+export function readMarket(closed: Candle[]): Reading | null {
   const atr = latest(calcATR(closed, ENGINE_CONFIG.atrPeriod));
   if (atr === null || !(atr > 0)) return null;
   const last = closed[closed.length - 1];
@@ -464,7 +525,7 @@ const wait = (reasons: ReasonCode[], candidate: SetupType, watch: WatchLevel): E
   plan: null,
 });
 
-type Retest = { zone: Zone; retestLow: number; confirmed: boolean };
+type Retest = { zone: Zone; retestLow: number; confirmed: boolean; breakoutIndex: number };
 
 /**
  * Breakout-and-successful-retest. All of these must hold on closed candles:
@@ -489,31 +550,27 @@ export function findRetest(r: Reading): Retest | null {
     const members = highs.filter((h) => h.price >= zone.low && h.price <= zone.high);
     const confirmedAt = Math.max(...members.map((h) => h.index)) + ENGINE_CONFIG.swingLookback;
     const start = Math.max(21, confirmedAt + 1, n - ENGINE_CONFIG.retestMaxBars);
-    let b = -1;
-    for (let i = start; i <= n - 2; i++) {
-      const c = closed[i];
-      if (!(c.close > zone.high) || closed[i - 1].close > zone.high || !(c.close > c.open)) continue;
-      const avg = closed.slice(i - 20, i).reduce((acc, x) => acc + x.volume, 0) / 20;
-      if (avg > 0 && c.volume >= ENGINE_CONFIG.breakoutVolumeMult * avg) {
-        b = i;
-        break; // the first qualifying breakout bar
+    // Every qualifying breakout candle is evaluated, oldest first: an early one that later closed back inside
+    // the zone is a failed breakout, but a later one may still be a clean hold.
+    for (let b = start; b <= n - 2; b++) {
+      const c = closed[b];
+      if (!(c.close > zone.high) || closed[b - 1].close > zone.high) continue; // must cross the whole zone on this candle
+      if (!breakoutBarAt(closed, b)) continue; // the shared definition: new 20-candle high close, bullish body, volume
+      const after = closed.slice(b + 1);
+      if (after.some((x) => x.close <= zone.high)) continue; // closed back inside the zone: failed / not a clean hold
+      let t = -1;
+      for (let i = Math.max(b + 1, n - ENGINE_CONFIG.retestRecentBars); i < n; i++) {
+        if (closed[i].low <= zone.high + ENGINE_CONFIG.retestTouchAtr * atr) {
+          t = i;
+          break;
+        }
       }
+      if (t < 0) continue;
+      const retestLow = Math.min(...closed.slice(t).map((x) => x.low));
+      if (retestLow < zone.low - 0.5 * atr) continue; // sliced through the zone: not a hold
+      const confirmed = last.close > last.open && last.close >= zone.mid;
+      return { zone, retestLow, confirmed, breakoutIndex: b };
     }
-    if (b < 0) continue;
-    const after = closed.slice(b + 1);
-    if (after.some((c) => c.close <= zone.high)) continue; // closed back inside the zone: failed / not a clean hold
-    let t = -1;
-    for (let i = Math.max(b + 1, n - ENGINE_CONFIG.retestRecentBars); i < n; i++) {
-      if (closed[i].low <= zone.high + ENGINE_CONFIG.retestTouchAtr * atr) {
-        t = i;
-        break;
-      }
-    }
-    if (t < 0) continue;
-    const retestLow = Math.min(...closed.slice(t).map((c) => c.low));
-    if (retestLow < zone.low - 0.5 * atr) continue; // sliced through the zone: not a hold
-    const confirmed = last.close > last.open && last.close >= zone.mid;
-    return { zone, retestLow, confirmed };
   }
   return null;
 }
@@ -530,7 +587,7 @@ function evaluate(r: Reading, overboughtRsi: number): Evaluation {
   const rt = findRetest(r);
   if (rt && (m.price - rt.zone.high) / m.atr <= ENGINE_CONFIG.maxEntryDistanceAtr) {
     if (!rt.confirmed) return wait(["AWAIT_BULLISH_CLOSE"], "retest", { role: "retest", price: rt.zone.high });
-    return finish(assemble("retest", rt.zone.mid, m.price, Math.min(rt.zone.low, rt.retestLow), rt.zone, r), "retest", m, overboughtRsi);
+    return finish(assemble("retest", rt.zone.mid, m.price, Math.min(rt.zone.low, rt.retestLow), rt.zone, r), "retest", m, overboughtRsi, { closed, breakoutIndex: rt.breakoutIndex });
   }
   if (s.state === "Unclear" || s.lastSwingHigh === null || s.lastSwingLow === null) return noClean(["STRUCTURE_UNCLEAR"]);
 
@@ -547,13 +604,15 @@ function evaluate(r: Reading, overboughtRsi: number): Evaluation {
     if (m.price <= zone.high) {
       return wait(["AWAIT_BREAKOUT_CLOSE"], "breakout", { role: "breakout_close", price: zone.high });
     }
-    if (m.volume.breakoutConfirmation !== "high-close-on-high-volume") {
+    // The volume-confirmed candle is remembered for a short window, but it must itself have closed above this zone.
+    const bo = recentBreakout(closed, ENGINE_CONFIG.breakoutConfirmWindow, zone.high);
+    if (!bo) {
       return wait(["BREAKOUT_NEEDS_VOLUME"], "breakout", { role: "breakout_close", price: zone.high });
     }
     if ((m.price - zone.high) / m.atr > ENGINE_CONFIG.maxEntryDistanceAtr) {
       return wait(["PRICE_EXTENDED"], "breakout", { role: "retest", price: zone.high });
     }
-    return finish(assemble("breakout", zone.high, m.price, zone.low, zone, r), "breakout", m, overboughtRsi);
+    return finish(assemble("breakout", zone.high, m.price, zone.low, zone, r), "breakout", m, overboughtRsi, { closed, breakoutIndex: bo.index });
   }
 
   // ── Pullback: needs a confirmed bullish structure (HH + HL).
@@ -575,14 +634,35 @@ function evaluate(r: Reading, overboughtRsi: number): Evaluation {
   return finish(assemble("pullback", zone.mid, m.price, zone.low, zone, r), "pullback", m, overboughtRsi);
 }
 
+/**
+ * A volume breakout naturally pushes RSI up. It is a brief spike (not an overbought market) when RSI was below the
+ * level before the breakout candle and has been at/above it for fewer than `rsiSustainedBars` closed candles in a row.
+ * Pre-existing or sustained overbought readings still count as overbought. The threshold itself is unchanged.
+ */
+export function rsiIsBreakoutSpike(closed: Candle[], breakoutIndex: number, level: number): boolean {
+  const series = calcRSI(closed, 14);
+  const at = (i: number) => (i >= 14 ? series[i - 14]?.value : undefined);
+  const before = at(breakoutIndex - 1);
+  if (before === undefined || !(before < level)) return false;
+  let run = 0;
+  for (let i = closed.length - 1; i >= breakoutIndex; i--) {
+    const v = at(i);
+    if (v === undefined || !(v >= level)) break;
+    run++;
+  }
+  return run < ENGINE_CONFIG.rsiSustainedBars;
+}
+
 function finish(
   built: { plan: TradePlan } | { reasons: ReasonCode[] },
   candidate: SetupType,
   m: MarketReading,
-  overboughtRsi: number
+  overboughtRsi: number,
+  /** Breakout context (breakout / retest setups): lets RSI be judged against the breakout, not in isolation. */
+  ctx?: { closed: Candle[]; breakoutIndex: number }
 ): Evaluation {
   if ("reasons" in built) return noClean(built.reasons, candidate);
-  if (m.rsi14 !== null && m.rsi14 >= overboughtRsi) {
+  if (m.rsi14 !== null && m.rsi14 >= overboughtRsi && !(ctx && rsiIsBreakoutSpike(ctx.closed, ctx.breakoutIndex, overboughtRsi))) {
     return wait(["OVERBOUGHT"], candidate, { role: "pullback_to_support", price: m.support[0]?.high ?? m.ema20 ?? m.price });
   }
   return { verdict: "VALID_SETUP", reasons: [], candidate, watch: null, plan: built.plan };

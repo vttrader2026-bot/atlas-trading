@@ -5,6 +5,7 @@
 
 import { getCandles, MarketDataError } from "@/lib/marketData";
 import { HIGHER_TF } from "@/lib/analyzerPrompt";
+import type { Interval } from "@/lib/marketDataTypes";
 import {
   analyzeCandles,
   resolveScreenshotMarket,
@@ -14,10 +15,11 @@ import {
 
 export async function engineForScreenshot(
   pair: string | null | undefined,
-  timeframe: string | null | undefined
-): Promise<{ engine: EngineResult; pair: string | null }> {
+  timeframe: string | null | undefined,
+  opts: { pairDetected?: boolean } = {}
+): Promise<{ engine: EngineResult; pair: string | null; timeframe: Interval | null }> {
   const target = resolveScreenshotMarket(pair, timeframe);
-  if (!target.ok) return { engine: visualReadOnly(target.reasons), pair: null };
+  if (!target.ok) return { engine: visualReadOnly(target.reasons), pair: null, timeframe: null };
 
   const higherName = HIGHER_TF[target.interval] ?? null;
   const [main, hi] = await Promise.allSettled([
@@ -25,8 +27,18 @@ export async function engineForScreenshot(
     higherName ? getCandles(target.baseAsset, higherName, { limit: 250, quoteAsset: "USDT" }) : Promise.reject(new Error("none")),
   ]);
   if (main.status === "rejected") {
-    if (!(main.reason instanceof MarketDataError)) console.error("analyze: engine candle load failed", main.reason);
-    return { engine: visualReadOnly(["CANDLES_UNAVAILABLE"]), pair: `${target.baseAsset}/USDT` };
+    const market = `${target.baseAsset}/USDT ${target.interval}`;
+    if (main.reason instanceof MarketDataError) {
+      // Each code is logged distinctly for operators; the user only ever sees a plain-language reason.
+      console.error(`analyze: candle verification failed [${main.reason.code}] ${market}`);
+      if (opts.pairDetected && (main.reason.code === "UNKNOWN_SYMBOL" || main.reason.code === "UNSUPPORTED_PAIR")) {
+        // The AI-detected pair is not a real Binance Spot USDT market: ask the user instead of guessing.
+        return { engine: visualReadOnly(["PAIR_REQUIRED"]), pair: null, timeframe: null };
+      }
+    } else {
+      console.error(`analyze: candle verification failed [UNEXPECTED] ${market}`, main.reason);
+    }
+    return { engine: visualReadOnly(["CANDLES_UNAVAILABLE"]), pair: `${target.baseAsset}/USDT`, timeframe: target.interval };
   }
   const engine = analyzeCandles({
     candles: main.value.candles,
@@ -35,5 +47,5 @@ export async function engineForScreenshot(
     stale: main.value.stale,
     nowMs: Date.now(),
   });
-  return { engine, pair: `${target.baseAsset}/USDT` };
+  return { engine, pair: `${target.baseAsset}/USDT`, timeframe: target.interval };
 }

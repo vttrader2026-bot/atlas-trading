@@ -5,6 +5,7 @@ import { USAGE_UNAVAILABLE_MESSAGE, analyzeLimitReachedMessage, consumeAnalyzeUs
 import { getTicker24h } from "@/lib/binance";
 import { applyEngineToAnalysis, engineFactsBlock } from "@/lib/analyzerEngineApply";
 import { engineForScreenshot } from "@/lib/analyzerEngineServer";
+import { chooseScreenshotMarket, normalizeDetectedMarket } from "@/lib/analyzerEngine";
 
 // Providers, models, free-tier rules and the time budget live in lib/ai (free providers only).
 
@@ -85,8 +86,8 @@ CORE RULES — these matter more than anything else:
 Respond with ONLY a JSON object, no other text, matching exactly this shape:
 
 {
-  "pair": "the traded pair if visible/given, otherwise your best guess or 'Unclear'",
-  "timeframe": "the chart timeframe if visible/given, otherwise 'Unclear'",
+  "pair": "the traded pair ONLY if it is printed on the chart or given above (e.g. 'QNT/USDT'); otherwise 'Unclear'. Never guess a pair.",
+  "timeframe": "the chart timeframe ONLY if it is printed on the chart or given above (e.g. '1H'); otherwise 'Unclear'",
   "marketStructure": {
     "state": "Bullish" | "Bearish" | "Ranging" | "Unclear",
     "explanation": "1-2 sentences citing actual visible structure (higher highs/lows, lower highs/lows, break of structure, range) — do not claim structure that isn't visible"
@@ -232,11 +233,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Shared deterministic engine: real closed Binance USDT candles for the
-  // stated pair + timeframe. If they can't be verified, the result is
-  // VISUAL_READ_ONLY with no executable plan.
-  const { engine, pair: verifiedPair } = await engineForScreenshot(context.pair, context.timeframe);
-  const engineBlock = engineFactsBlock(engine, verifiedPair ?? context.pair ?? "the chart");
+  // Shared deterministic engine: real closed Binance USDT candles. When the trader picked both pair and timeframe the
+  // engine runs first and its facts go into the prompt. On Auto the model reads the chart first; what it detected is
+  // validated, and only a valid pair + timeframe reach candle verification. Manual picks always override detection.
+  const manualBoth = chooseScreenshotMarket(context, { pair: null, timeframe: null });
+  const fullyManual = manualBoth.pair !== null && manualBoth.timeframe !== null;
+  let pre: Awaited<ReturnType<typeof engineForScreenshot>> | null = null;
+  if (fullyManual) pre = await engineForScreenshot(manualBoth.pair, manualBoth.timeframe);
+  const engineBlock = pre ? engineFactsBlock(pre.engine, pre.pair ?? context.pair ?? "the chart") : "";
 
   const result = await runAnalysis({ prompt: buildPrompt(lang, context, livePrice, engineBlock), image: { mime: mimeType, base64 } });
   if (!result.ok) {
@@ -251,9 +255,17 @@ export async function POST(req: NextRequest) {
   }
 
   const parsed = result.parsed;
+  let resolved = pre;
+  if (!resolved) {
+    const detected = normalizeDetectedMarket(parsed.pair, parsed.timeframe);
+    const chosen = chooseScreenshotMarket(context, detected);
+    resolved = await engineForScreenshot(chosen.pair, chosen.timeframe, { pairDetected: chosen.pairDetected });
+  }
+  const { engine, pair: verifiedPair, timeframe: verifiedTimeframe } = resolved;
   // Engine output replaces anything the model wrote about levels or the plan.
   applyEngineToAnalysis(parsed, engine, lang);
   if (verifiedPair) parsed.pair = verifiedPair;
+  if (verifiedTimeframe) parsed.timeframe = verifiedTimeframe.toUpperCase();
   const consumed = await consumeAnalyzeUsage(userId);
   // The counter is authoritative: if it cannot confirm this use (outage or a parallel request took the last one), the analysis is withheld.
   if (consumed.unavailable) return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
