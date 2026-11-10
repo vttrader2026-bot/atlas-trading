@@ -9,11 +9,9 @@ import {
   readMarket,
   normalizeDetectedMarket,
   resolveScreenshotMarket,
-  rsiIsBreakoutSpike,
 } from "@/lib/analyzerEngine";
 import { BREAKOUT_CONFIRM_WINDOW, breakoutBarAt, recentBreakout, volumeReport } from "@/lib/chartStructure";
 import { pairsFromSymbols, QUICK_PAIRS, searchPairs, symbolToPair } from "@/lib/pairList";
-import { calcRSI } from "@/lib/indicators";
 import { validateCandles } from "@/lib/marketDataValidation";
 import { build } from "./helpers/candles";
 
@@ -112,7 +110,6 @@ describe("invalid candle data (validation unchanged)", () => {
 describe("shared breakout definition and confirmation window (Part B)", () => {
   it("thresholds are unchanged", () => {
     expect(ENGINE_CONFIG.breakoutVolumeMult).toBe(1.5);
-    expect(ENGINE_CONFIG.overboughtRsi).toBe(75);
     expect(ENGINE_CONFIG.maxRiskAtr).toBe(6);
     expect(BREAKOUT_CONFIRM_WINDOW).toBe(3);
   });
@@ -154,40 +151,58 @@ describe("shared breakout definition and confirmation window (Part B)", () => {
   });
 });
 
-describe("RSI in breakout context (Part B)", () => {
-  it("a brief RSI spike caused by the breakout candle does not discard the setup", () => {
-    const candles = build(100, segs, { volume: spikeAt((n) => n - 1) });
-    const rsi = analyzeCandles({ candles, interval: "1h" }).market!.rsi14!;
-    // Put the overbought level just under the current RSI: the old rule would demote, the context rule must not.
-    const r = analyzeCandles({ candles, interval: "1h", overboughtRsi: rsi - 1 });
-    const closed = candles;
-    expect(rsiIsBreakoutSpike(closed, closed.length - 1, rsi - 1)).toBe(true);
+describe("RSI and ATR are not confirmation/rejection filters", () => {
+  const BREAKOUT = build(100, segs, { volume: spikeAt((n) => n - 1) });
+  it("no RSI threshold or overbought logic exists in the engine", () => {
+    const src = readFileSync("lib/analyzerEngine.ts", "utf8");
+    expect(src).not.toMatch(/overboughtRsi|OVERBOUGHT|rsiIsBreakoutSpike|rsiSustainedBars/);
+    expect(ENGINE_CONFIG).not.toHaveProperty("overboughtRsi");
+    expect(ENGINE_CONFIG).not.toHaveProperty("maxEntryDistanceAtr");
+  });
+  it("any RSI threshold passed in is ignored: verdict, reasons and plan are identical", () => {
+    const base = analyzeCandles({ candles: BREAKOUT, interval: "1h" });
+    expect(base.verdict).toBe("VALID_SETUP");
+    for (const overboughtRsi of [0, 1, 50, base.market!.rsi14! - 1, 100]) {
+      expect(analyzeCandles({ candles: BREAKOUT, interval: "1h", overboughtRsi } as never)).toEqual(base);
+    }
+  });
+  it("RSI is still computed for display", () => {
+    expect(analyzeCandles({ candles: BREAKOUT, interval: "1h" }).market!.rsi14).toBeGreaterThan(0);
+  });
+  const HOT = build(100, [[100, 10], [125, 12], [95, 12], [110, 12], [103, 12], [116, 14]], { volume: (i, n) => (i >= n - 2 ? 400 : 100) });
+  it("a volume breakout with RSI above the old 75 cut-off is VALID — RSI alone does not downgrade it", () => {
+    const r = analyzeCandles({ candles: HOT, interval: "1h" });
+    expect(r.market!.rsi14).toBeGreaterThan(75);
+    expect(r.verdict).toBe("VALID_SETUP");
+    expect(r.reasons).toEqual([]);
+    expect(r.plan).not.toBeNull();
+  });
+  it("ATR-only change: scaling all prices (and thus ATR) by a constant never changes verdict or reasons", () => {
+    for (const k of [0.001, 0.37, 1, 42, 5000]) {
+      const scaled = BREAKOUT.map((c) => ({ ...c, open: c.open * k, high: c.high * k, low: c.low * k, close: c.close * k }));
+      const a = analyzeCandles({ candles: scaled, interval: "1h" });
+      expect(a.verdict).toBe("VALID_SETUP");
+      expect(a.reasons).toEqual([]);
+    }
+  });
+  it("price several ATRs above the zone is not rejected by a standalone ATR distance gate", () => {
+    const r = analyzeCandles({ candles: HOT, interval: "1h" });
+    const m = r.market!;
+    expect((m.price - r.plan!.entry.low) / m.atr).toBeGreaterThan(1); // beyond the old 1-ATR gate
+    expect(r.reasons).not.toContain("PRICE_EXTENDED");
     expect(r.verdict).toBe("VALID_SETUP");
   });
-  it("pullback setups keep the strict RSI rule", () => {
-    const PULL: [number, number][] = [[100, 20], [120, 12], [110, 12], [135, 12], [122, 12], [122.2, 1], [122.4, 1], [122.6, 1], [122.8, 1]];
-    const candles = build(100, PULL);
-    const rsi = analyzeCandles({ candles, interval: "1h" }).market!.rsi14!;
-    const r = analyzeCandles({ candles, interval: "1h", overboughtRsi: rsi - 1 });
-    expect(r.reasons).toEqual(["OVERBOUGHT"]);
+  it("what still decides: volume, higher timeframe, risk limits stay enforced", () => {
+    expect(analyzeCandles({ candles: build(100, segs, { volume: () => 100 }), interval: "1h" }).reasons).toEqual(["BREAKOUT_NEEDS_VOLUME"]);
+    const down = build(200, [[150, 60], [160, 6], [140, 20], [150, 6], [120, 20], [130, 6], [100, 20]]);
+    expect(analyzeCandles({ candles: BREAKOUT, interval: "1h", higherCandles: down }).reasons).toEqual(["HTF_BEARISH"]);
   });
-  it("RSI already overbought BEFORE the breakout is not a spike", () => {
-    const candles = build(100, [[200, 80]], { volume: () => 100 });
-    const series = calcRSI(candles, 14);
-    expect(series[series.length - 1].value).toBeGreaterThan(75);
-    expect(rsiIsBreakoutSpike(candles, candles.length - 1, 75)).toBe(false);
-  });
-  it("sustained overbought after the breakout (3+ closes at/above the level) is not a spike", () => {
-    const base = build(100, segs, { volume: spikeAt((n) => n - 1) });
-    const series = calcRSI(base, 14);
-    const level = series[series.length - 1].value - 1;
-    // Fabricate the same RSI-level reading persisting: breakoutIndex far enough back that the run is >= 3.
-    const idx = base.length - 1;
-    expect(rsiIsBreakoutSpike(base, idx, level)).toBe(true);
-    const ext = build(100, [...segs, [113, 1], [114, 1], [115, 1]], { volume: spikeAt((n) => n - 4) });
-    const s2 = calcRSI(ext, 14);
-    const lvl = Math.min(...s2.slice(-3).map((p) => p.value)) - 0.5;
-    expect(rsiIsBreakoutSpike(ext, ext.length - 4, lvl)).toBe(false);
+  it("screenshot and live-chart paths share one engine entry point (analyzeCandles)", () => {
+    const shot = readFileSync("lib/analyzerEngineServer.ts", "utf8");
+    const chart = readFileSync("app/api/analyze-chart/route.ts", "utf8");
+    expect(shot).toContain("analyzeCandles");
+    expect(chart).toContain("analyzeCandles");
+    for (const f of [shot, chart]) expect(f).not.toMatch(/overboughtRsi|OVERBOUGHT|rsi14\s*[<>]/);
   });
 });
 

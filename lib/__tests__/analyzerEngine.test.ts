@@ -133,15 +133,16 @@ describe("WAIT FOR CONFIRMATION", () => {
     noExecutable(r);
   });
 
-  it("is demoted from VALID when RSI is overbought, and the plan is dropped", () => {
+  it("RSI alone can never demote a VALID setup (the old overboughtRsi option is ignored)", () => {
     const candles = build(100, PULLBACK);
     const valid = analyzeCandles({ candles, interval: "1h" });
     expect(valid.verdict).toBe("VALID_SETUP");
-    const rsi = valid.market!.rsi14!;
-    const r = analyzeCandles({ candles, interval: "1h", overboughtRsi: rsi - 1 });
-    expect(r.verdict).toBe("WAIT_FOR_CONFIRMATION");
-    expect(r.reasons).toEqual(["OVERBOUGHT"]);
-    noExecutable(r);
+    for (const overboughtRsi of [0, 1, valid.market!.rsi14! - 1, 99]) {
+      const r = analyzeCandles({ candles, interval: "1h", overboughtRsi } as never);
+      expect(r.verdict).toBe("VALID_SETUP");
+      expect(r.reasons).toEqual([]);
+      expect(r.plan).toEqual(valid.plan);
+    }
   });
 });
 
@@ -225,7 +226,8 @@ describe("validatePlan (rejects invalid plans with reason codes)", () => {
   it("ENTRY_NOT_IN_ZONE when the entry is not on a structural zone", () => {
     expect(validatePlan({ ...ok, entry: { low: 110, high: 111 } }, ctx)).toContain("ENTRY_NOT_IN_ZONE");
     expect(validatePlan(ok, { atr: 2, zone: null })).toContain("ENTRY_NOT_IN_ZONE");
-    expect(validatePlan({ ...ok, entry: { low: 100.5, high: 105 } }, ctx)).toContain("ENTRY_NOT_IN_ZONE");
+    // How far the entry's high edge sits above the zone is NOT an ATR-distance gate any more (risk limit covers it).
+    expect(validatePlan({ ...ok, entry: { low: 100.5, high: 105 } }, ctx)).not.toContain("ENTRY_NOT_IN_ZONE");
   });
   it("SL_NOT_BELOW_ZONE when the stop is at/above the entry or zone", () => {
     expect(validatePlan({ ...ok, stopLoss: 100.5 }, ctx)).toContain("SL_NOT_BELOW_ZONE");
@@ -393,6 +395,7 @@ describe("plan invariants hold across many generated series", () => {
     }
     console.log("property run outcome counts:", JSON.stringify(counts));
     expect(counts["VALID_SETUP"] ?? 0).toBeGreaterThanOrEqual(30);
-    expect(Object.keys(counts).length).toBeGreaterThanOrEqual(3); // several different verdict/reason paths were exercised
+    expect(Object.keys(counts).length).toBeGreaterThanOrEqual(2); // valid plans and risk/reward rejections were both exercised
+    expect(Object.keys(counts).join()).not.toMatch(/OVERBOUGHT|PRICE_EXTENDED/);
   });
 });

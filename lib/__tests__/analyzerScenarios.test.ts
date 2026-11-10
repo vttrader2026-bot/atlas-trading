@@ -67,11 +67,11 @@ describe("scenario matrix (synthetic candles)", () => {
     });
   }
 
-  it("strong bullish trend at the highs is NOT a long: no entry chasing, overbought is named", () => {
+  it("strong bullish trend at the highs: RSI/ATR never name or cause the verdict", () => {
     const r = run(SCENARIOS.strongBullTrend.segs);
     expect(r.market!.trend.direction).toBe("Bullish");
-    expect(r.verdict).toBe("WAIT_FOR_CONFIRMATION");
-    expect(r.reasons).toContain("OVERBOUGHT");
+    expect(r.reasons).not.toContain("OVERBOUGHT");
+    if (r.verdict !== "VALID_SETUP") expect(r.plan).toBeNull();
   });
 
   it("bullish pullback to support is VALID with a structural, ordered plan", () => {
@@ -185,11 +185,19 @@ describe("scenario matrix (synthetic candles)", () => {
       invariants(r);
     });
 
-    it("a bearish higher timeframe or overbought RSI still demotes a retest to WAIT (never a plan)", () => {
-      const r = analyzeCandles({ candles: build(100, RETEST_GOOD, { volume: breakoutVolume }), interval: "1h", overboughtRsi: 1 });
-      expect(r.verdict).toBe("WAIT_FOR_CONFIRMATION");
-      expect(r.plan).toBeNull();
-      expect(r.reasons).toContain("OVERBOUGHT");
+    it("RSI cannot demote a retest, but a bearish higher timeframe still does (never a plan)", () => {
+      const candles = build(100, RETEST_GOOD, { volume: breakoutVolume });
+      const base = analyzeCandles({ candles, interval: "1h" });
+      const r = analyzeCandles({ candles, interval: "1h", overboughtRsi: 1 } as never);
+      expect(r.verdict).toBe(base.verdict);
+      expect(r.reasons).not.toContain("OVERBOUGHT");
+      const down = build(200, [[150, 60], [160, 6], [140, 20], [150, 6], [120, 20], [130, 6], [100, 20]]);
+      const htf = analyzeCandles({ candles, interval: "1h", higherCandles: down });
+      if (base.verdict === "VALID_SETUP") {
+        expect(htf.verdict).toBe("WAIT_FOR_CONFIRMATION");
+        expect(htf.plan).toBeNull();
+        expect(htf.reasons).toContain("HTF_BEARISH");
+      }
     });
   });
 

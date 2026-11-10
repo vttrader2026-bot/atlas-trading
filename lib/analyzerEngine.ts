@@ -46,7 +46,6 @@ export const ENGINE_CONFIG = {
   /** Stop-loss sits at least this many ATRs below the LOW edge of the entry zone. */
   slAtrBuffer: 0.5,
   /** Price may be at most this many ATRs above the structural zone to count as "at the zone". */
-  maxEntryDistanceAtr: 1,
   /** A target must be at least this many ATRs above the worst entry. */
   minTargetGapAtr: 0.5,
   /** Targets closer together than this (in ATRs) are merged. */
@@ -57,7 +56,6 @@ export const ENGINE_CONFIG = {
   minRrTp1: 1.2,
   /** Risk (worst entry to stop) may not exceed this many ATRs. */
   maxRiskAtr: 6,
-  overboughtRsi: 75,
   /** Breakout-and-retest: the volume-confirmed breakout bar must be within this many closed candles. */
   retestMaxBars: 40,
   /** ...and the pullback that touched the broken level within this many candles of the last close. */
@@ -68,8 +66,6 @@ export const ENGINE_CONFIG = {
   breakoutVolumeMult: BREAKOUT_VOLUME_MULT,
   /** A volume-confirmed breakout candle stays remembered for this many closed candles (itself included). */
   breakoutConfirmWindow: BREAKOUT_CONFIRM_WINDOW,
-  /** RSI at/above the overbought level for this many closed candles in a row is sustained, not a brief breakout spike. */
-  rsiSustainedBars: 3,
 } as const;
 
 // ───────────────────────── types ─────────────────────────
@@ -94,7 +90,6 @@ export type ReasonCode =
   | "AWAIT_BULLISH_CLOSE"
   | "AWAIT_BREAKOUT_CLOSE"
   | "BREAKOUT_NEEDS_VOLUME"
-  | "OVERBOUGHT"
   // plan validation (rejections)
   | "NO_TARGET_ROOM"
   | "ENTRY_INVERTED"
@@ -439,14 +434,9 @@ export function validatePlan(
 
   if (!(entry.low > 0) || !(entry.high >= entry.low)) out.add("ENTRY_INVERTED");
 
-  // Entry must sit on the structural zone: its low edge inside the zone and
-  // its high edge no further than maxEntryDistanceAtr above the zone.
-  if (
-    !zone ||
-    entry.low < zone.low - eps ||
-    entry.low > zone.high + eps ||
-    entry.high > zone.high + ENGINE_CONFIG.maxEntryDistanceAtr * atr + eps
-  ) {
+  // Entry must sit on the structural zone: its low edge inside the zone. How far price has run above the zone is
+  // judged by the risk limit below (RISK_TOO_WIDE), not by a standalone ATR distance gate.
+  if (!zone || entry.low < zone.low - eps || entry.low > zone.high + eps) {
     out.add("ENTRY_NOT_IN_ZONE");
   }
 
@@ -575,7 +565,7 @@ export function findRetest(r: Reading): Retest | null {
   return null;
 }
 
-function evaluate(r: Reading, overboughtRsi: number): Evaluation {
+function evaluate(r: Reading): Evaluation {
   const { market: m, closed, zones } = r;
   const s = m.structure;
   const last = closed[closed.length - 1];
@@ -585,9 +575,9 @@ function evaluate(r: Reading, overboughtRsi: number): Evaluation {
 
   // ── Retest of a broken resistance that is now acting as support.
   const rt = findRetest(r);
-  if (rt && (m.price - rt.zone.high) / m.atr <= ENGINE_CONFIG.maxEntryDistanceAtr) {
+  if (rt) {
     if (!rt.confirmed) return wait(["AWAIT_BULLISH_CLOSE"], "retest", { role: "retest", price: rt.zone.high });
-    return finish(assemble("retest", rt.zone.mid, m.price, Math.min(rt.zone.low, rt.retestLow), rt.zone, r), "retest", m, overboughtRsi, { closed, breakoutIndex: rt.breakoutIndex });
+    return finish(assemble("retest", rt.zone.mid, m.price, Math.min(rt.zone.low, rt.retestLow), rt.zone, r), "retest");
   }
   if (s.state === "Unclear" || s.lastSwingHigh === null || s.lastSwingLow === null) return noClean(["STRUCTURE_UNCLEAR"]);
 
@@ -609,10 +599,7 @@ function evaluate(r: Reading, overboughtRsi: number): Evaluation {
     if (!bo) {
       return wait(["BREAKOUT_NEEDS_VOLUME"], "breakout", { role: "breakout_close", price: zone.high });
     }
-    if ((m.price - zone.high) / m.atr > ENGINE_CONFIG.maxEntryDistanceAtr) {
-      return wait(["PRICE_EXTENDED"], "breakout", { role: "retest", price: zone.high });
-    }
-    return finish(assemble("breakout", zone.high, m.price, zone.low, zone, r), "breakout", m, overboughtRsi, { closed, breakoutIndex: bo.index });
+    return finish(assemble("breakout", zone.high, m.price, zone.low, zone, r), "breakout");
   }
 
   // ── Pullback: needs a confirmed bullish structure (HH + HL).
@@ -621,9 +608,6 @@ function evaluate(r: Reading, overboughtRsi: number): Evaluation {
   if (!zone) return noClean(["NO_SUPPORT_ZONE"], "pullback");
   if (m.price < zone.low) return noClean(["SUPPORT_BROKEN"], "pullback");
 
-  if ((m.price - zone.high) / m.atr > ENGINE_CONFIG.maxEntryDistanceAtr) {
-    return wait(["PRICE_EXTENDED"], "pullback", { role: "pullback_to_support", price: zone.high });
-  }
   // A swing low is only confirmed `swingLookback` candles later, so the candle
   // that tested the zone sits just outside a 3-candle window.
   const recent = closed.slice(-(ENGINE_CONFIG.swingLookback + 2));
@@ -631,40 +615,11 @@ function evaluate(r: Reading, overboughtRsi: number): Evaluation {
   if (!tested) return wait(["PRICE_EXTENDED"], "pullback", { role: "pullback_to_support", price: zone.high });
   const confirmed = last.close > last.open && last.close >= zone.mid;
   if (!confirmed) return wait(["AWAIT_BULLISH_CLOSE"], "pullback", { role: "hold_support", price: zone.low });
-  return finish(assemble("pullback", zone.mid, m.price, zone.low, zone, r), "pullback", m, overboughtRsi);
+  return finish(assemble("pullback", zone.mid, m.price, zone.low, zone, r), "pullback");
 }
 
-/**
- * A volume breakout naturally pushes RSI up. It is a brief spike (not an overbought market) when RSI was below the
- * level before the breakout candle and has been at/above it for fewer than `rsiSustainedBars` closed candles in a row.
- * Pre-existing or sustained overbought readings still count as overbought. The threshold itself is unchanged.
- */
-export function rsiIsBreakoutSpike(closed: Candle[], breakoutIndex: number, level: number): boolean {
-  const series = calcRSI(closed, 14);
-  const at = (i: number) => (i >= 14 ? series[i - 14]?.value : undefined);
-  const before = at(breakoutIndex - 1);
-  if (before === undefined || !(before < level)) return false;
-  let run = 0;
-  for (let i = closed.length - 1; i >= breakoutIndex; i--) {
-    const v = at(i);
-    if (v === undefined || !(v >= level)) break;
-    run++;
-  }
-  return run < ENGINE_CONFIG.rsiSustainedBars;
-}
-
-function finish(
-  built: { plan: TradePlan } | { reasons: ReasonCode[] },
-  candidate: SetupType,
-  m: MarketReading,
-  overboughtRsi: number,
-  /** Breakout context (breakout / retest setups): lets RSI be judged against the breakout, not in isolation. */
-  ctx?: { closed: Candle[]; breakoutIndex: number }
-): Evaluation {
+function finish(built: { plan: TradePlan } | { reasons: ReasonCode[] }, candidate: SetupType): Evaluation {
   if ("reasons" in built) return noClean(built.reasons, candidate);
-  if (m.rsi14 !== null && m.rsi14 >= overboughtRsi && !(ctx && rsiIsBreakoutSpike(ctx.closed, ctx.breakoutIndex, overboughtRsi))) {
-    return wait(["OVERBOUGHT"], candidate, { role: "pullback_to_support", price: m.support[0]?.high ?? m.ema20 ?? m.price });
-  }
   return { verdict: "VALID_SETUP", reasons: [], candidate, watch: null, plan: built.plan };
 }
 
@@ -675,8 +630,6 @@ export function analyzeCandles(input: {
   interval: Interval;
   /** Candles of the next higher timeframe, if available (context only). */
   higherCandles?: Candle[] | null;
-  /** Override the RSI level above which an otherwise valid setup is demoted to WAIT. */
-  overboughtRsi?: number;
   /** True when the candles came from a stale fallback cache (Binance unreachable). */
   stale?: boolean;
   /** Current time (ms). When given, a last closed candle older than 2 intervals is rejected as stale. */
@@ -707,7 +660,7 @@ export function analyzeCandles(input: {
     }
   }
 
-  let ev = evaluate(reading, input.overboughtRsi ?? ENGINE_CONFIG.overboughtRsi);
+  let ev = evaluate(reading);
   // Higher-timeframe downtrend: the setup may look fine here but the bigger
   // picture says wait. Demote — and drop the plan entirely.
   if (ev.verdict === "VALID_SETUP" && higher?.direction === "Bearish") {
@@ -715,17 +668,6 @@ export function analyzeCandles(input: {
       role: "pullback_to_support",
       price: reading.market.support[0]?.high ?? reading.market.price,
     });
-  }
-
-  // An overbought market is worth flagging on every WAIT, not only on a demoted valid setup.
-  const overbought = input.overboughtRsi ?? ENGINE_CONFIG.overboughtRsi;
-  if (
-    ev.verdict === "WAIT_FOR_CONFIRMATION" &&
-    reading.market.rsi14 !== null &&
-    reading.market.rsi14 >= overbought &&
-    !ev.reasons.includes("OVERBOUGHT")
-  ) {
-    ev = { ...ev, reasons: [...ev.reasons, "OVERBOUGHT"] };
   }
 
   const last = closed[closed.length - 1];
