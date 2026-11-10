@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
 import { loadTrades, type Trade } from "@/lib/journal";
 import { loadDraft } from "@/lib/tradePlan";
 import { loadHistory } from "@/lib/analysisHistory";
 import { computeWorkflowProgress } from "@/lib/workflowProgress";
+import { JOURNAL_UPDATED_EVENT } from "@/lib/journalSync";
+import { DRAFT_EVENT } from "@/lib/signalSync";
 
 const ic = "w-7 h-7";
 const svg = (children: ReactNode) => (
@@ -45,22 +47,34 @@ export default function WorkflowPage() {
   const [watch, setWatch] = useState<number | null>(null);
 
   // ACCESS-v1: personal data is read only for an authenticated user; visitors never load it.
+  const readLocal = useCallback(() => {
+    if (isSignedIn) {
+      setTrades(loadTrades());
+      setAnalyses(loadHistory().length);
+      setHasDraft(loadDraft() !== null);
+    } else {
+      setTrades([]);
+      setAnalyses(0);
+      setHasDraft(false);
+      setWatch(null);
+    }
+    setMounted(true);
+  }, [isSignedIn]);
+
+  // Read once on load, then again whenever the Journal sync, a signal sync or another tab changes the saved data.
   useEffect(() => {
     if (!isLoaded) return;
-    void Promise.resolve().then(() => {
-      if (isSignedIn) {
-        setTrades(loadTrades());
-        setAnalyses(loadHistory().length);
-        setHasDraft(loadDraft() !== null);
-      } else {
-        setTrades([]);
-        setAnalyses(0);
-        setHasDraft(false);
-        setWatch(null);
-      }
-      setMounted(true);
-    });
-  }, [isLoaded, isSignedIn]);
+    void Promise.resolve().then(readLocal);
+    if (!isSignedIn) return;
+    window.addEventListener(JOURNAL_UPDATED_EVENT, readLocal);
+    window.addEventListener(DRAFT_EVENT, readLocal);
+    window.addEventListener("storage", readLocal);
+    return () => {
+      window.removeEventListener(JOURNAL_UPDATED_EVENT, readLocal);
+      window.removeEventListener(DRAFT_EVENT, readLocal);
+      window.removeEventListener("storage", readLocal);
+    };
+  }, [isLoaded, isSignedIn, readLocal]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
@@ -103,7 +117,7 @@ export default function WorkflowPage() {
       active: p.analyses > 0,
       href: "/analyzer",
       tools: [
-        { href: "/analyzer", label: t("workflow.tools.liveChart") },
+        { href: "/radar", label: t("workflow.tools.liveChart") },
         { href: "/analyzer", label: t("nav.analyzer") },
       ],
       status: p.analyses > 0 ? n(t("workflow.status.analyses"), p.analyses) : t("workflow.status.analysesNone"),

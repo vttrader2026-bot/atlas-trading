@@ -17,6 +17,7 @@ import AnalysisResult from "@/components/analyzer/AnalysisResult";
 import type { AnalysisData } from "@/components/analyzer/types";
 import AnalysisChart, { DEFAULT_TOGGLES, type IndicatorToggles } from "@/components/charts/AnalysisChart";
 import SmartActions from "@/components/SmartActions";
+import { recordAnalysis } from "@/lib/analysisHistory";
 import { addDrawing, removeDrawing, type Drawing, type DrawingDraft, type Tool } from "@/lib/chartDrawings";
 
 type Analysis = AnalysisData;
@@ -131,6 +132,7 @@ export default function AnalysisPanel({
         setAnalyzeError(data?.error || t("chart.analyzeError"));
         return;
       }
+      recordAnalysis(data); // Workflow "Analyze" progress; saves nothing for a malformed response
       setAnalyzedAt(Date.now());
       setAnalysis(data as Analysis);
     } catch {

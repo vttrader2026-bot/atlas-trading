@@ -10,6 +10,7 @@ import { getRemainingUses, recordUse, DAILY_ANALYZE_LIMIT } from "@/lib/usageLim
 import { useAuth } from "@clerk/nextjs";
 import AnalysisResult from "@/components/analyzer/AnalysisResult";
 import type { AnalysisData } from "@/components/analyzer/types";
+import { recordAnalysis } from "@/lib/analysisHistory";
 
 type Analysis = AnalysisData;
 
@@ -130,6 +131,7 @@ function AnalyzerPageInner() {
           setRemaining(data._usage.remaining);
           if (typeof data._usage.limit === "number") setLimit(data._usage.limit);
         }
+        recordAnalysis(data); // Workflow "Analyze" progress; failed analyses never reach this branch
         setAnalyzedAt(Date.now());
         setResult(data);
       }
