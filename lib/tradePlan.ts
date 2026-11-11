@@ -124,9 +124,14 @@ export function normalizeDraft(raw: unknown): TradePlanDraft {
   return d;
 }
 
+/**
+ * Hand a plan to the Trade Plan page (Analyzer, Account, signal sync). Writes the active-draft key and flags it as
+ * incoming: the Trade Plan page imports it as its own draft and never overwrites another saved draft with it.
+ */
 export function saveDraft(draft: TradePlanDraft) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+  window.localStorage.setItem("atlas-trading.tradeplan.incoming", "1");
 }
 
 export function loadDraft(): TradePlanDraft | null {

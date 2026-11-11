@@ -1,18 +1,20 @@
 "use client";
 
 // ATLAS-TRADEPLAN-v2
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
 import { normalizeSymbol, baseOf } from "@/lib/watchlist";
-import { TradePlanDraft, TIMEFRAMES, emptyDraft, loadDraft, saveDraft, clearDraft, missingTargets, normalizeTimeframe, type SizeMode } from "@/lib/tradePlan";
+import { TradePlanDraft, TIMEFRAMES, emptyDraft, missingTargets, normalizeTimeframe, type SizeMode } from "@/lib/tradePlan";
+import { activeDraft, createDraft, deleteDraft, openDraft, reconcile, renameDraft, resetActive, saveActive, writeStore, type DraftStore, type OpResult } from "@/lib/tradeDrafts";
+import DraftsPanel, { type DraftsError } from "@/components/tradeplan/DraftsPanel";
 import { loadTrades, saveTrades } from "@/lib/journal";
 import { computePlan } from "@/lib/planCalc";
 import { DEFAULT_BALANCE, DEFAULT_RISK, planToTrade } from "@/lib/planBridge";
 import { RISK_PRESETS, parseInput, type RiskError } from "@/lib/riskCalc";
 import { pct, price, qty, todayLocal, usd } from "@/components/journal/format";
-import { applyOfficialLevels, signalChanges, signalToDraft } from "@/lib/signalLink";
+import { applyOfficialLevels, signalChanges, signalToDraft, syncDraft } from "@/lib/signalLink";
 import { fetchFeed, syncLocalRecords } from "@/lib/signalSync";
 import { confirmPlanIfElite, outcomeText } from "@/lib/eliteConfirmClient";
 import { ExitStrategyPicker } from "@/components/journal/ExitStrategyPicker";
@@ -32,7 +34,7 @@ function Num({ children, cls = "" }: { children: React.ReactNode; cls?: string }
 
 export default function TradePlanPage() {
   const { t } = useLanguage();
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const [draft, setDraft] = useState<TradePlanDraft>(emptyDraft);
   const [loaded, setLoaded] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -45,17 +47,41 @@ export default function TradePlanPage() {
   const [confirmPrice, setConfirmPrice] = useState("");
   const [showTpErrors, setShowTpErrors] = useState(false);
   const [confirmDate, setConfirmDate] = useState("");
-  // Signal import: a pending replacement of an in-progress draft, and any import message.
-  const [incoming, setIncoming] = useState<TradePlanDraft | null>(null);
   const [signalMsg, setSignalMsg] = useState<string | null>(null);
+  // Saved drafts (per signed-in user, this browser). The ref always holds the latest collection so async work never writes a stale one.
+  const [store, setStore] = useState<DraftStore | null>(null);
+  const [draftsError, setDraftsError] = useState<DraftsError>(null);
+  const storeRef = useRef<DraftStore | null>(null);
+  const ownerRef = useRef<string | null>(null);
+  const newId = () => crypto.randomUUID();
 
-  // localStorage is client-only; loading after mount avoids a hydration mismatch.
-  // Also handles /trade-plan?signal=<Signal ID> (from the Trade Feed) and keeps a linked signal's
-  // official data fresh. Only the official `signal` link is ever refreshed, never the user's numbers.
+  /** Applies a draft operation: updates state and persists the collection (plus the active-draft key other pages read). */
+  function applyOp(r: OpResult): boolean {
+    if (r.error === "missing") return false;
+    if (r.error === "limit") {
+      setDraftsError("limit");
+      return false;
+    }
+    storeRef.current = r.store;
+    setStore(r.store);
+    if (ownerRef.current && !writeStore(window.localStorage, ownerRef.current, r.store)) setDraftsError("save");
+    return true;
+  }
+
+  // localStorage is client-only; loading after mount avoids a hydration mismatch. Drafts are keyed by the signed-in
+  // user, so this waits for Clerk. Also handles /trade-plan?signal=<Signal ID> (from the Trade Feed) and keeps a linked
+  // signal's official data fresh. Only the official `signal` link is ever refreshed, never the user's numbers.
   useEffect(() => {
-    const stored = loadDraft();
+    if (!isLoaded) return;
+    const owner = userId ?? "guest";
+    ownerRef.current = owner;
+    const rec = reconcile(window.localStorage, owner, Date.now(), newId);
+    storeRef.current = rec.store;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (stored) setDraft(stored);
+    setStore(rec.store);
+    setDraftsError(rec.corrupt || rec.skipped > 0 ? "read" : rec.error === "limit" ? "limit" : null);
+    const stored = activeDraft(rec.store)?.plan ?? null;
+    setDraft(stored ?? emptyDraft);
     setConfirmDate(todayLocal());
     setLoaded(true);
     const params = new URLSearchParams(window.location.search);
@@ -70,13 +96,14 @@ export default function TradePlanPage() {
       if (cur.pair !== pair) {
         if (hasWork || cur.signal) setSignalMsg(t("tradePlan.pairKept").replace("{coin}", pair));
         else {
-          const next = { ...cur, pair, id: cur.id ?? crypto.randomUUID(), status: cur.status ?? "draft" };
+          const next = { ...cur, pair, id: cur.id ?? newId(), status: cur.status ?? "draft" };
           setDraft(next);
-          saveDraft(next);
+          applyOp(saveActive(storeRef.current!, next, { now: Date.now(), makeId: newId }));
         }
       }
     }
-    if (!sid && !stored?.signal) return;
+    const anyLinked = rec.store.drafts.some((d) => d.plan.signal);
+    if (!sid && !anyLinked) return;
     let off = false;
     (async () => {
       if (sid) setSignalMsg(t("tradePlan.signalLoading"));
@@ -86,29 +113,43 @@ export default function TradePlanPage() {
         setSignalMsg(sid ? t(feed.reason === "auth" ? "tradePlan.signalSignIn" : "journal.signalLoadErr") : null);
         return;
       }
-      syncLocalRecords(feed.trades);
-      const fresh = loadDraft();
-      if (fresh) setDraft(fresh);
+      syncLocalRecords(feed.trades); // Journal trades (and the active-draft key, merged back just below)
+      const merged = reconcile(window.localStorage, owner, Date.now(), newId);
+      let cur = merged.store;
+      // Refresh the official signal link of EVERY linked draft, not only the open one.
+      cur = {
+        ...cur,
+        drafts: cur.drafts.map((d) => {
+          const next = d.plan.signal ? syncDraft(d.plan, feed.trades) : null;
+          return next ? { ...d, plan: next } : d;
+        }),
+      };
+      applyOp({ store: cur });
+      const open = activeDraft(cur);
+      if (open) setDraft(open.plan);
       if (!sid) return;
       window.history.replaceState(null, "", window.location.pathname);
       const sig = feed.trades.find((x) => x.id === sid);
       if (!sig) return setSignalMsg(t("tradePlan.signalNotFound"));
-      if (fresh?.signalId === sid) return setSignalMsg(null); // already planning this signal: keep the user's draft
-      const r = signalToDraft(sig, { id: crypto.randomUUID() });
-      if (!r.ok) return setSignalMsg(t("tradePlan.signalShort"));
-      const hasWork = !!fresh && [fresh.pair, fresh.entry, fresh.invalidation, fresh.tp1, fresh.entryZone, fresh.reasoning].some((v) => v.trim() !== "");
-      setSignalMsg(null);
-      if (hasWork) setIncoming(r.draft);
-      else {
-        setDraft(r.draft);
-        saveDraft(r.draft);
+      // Already planning this signal in one of the drafts: open that one instead of creating a duplicate.
+      const existing = cur.drafts.find((d) => d.plan.signalId === sid || d.plan.signal?.id === sid);
+      if (existing) {
+        setSignalMsg(null);
+        if (applyOp(openDraft(cur, existing.id))) setDraft(existing.plan);
+        return;
       }
+      const r = signalToDraft(sig, { id: newId() });
+      if (!r.ok) return setSignalMsg(t("tradePlan.signalShort"));
+      setSignalMsg(null);
+      // A new signal becomes its own draft; nothing already saved is replaced.
+      const created = createDraft(cur, { plan: r.draft, now: Date.now(), makeId: newId });
+      if (applyOp(created)) setDraft(activeDraft(created.store)!.plan);
     })();
     return () => {
       off = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isLoaded, userId]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -118,11 +159,41 @@ export default function TradePlanPage() {
   }, [loaded, draft.journalId]);
 
   function commit(next: TradePlanDraft) {
-    setDraft(next);
-    saveDraft(next);
+    if (!loaded || !storeRef.current) return; // drafts are still loading: nothing to save into yet
+    const withId = next.id ? next : { ...next, id: newId() };
+    setDraft(withId);
+    applyOp(saveActive(storeRef.current, withId, { now: Date.now(), makeId: newId }));
+  }
+
+  // ── Drafts: create / open / rename / delete. Each only ever touches the one draft it names. ──
+  function switchTo(plan: TradePlanDraft) {
+    setDraft(plan);
+    setSendMsg(null);
+    setConfirmPrice("");
+    setShowTpErrors(false);
+  }
+  function newDraft() {
+    if (!storeRef.current) return;
+    const r = createDraft(storeRef.current, { now: Date.now(), makeId: newId });
+    if (applyOp(r)) switchTo(activeDraft(r.store)!.plan);
+  }
+  function openSaved(id: string) {
+    if (!storeRef.current) return;
+    const r = openDraft(storeRef.current, id);
+    if (applyOp(r)) switchTo(activeDraft(r.store)!.plan);
+  }
+  function renameSaved(id: string, name: string) {
+    if (storeRef.current) applyOp(renameDraft(storeRef.current, id, name, Date.now()));
+  }
+  function removeSaved(id: string) {
+    if (!storeRef.current) return;
+    const wasOpen = storeRef.current.activeId === id;
+    const r = deleteDraft(storeRef.current, id);
+    if (!applyOp(r)) return;
+    if (wasOpen) switchTo(activeDraft(r.store)?.plan ?? emptyDraft); // deleting another draft leaves the open one as it is
   }
   function update<K extends keyof TradePlanDraft>(key: K, value: TradePlanDraft[K]) {
-    commit({ ...draft, [key]: value, id: draft.id ?? crypto.randomUUID(), status: draft.status ?? "draft" });
+    commit({ ...draft, [key]: value, id: draft.id ?? newId(), status: draft.status ?? "draft" });
   }
 
   const balance = draft.balance ?? DEFAULT_BALANCE;
@@ -170,22 +241,18 @@ export default function TradePlanPage() {
     setSendMsg(t("tradePlan.sendOk"));
   }
 
-  function replaceWithSignal() {
-    if (!incoming) return;
-    setDraft(incoming);
-    saveDraft(incoming);
-    setIncoming(null);
-    setSendMsg(null);
-  }
   function useOfficial() {
     commit(applyOfficialLevels(draft));
   }
 
   function clearPlan() {
-    setDraft(emptyDraft);
-    clearDraft();
-    setSendMsg(null);
-    setConfirmPrice("");
+    // Empties the open draft only (it keeps its name); other drafts are untouched.
+    if (!storeRef.current) return;
+    const r = resetActive(storeRef.current, { now: Date.now(), makeId: newId });
+    if (applyOp(r)) switchTo(activeDraft(r.store)?.plan ?? emptyDraft);
+    else {
+      setDraft(emptyDraft);
+    }
   }
 
   async function saveToAccount() {
@@ -259,17 +326,18 @@ export default function TradePlanPage() {
       <p className="text-text-muted text-sm mt-1 max-w-xl">{t("tradePlan.subtitle")}</p>
 
       {signalMsg && <p className="mt-4 text-sm text-text-muted" role="status">{signalMsg}</p>}
-      {incoming && (
-        <div className="mt-4 card card-accent p-4" role="alertdialog" aria-label={t("tradePlan.replaceTitle")}>
-          <div className="font-semibold">{t("tradePlan.replaceTitle")}</div>
-          <p className="mt-1 text-sm text-text-muted">{t("tradePlan.replaceBody")} <Num>{incoming.pair}</Num></p>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <button type="button" onClick={replaceWithSignal} className="btn-primary">{t("tradePlan.replace")}</button>
-            <button type="button" onClick={() => setIncoming(null)} className="btn-secondary">{t("tradePlan.keepCurrent")}</button>
-          </div>
-        </div>
-      )}
+      <DraftsPanel
+        store={store}
+        loading={!loaded}
+        error={draftsError}
+        onNew={newDraft}
+        onOpen={openSaved}
+        onRename={renameSaved}
+        onDelete={removeSaved}
+        onDismissError={() => setDraftsError(null)}
+      />
 
+      <div className={loaded ? undefined : "pointer-events-none opacity-60"} aria-busy={!loaded}>
       {draft.signal && (
         <section className="mt-6 card p-4 sm:p-5" aria-label={t("tradePlan.fromSignal")}>
           <div className="flex flex-wrap items-center gap-2">
@@ -501,6 +569,7 @@ export default function TradePlanPage() {
 
       <p className="mt-6 text-xs text-text-muted leading-relaxed max-w-xl">{t("tradePlan.disclaimer")}</p>
       <p className="mt-2 text-xs text-text-muted leading-relaxed max-w-xl">{t("risk.disclaimer")}</p>
+      </div>
     </main>
   );
 }

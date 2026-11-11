@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { InvestorDoc, Purchase, Sale, CashEntry, purchaseCost, saleProceeds, r8 } from "@/lib/investor/model";
+import { InvestorDoc, Purchase, Sale, purchaseCost, saleProceeds, r8, sortCashNewestFirst } from "@/lib/investor/model";
 import { CoinLogo } from "@/components/market/MarketBits";
 import { useLanguage } from "@/lib/i18n";
 import TradeForm, { type TradeInit } from "./TradeForm";
@@ -21,7 +21,7 @@ function CashForm({ onCancel, run }: { onCancel: () => void; run: Run }) {
     e.preventDefault();
     const a = parseNum(amount);
     if (!(a > 0)) return setErr(true);
-    const done = await run((d) => ({ ...d, cash: [...d.cash, { id: newId(), date, type, amount: a, ...(note.trim() ? { note: note.trim() } : {}) }] }));
+    const done = await run((d) => ({ ...d, cash: [...d.cash, { id: newId(), date, type, amount: a, createdAt: Date.now(), ...(note.trim() ? { note: note.trim() } : {}) }] }));
     if (done) onCancel();
   };
   return (
@@ -127,7 +127,7 @@ export default function Ledger({ doc, run, draft, clearDraft, livePrice }: { doc
         <h2 className="text-label text-text-muted">{t("investor.cashLedger")}</h2>
         {doc.cash.length === 0 ? <p className="mt-2 text-sm text-text-muted">{t("investor.noRecords")}</p> : (
           <ul className="mt-1 divide-y divide-line">
-            {sorted<CashEntry>(doc.cash).map((c) => (
+            {sortCashNewestFirst(doc.cash).map((c) => (
               <Row key={c.id} onDelete={() => run((d) => ({ ...d, cash: d.cash.filter((x) => x.id !== c.id) }))}>
                 <span dir="ltr" className="font-data text-xs text-text-muted w-24">{c.date}</span>
                 <span className="w-28">{c.type === "deposit" ? t("investor.deposit") : t("investor.withdrawal")}</span>

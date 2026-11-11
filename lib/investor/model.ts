@@ -7,7 +7,34 @@ export type Quote = "USDT" | "USDC";
 export type Purchase = { id: string; asset: string; date: string; qty: number; price: number; fee: number; quote?: Quote; note?: string; planId?: string; slot?: string };
 export type Sale = { id: string; asset: string; date: string; qty: number; price: number; fee: number; quote?: Quote; note?: string };
 /** Cash ledger holds ONLY deposits and withdrawals. Purchases and sales move cash through their own records, never through here. */
-export type CashEntry = { id: string; date: string; type: "deposit" | "withdrawal"; amount: number; note?: string };
+export type CashEntry = {
+  id: string;
+  date: string;
+  type: "deposit" | "withdrawal";
+  amount: number;
+  note?: string;
+  /** When the entry was recorded (ms). Breaks ties between entries on the same date; absent on entries saved by older versions. */
+  createdAt?: number;
+};
+
+/**
+ * Cash ledger display order: newest first. The transaction date decides; entries on the same date are ordered by when
+ * they were recorded (createdAt), then by position in the saved list (later = newer), then by id, so the order is the
+ * same on every render and never depends on the sort implementation. Pure: the input is not modified.
+ */
+export function sortCashNewestFirst(entries: readonly CashEntry[]): CashEntry[] {
+  return entries
+    .map((e, i) => ({ e, i }))
+    .sort((a, b) => {
+      if (a.e.date !== b.e.date) return a.e.date < b.e.date ? 1 : -1;
+      const ta = a.e.createdAt ?? -Infinity;
+      const tb = b.e.createdAt ?? -Infinity;
+      if (ta !== tb) return tb > ta ? 1 : -1;
+      if (a.i !== b.i) return b.i - a.i;
+      return a.e.id < b.e.id ? 1 : a.e.id > b.e.id ? -1 : 0;
+    })
+    .map((x) => x.e);
+}
 
 export type Frequency = "weekly" | "biweekly" | "monthly";
 export type DcaPlan = {
@@ -110,6 +137,10 @@ export function parseDoc(raw: unknown, now = Date.now()): ParseResult {
     const cid = id(x.id), amount = num(x.amount, { minExclusive: true });
     if (!cid || (x.type !== "deposit" && x.type !== "withdrawal") || !validDate(x.date, now) || amount === null) return fail("Invalid cash entry");
     const c: CashEntry = { id: cid, date: x.date, type: x.type, amount };
+    if (x.createdAt !== undefined) {
+      if (typeof x.createdAt !== "number" || !Number.isFinite(x.createdAt) || x.createdAt <= 0) return fail("Invalid cash entry");
+      c.createdAt = x.createdAt;
+    }
     const note = str(x.note, LIMITS.note); if (note) c.note = note;
     cash.push(c);
   }
