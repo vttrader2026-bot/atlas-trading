@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Trade, feesOf, grossPnl, investedOf, plannedLoss, pnlPct, realizedPnl, roiPct, statusOf, unrealizedPnl } from "@/lib/journal";
 import { signalChanges } from "@/lib/signalLink";
 import ExitsPanel from "./ExitsPanel";
+import BinanceSpotLink from "@/components/BinanceSpotLink";
 import { price, qty, signedPct, signedUsd, tone, usd } from "./format";
 
 function Num({ children, cls = "" }: { children: React.ReactNode; cls?: string }) {
@@ -61,6 +62,7 @@ export default function TradeDetails({
               {trade.side === "Short" && <span className="tag">{t("journal.legacyShort")}</span>}
               {trade.source === "plan" && <span className="tag">{t("journal.fromPlan")}</span>}
               {trade.source === "signal" && <span className="tag">{t("journal.fromSignal")}</span>}
+              {trade.manualFill && <span className="tag">{t("journal.manualFill")}</span>}
             </div>
           </div>
           <button type="button" onClick={onClose} className="btn-secondary">{t("journal.close")}</button>
@@ -167,6 +169,7 @@ export default function TradeDetails({
             {!closed && !trade.exitStrategy && <button type="button" onClick={() => onEdit(false)} className="btn-secondary">{t("journal.edit")}</button>}
             <button type="button" onClick={() => setConfirming(true)} className="btn-secondary hover:text-bear">{t("journal.delete")}</button>
             {trade.planId && <Link href="/trade-plan" className="btn-secondary">{t("journal.openPlan")}</Link>}
+            {!closed && <BinanceSpotLink pair={trade.pair} hideWhenUnavailable />}
           </div>
         )}
       </div>

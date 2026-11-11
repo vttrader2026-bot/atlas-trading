@@ -47,6 +47,8 @@ export type Trade = {
   /** Trade Plan this trade came from. */
   planId?: string;
   source?: "manual" | "plan" | "signal";
+  /** BINANCE-HANDOFF-v1: entered through the manual-fill path. User-reported, not verified by Binance, no official signal link. */
+  manualFill?: boolean;
   /** Atlas signal this trade is linked to (Signal ID). Official data lives in `signal`, never in the personal fields. */
   signalId?: string;
   signal?: SignalLink;

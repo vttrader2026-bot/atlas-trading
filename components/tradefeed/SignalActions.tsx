@@ -11,6 +11,7 @@ import { useLanguage } from "@/lib/i18n";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 import { isLiveSignal, isLongSignal, watchUpdates, type Watched } from "@/lib/signalLink";
 import { ConfirmTradeDialog } from "@/components/tradefeed/ConfirmTradeDialog";
+import BinanceSpotLink from "@/components/BinanceSpotLink";
 
 const pill = "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap";
 const pillIdle = "border-line text-text-muted hover:text-text hover:border-text-muted";
@@ -68,6 +69,7 @@ export function SignalActions({
             </button>
           )
         )}
+        {long && live && <BinanceSpotLink pair={signal.pair} className={`${pill} ${pillIdle}`} hideWhenUnavailable />}
         {(live || watched) && (
           <button
             type="button"

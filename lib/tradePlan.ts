@@ -58,6 +58,11 @@ export type TradePlanDraft = {
   /** Set when the user confirms they actually entered the trade. */
   enteredAt?: string;
   actualEntry?: string;
+  /** BINANCE-HANDOFF-v1: what the member really got on Binance (typed by them, never read from Binance). Both optional. */
+  actualQty?: string;
+  actualFee?: string;
+  /** Recorded through the manual-fill path: user-reported, outside the official signal zone, no signal link in the Journal. */
+  manualFill?: boolean;
   /** Exit strategy chosen for the trade (EXIT-STRATEGY-v1). Defaults to the 30/40/30 split. */
   exitStrategy?: "split" | "tp3";
   /** Journal trade created from this plan. */
@@ -109,9 +114,10 @@ export function normalizeDraft(raw: unknown): TradePlanDraft {
   };
   if (typeof r.id === "string" && r.id) d.id = r.id;
   if (r.status === "draft" || r.status === "entered") d.status = r.status;
-  for (const k of ["balance", "riskPct", "enteredAt", "actualEntry", "journalId"] as const) {
+  for (const k of ["balance", "riskPct", "enteredAt", "actualEntry", "actualQty", "actualFee", "journalId"] as const) {
     if (typeof r[k] === "string" && r[k]) d[k] = r[k] as string;
   }
+  if (r.manualFill === true) d.manualFill = true;
   if (r.sizeMode === "risk" || r.sizeMode === "usdt" || r.sizeMode === "balancePct") d.sizeMode = r.sizeMode;
   if (typeof r.sizeValue === "string" && r.sizeValue) d.sizeValue = r.sizeValue;
   if (r.exitStrategy === "split" || r.exitStrategy === "tp3") d.exitStrategy = r.exitStrategy;

@@ -9,15 +9,17 @@ import { normalizeSymbol, baseOf } from "@/lib/watchlist";
 import { TradePlanDraft, TIMEFRAMES, emptyDraft, missingTargets, normalizeTimeframe, type SizeMode } from "@/lib/tradePlan";
 import { activeDraft, createDraft, deleteDraft, openDraft, reconcile, renameDraft, resetActive, saveActive, writeStore, type DraftStore, type OpResult } from "@/lib/tradeDrafts";
 import DraftsPanel, { type DraftsError } from "@/components/tradeplan/DraftsPanel";
-import { loadTrades, saveTrades } from "@/lib/journal";
+import { loadTrades, saveTrades, type Trade } from "@/lib/journal";
 import { computePlan } from "@/lib/planCalc";
-import { DEFAULT_BALANCE, DEFAULT_RISK, planToTrade } from "@/lib/planBridge";
+import { DEFAULT_BALANCE, DEFAULT_RISK, parseFee, planToTrade } from "@/lib/planBridge";
 import { RISK_PRESETS, parseInput, type RiskError } from "@/lib/riskCalc";
 import { pct, price, qty, todayLocal, usd } from "@/components/journal/format";
 import { applyOfficialLevels, signalChanges, signalToDraft, syncDraft } from "@/lib/signalLink";
 import { fetchFeed, syncLocalRecords } from "@/lib/signalSync";
 import { confirmPlanIfElite, outcomeText } from "@/lib/eliteConfirmClient";
 import { ExitStrategyPicker } from "@/components/journal/ExitStrategyPicker";
+import BinanceSpotLink from "@/components/BinanceSpotLink";
+import { fillOutsideSignalZone, upsertPlanTrade } from "@/lib/planJournalSync";
 
 const ADMIN_KEY = "atlas-trading.adminSecret";
 
@@ -47,6 +49,10 @@ export default function TradePlanPage() {
   const [confirmPrice, setConfirmPrice] = useState("");
   const [showTpErrors, setShowTpErrors] = useState(false);
   const [confirmDate, setConfirmDate] = useState("");
+  const [confirmQty, setConfirmQty] = useState("");
+  const [confirmFee, setConfirmFee] = useState("");
+  // BINANCE-HANDOFF-v1: set when the real fill is outside the official signal zone; the member decides explicitly.
+  const [manualOffer, setManualOffer] = useState<string | null>(null);
   const [signalMsg, setSignalMsg] = useState<string | null>(null);
   // Saved drafts (per signed-in user, this browser). The ref always holds the latest collection so async work never writes a stale one.
   const [store, setStore] = useState<DraftStore | null>(null);
@@ -169,7 +175,10 @@ export default function TradePlanPage() {
   function switchTo(plan: TradePlanDraft) {
     setDraft(plan);
     setSendMsg(null);
+    setManualOffer(null);
     setConfirmPrice("");
+    setConfirmQty("");
+    setConfirmFee("");
     setShowTpErrors(false);
   }
   function newDraft() {
@@ -209,36 +218,88 @@ export default function TradePlanPage() {
   const missing = missingTargets(draft);
   const tpError = (k: "tp1" | "tp2" | "tp3") => showTpErrors && missing.includes(k);
   const bad = (s: string) => s.trim() !== "" && parseInput(s) === null;
+  const badQty = confirmQty.trim() !== "" && !((parseInput(confirmQty) ?? 0) > 0);
+  const badFee = confirmFee.trim() !== "" && parseFee(confirmFee) === null;
 
   function confirmEntry() {
     const px = confirmPrice.trim() === "" ? draft.entry : confirmPrice;
     if (parseInput(px) === null) return;
-    commit({ ...draft, id: draft.id ?? crypto.randomUUID(), status: "entered", actualEntry: px, enteredAt: confirmDate || todayLocal() });
+    if (badQty || badFee) return;
+    commit({
+      ...draft, id: draft.id ?? crypto.randomUUID(), status: "entered", actualEntry: px, enteredAt: confirmDate || todayLocal(),
+      actualQty: confirmQty.trim() === "" ? undefined : confirmQty.trim(), actualFee: confirmFee.trim() === "" ? undefined : confirmFee.trim(),
+    });
   }
   function revertDraft() {
-    commit({ ...draft, status: "draft", actualEntry: undefined, enteredAt: undefined });
+    setManualOffer(null);
+    commit({ ...draft, status: "draft", actualEntry: undefined, enteredAt: undefined, actualQty: undefined, actualFee: undefined });
+  }
+
+  function sendError(error: string): string {
+    if (error === "targets") setShowTpErrors(true);
+    const key = error === "notEntered" ? "tradePlan.confirmFirst" : error === "wait" ? "tradePlan.sendWait" : error === "pair" ? "tradePlan.sendPair" : error === "incomplete" ? "tradePlan.fillToCalculate" : error === "targets" ? "tradePlan.tpRequired" : error === "qty" ? "tradePlan.errQty" : error === "fee" ? "tradePlan.errFee" : ERR_KEY[error as RiskError];
+    return t(key);
+  }
+
+  /** One Journal trade per plan: an existing trade of this plan is updated, never duplicated. Returns false when nothing was saved. */
+  function saveToJournal(withId: TradePlanDraft, trade: Trade, okKey: string, extra: Partial<TradePlanDraft> = {}): boolean {
+    const up = upsertPlanTrade(loadTrades(), trade, withId);
+    if (!up.ok) {
+      setSendMsg(t("tradePlan.updateInvalid"));
+      return false;
+    }
+    saveTrades(up.trades);
+    commit({ ...withId, ...extra, journalId: up.trade.id });
+    setSendMsg(up.locked.length ? t("tradePlan.lockedNote") : t(okKey));
+    return true;
   }
 
   async function sendToJournal() {
     setSendMsg(null);
+    setManualOffer(null);
     const withId = { ...draft, id: draft.id ?? crypto.randomUUID() };
     const r = planToTrade(withId, { id: crypto.randomUUID(), today: todayLocal() });
-    if (!r.ok) {
-      const key = r.error === "notEntered" ? "tradePlan.confirmFirst" : r.error === "wait" ? "tradePlan.sendWait" : r.error === "pair" ? "tradePlan.sendPair" : r.error === "incomplete" ? "tradePlan.fillToCalculate" : r.error === "targets" ? "tradePlan.tpRequired" : ERR_KEY[r.error as RiskError];
-      if (r.error === "targets") setShowTpErrors(true);
-      return setSendMsg(t(key));
-    }
+    if (!r.ok) return setSendMsg(sendError(r.error));
+    // BINANCE-HANDOFF-v1: a real fill outside the official signal zone is never sent down the official confirmation path.
+    // The member can record it explicitly as their own manual fill (user-reported, no signal link).
+    if (fillOutsideSignalZone(withId)) return setManualOffer(t("tradePlan.manualWarn"));
     // ELITE-CONFIRM-v1: a plan built on an ELITE signal becomes a Journal trade only through the server's
     // fresh-price entry-zone check and duplicate guard. FREE plans (confirmPlanIfElite returns null) are unchanged.
     const elite = await confirmPlanIfElite(withId, r.trade);
     if (elite) {
-      if (!elite.ok) return setSendMsg(outcomeText(elite, t));
+      if (!elite.ok) {
+        if (elite.key === "tradeFeed.cfBelow" || elite.key === "tradeFeed.cfAbove") setManualOffer(`${outcomeText(elite, t)} ${t("tradePlan.manualWarn")}`);
+        else setSendMsg(outcomeText(elite, t));
+        return;
+      }
+      // The server stored the trade (entry, quantity and invested amount come from the confirmation). The fee is the member's own.
+      const up = upsertPlanTrade(loadTrades(), { ...elite.trade, fees: r.trade.fees, notes: r.trade.notes }, withId);
+      if (up.ok) saveTrades(up.trades);
       commit({ ...withId, journalId: elite.trade.id });
       return setSendMsg(t("tradePlan.sendOk"));
     }
-    saveTrades([r.trade, ...loadTrades()]);
-    commit({ ...withId, journalId: r.trade.id });
-    setSendMsg(t("tradePlan.sendOk"));
+    saveToJournal(withId, r.trade, "tradePlan.sendOk");
+  }
+
+  /** Explicit manual-fill path: the member's own record, user-reported, with no official signal link. */
+  function recordManualFill() {
+    setManualOffer(null);
+    const withId = { ...draft, id: draft.id ?? crypto.randomUUID() };
+    const r = planToTrade(withId, { id: crypto.randomUUID(), today: todayLocal(), manualFill: true });
+    if (!r.ok) return setSendMsg(sendError(r.error));
+    saveToJournal(withId, r.trade, "tradePlan.manualOk", { manualFill: true });
+  }
+
+  /** Pushes the plan's current stop, targets, fee and notes into its existing Journal trade (no new trade). */
+  function updateJournalTrade() {
+    setSendMsg(null);
+    const r = planToTrade(draft, { id: crypto.randomUUID(), today: todayLocal(), manualFill: draft.manualFill });
+    if (!r.ok) return setSendMsg(sendError(r.error));
+    const up = upsertPlanTrade(loadTrades(), r.trade, draft);
+    if (!up.ok) return setSendMsg(t("tradePlan.updateInvalid"));
+    if (up.action === "created") return setSendMsg(t("tradePlan.updateNothing")); // the trade was deleted in the Journal: never silently re-create it here
+    saveTrades(up.trades);
+    setSendMsg(up.locked.length ? t("tradePlan.lockedNote") : t("tradePlan.updateOk"));
   }
 
   function useOfficial() {
@@ -520,11 +581,20 @@ export default function TradePlanPage() {
 
       {/* Lifecycle: draft -> entered */}
       <section className="mt-6 card p-5 sm:p-6">
+        {/* BINANCE-HANDOFF-v1: opens the Binance Spot page only. The member executes manually, then confirms the real fill below. */}
+        {draft.direction !== "Wait" && (
+          <div className="mb-5 pb-5 border-b border-line">
+            <BinanceSpotLink pair={draft.pair} className="btn-secondary w-full sm:w-auto text-center" showNotice />
+          </div>
+        )}
         {entered ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm">
               <span className="text-text-muted">{t("tradePlan.enteredOn")} </span><Num>{draft.enteredAt}</Num>
               <span className="text-text-muted"> · {t("tradePlan.actualEntry")} </span><Num>{draft.actualEntry}</Num>
+              {draft.actualQty && <><span className="text-text-muted"> · {t("tradePlan.actualQty")} </span><Num>{draft.actualQty}</Num></>}
+              {draft.actualFee && <><span className="text-text-muted"> · {t("tradePlan.actualFee")} </span><Num>{draft.actualFee}</Num></>}
+              {draft.manualFill && <span className="tag ms-2">{t("journal.manualFill")}</span>}
             </div>
             <button type="button" onClick={revertDraft} className="btn-secondary">{t("tradePlan.revertDraft")}</button>
           </div>
@@ -532,18 +602,23 @@ export default function TradePlanPage() {
           <>
             <div className="font-semibold">{t("tradePlan.confirmHeading")}</div>
             <p className="mt-1 text-xs text-text-muted">{t("tradePlan.confirmHint")}</p>
-            <div className="mt-4 grid sm:grid-cols-3 gap-3 items-end">
+            <div className="mt-4 grid sm:grid-cols-2 gap-3 items-end">
               <Field label={t("tradePlan.actualEntry")} value={confirmPrice} onChange={setConfirmPrice} numeric placeholder={draft.entry} invalid={bad(confirmPrice)} errorText={t("risk.errNumber")} />
               <Field label={t("tradePlan.entryDate")} value={confirmDate} onChange={setConfirmDate} type="date" ltr />
-              <button type="button" onClick={confirmEntry} disabled={parseInput(confirmPrice.trim() === "" ? draft.entry : confirmPrice) === null} className="btn-primary">{t("tradePlan.confirmEntry")}</button>
+              <Field label={t("tradePlan.actualQty")} value={confirmQty} onChange={setConfirmQty} numeric invalid={badQty} errorText={t("tradePlan.errQty")} />
+              <Field label={t("tradePlan.actualFee")} value={confirmFee} onChange={setConfirmFee} numeric invalid={badFee} errorText={t("tradePlan.errFee")} />
             </div>
+            <button type="button" onClick={confirmEntry} disabled={parseInput(confirmPrice.trim() === "" ? draft.entry : confirmPrice) === null || badQty || badFee} className="btn-primary mt-4 w-full sm:w-auto">{t("tradePlan.confirmEntry")}</button>
           </>
         )}
       </section>
 
       <div className="mt-6 flex flex-wrap gap-3">
         {sent ? (
-          <Link href={`/journal?trade=${draft.journalId}`} className="btn-primary">{t("tradePlan.openInJournal")}</Link>
+          <>
+            <Link href={`/journal?trade=${draft.journalId}`} className="btn-primary">{t("tradePlan.openInJournal")}</Link>
+            <button type="button" onClick={updateJournalTrade} className="btn-secondary">{t("tradePlan.updateJournal")}</button>
+          </>
         ) : (
           <button type="button" onClick={sendToJournal} disabled={!draft.pair || draft.direction === "Wait" || !entered} className="btn-primary">{t("tradePlan.sendToJournal")}</button>
         )}
@@ -557,6 +632,15 @@ export default function TradePlanPage() {
       </div>
       {!sent && !entered && draft.direction === "Long" && <p className="mt-3 text-xs text-text-muted">{t("tradePlan.confirmFirst")}</p>}
       {sent && <p className="mt-3 text-sm text-text-muted">{t("tradePlan.sentToJournal")}</p>}
+      {manualOffer && (
+        <div className="mt-4 rounded-lg border border-gold/40 bg-gold/10 p-4 text-sm" role="alert">
+          <p className="leading-relaxed">{manualOffer}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={recordManualFill} className="btn-primary">{t("tradePlan.manualRecord")}</button>
+            <button type="button" onClick={() => setManualOffer(null)} className="btn-secondary">{t("tradePlan.manualCancel")}</button>
+          </div>
+        </div>
+      )}
       {sendMsg && <p className="mt-3 text-sm text-text-muted" role="status">{sendMsg}</p>}
       {publishMsg && <p className="mt-3 text-sm text-text-muted">{publishMsg}</p>}
       {accountMsg && (
