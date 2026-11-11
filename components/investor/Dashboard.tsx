@@ -6,7 +6,8 @@ import { assetOf } from "@/lib/investor/assets";
 import { CoinLogo } from "@/components/market/MarketBits";
 import { useLanguage } from "@/lib/i18n";
 import PriceBadge from "./PriceBadge";
-import { fill, parseNum, pct, price, qty, signedPct, signedUsd, tone, usd } from "./fmt";
+import { fill, parseNum, pct, qty, signedPct, tone } from "./fmt";
+import { useMoney, UsdtNote } from "./currency";
 
 type Run = (m: (d: InvestorDoc) => InvestorDoc) => Promise<boolean>;
 const COLORS = ["#f5b942", "#4fa3ff", "#34d399", "#f472b6", "#a78bfa", "#fb923c", "#22d3ee", "#facc15", "#94a3b8", "#f87171", "#2dd4bf", "#c084fc", "#60a5fa", "#a3e635", "#fda4af", "#fcd34d", "#7dd3fc"];
@@ -44,6 +45,7 @@ function ManualPriceRow({ asset, current, run }: { asset: string; current?: { pr
 
 export default function Dashboard({ s, doc, run, onSell }: { s: Summary; doc: InvestorDoc; run: Run; onSell: (asset: string, price: number | null) => void }) {
   const { t } = useLanguage();
+  const { usd, signedUsd, price } = useMoney();
   const needManual = s.holdings.filter((h) => h.price === null || h.price.source === "manual").map((h) => h.asset);
   return (
     <div className="space-y-6">
@@ -112,6 +114,7 @@ export default function Dashboard({ s, doc, run, onSell }: { s: Summary; doc: In
         <section className="card p-4 space-y-3">
           <h2 className="text-label text-text-muted">{t("investor.manualTitle")}</h2>
           <p className="text-xs text-text-muted">{t("investor.manualBody")}</p>
+          <UsdtNote />
           {needManual.map((a) => <ManualPriceRow key={a + (doc.manualPrices[a]?.at ?? "")} asset={a} current={doc.manualPrices[a]} run={run} />)}
         </section>
       )}

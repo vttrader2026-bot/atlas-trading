@@ -1,7 +1,8 @@
 "use client";
 import type { PriceInfo } from "@/lib/investor/calc";
 import { useLanguage } from "@/lib/i18n";
-import { fill, price } from "./fmt";
+import { fill } from "./fmt";
+import { useMoney } from "./currency";
 
 /**
  * A price with a small badge saying where it came from.
@@ -11,6 +12,7 @@ import { fill, price } from "./fmt";
  */
 export default function PriceBadge({ info }: { info: PriceInfo | null }) {
   const { t } = useLanguage();
+  const { price } = useMoney();
   if (!info) return <span className="text-text-muted text-xs">{t("investor.noPrice")}</span>;
   const live = info.source === "binance";
   const tip = live ? t("investor.live") : fill(t("investor.manualSince"), { date: (info.at ?? "").slice(0, 10) });

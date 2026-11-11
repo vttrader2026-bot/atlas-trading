@@ -8,6 +8,7 @@ import { useLanguage } from "@/lib/i18n";
 import AssetPicker from "./AssetPicker";
 import type { PurchaseDraft } from "./Ledger";
 import { fill, newId, parseNum, price, today, usd } from "./fmt";
+import { useMoney, UsdtNote } from "./currency";
 
 type Run = (m: (d: InvestorDoc) => InvestorDoc) => Promise<boolean>;
 const lab = "block text-sm font-medium mb-1";
@@ -35,6 +36,7 @@ function PlanForm({ prices, run, onDone }: { prices: PriceMap; run: Run; onDone:
   };
   return (
     <form onSubmit={submit} className="card p-4 space-y-3">
+      <UsdtNote />
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={lab}>{t("investor.planName")}<input maxLength={60} className="input mt-1 w-full" value={f.name} onChange={set("name")} /></label>
         <div><label htmlFor="plan-asset" className={lab}>{t("investor.fAsset")}</label><AssetPicker id="plan-asset" value={f.asset} onChange={(a) => setF({ ...f, asset: a })} /></div>
@@ -89,6 +91,7 @@ const STATUS_KEY = { done: "stDone", due: "stDue", upcoming: "stUpcoming", trigg
 
 function PlanCard({ plan, doc, prices, run, onRecord }: { plan: DcaPlan; doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void }) {
   const { t } = useLanguage();
+  const { usd, price } = useMoney(); // display currency (the form above stays in USDT)
   const livePrice = prices[plan.asset]?.price ?? null;
   const pr = planProgress(plan, doc.purchases, today(), livePrice);
   const pctDone = pr.totalCount ? (pr.doneCount / pr.totalCount) * 100 : 0;

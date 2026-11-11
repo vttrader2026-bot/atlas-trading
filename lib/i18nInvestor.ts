@@ -4,6 +4,16 @@
 type Dict = { [key: string]: string };
 
 export const investorEn: Dict = {
+  currencyLabel: "Display currency",
+  currencyUsdt: "USDT",
+  currencyMru: "MRU",
+  rateLine: "Reference rate: 1 USD = {rate} MRU · updated {time}",
+  rateNote: "This is a reference exchange rate, not a Binance P2P buy or sell price. MRU is for display only: your records and calculations stay in USDT.",
+  rateLoading: "Loading the MRU rate… showing USDT for now.",
+  rateUnavailable: "The MRU rate is unavailable or older than 48 hours, so amounts are shown in USDT.",
+  rateStale: "The rate service could not be reached. Using the last saved rate.",
+  inputsUsdt: "Amounts you enter here are always in USDT.",
+  attribution: "Rates By Exchange Rate API",
   title: "Atlas Investor",
   subtitle: "A private notebook for long-term crypto investing (6 to 36 months). You record; Atlas calculates.",
   disclaimer: "Manual records only. Atlas never connects to your exchange account and never places orders. Everything here is separate from your Trading Journal. Amounts are in US dollars (USDT or USDC).",
@@ -218,6 +228,16 @@ export const investorEn: Dict = {
 };
 
 export const investorFr: Dict = {
+  currencyLabel: "Devise d'affichage",
+  currencyUsdt: "USDT",
+  currencyMru: "MRU",
+  rateLine: "Taux de référence : 1 USD = {rate} MRU · mis à jour {time}",
+  rateNote: "Il s'agit d'un taux de change de référence, pas d'un prix d'achat ou de vente Binance P2P. Le MRU sert uniquement à l'affichage : vos données et calculs restent en USDT.",
+  rateLoading: "Chargement du taux MRU… affichage en USDT pour l'instant.",
+  rateUnavailable: "Le taux MRU est indisponible ou date de plus de 48 heures : les montants sont affichés en USDT.",
+  rateStale: "Le service de taux est injoignable. Utilisation du dernier taux enregistré.",
+  inputsUsdt: "Les montants que vous saisissez ici sont toujours en USDT.",
+  attribution: "Rates By Exchange Rate API",
   title: "Atlas Investor",
   subtitle: "Un carnet privé pour investir en crypto sur le long terme (6 à 36 mois). Vous enregistrez, Atlas calcule.",
   disclaimer: "Saisie manuelle uniquement. Atlas ne se connecte jamais à votre compte d'échange et ne passe aucun ordre. Tout est séparé de votre Journal de trading. Montants en dollars US (USDT ou USDC).",
@@ -432,6 +452,16 @@ export const investorFr: Dict = {
 };
 
 export const investorAr: Dict = {
+  currencyLabel: "عملة العرض",
+  currencyUsdt: "USDT",
+  currencyMru: "MRU",
+  rateLine: "سعر مرجعي: 1 دولار = {rate} MRU · آخر تحديث {time}",
+  rateNote: "هذا سعر صرف مرجعي وليس سعر شراء أو بيع على Binance P2P. الأوقية للعرض فقط: سجلاتك وحساباتك تبقى بـ USDT.",
+  rateLoading: "جارٍ تحميل سعر الأوقية… يُعرض USDT مؤقتاً.",
+  rateUnavailable: "سعر الأوقية غير متاح أو أقدم من 48 ساعة، لذلك تُعرض المبالغ بـ USDT.",
+  rateStale: "تعذّر الوصول إلى خدمة الأسعار. يُستخدم آخر سعر محفوظ.",
+  inputsUsdt: "المبالغ التي تدخلها هنا تكون دائماً بـ USDT.",
+  attribution: "Rates By Exchange Rate API",
   title: "Atlas Investor",
   subtitle: "دفتر خاص للاستثمار طويل الأجل في العملات الرقمية (من 6 إلى 36 شهرًا). أنت تسجّل وAtlas يحسب.",
   disclaimer: "تسجيل يدوي فقط. لا يتصل Atlas بحسابك في المنصة ولا ينفّذ أي أوامر. كل شيء هنا منفصل عن دفتر التداول. المبالغ بالدولار الأمريكي (USDT أو USDC).",

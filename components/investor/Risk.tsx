@@ -4,10 +4,12 @@ import type { HoldingRow } from "@/lib/investor/calc";
 import { PRESET_SHOCKS, applyShock, maxDrawdownPct, worstHistoricalScenario } from "@/lib/investor/risk";
 import { getKlines } from "@/lib/binance";
 import { useLanguage } from "@/lib/i18n";
-import { fill, parseNum, signedPct, signedUsd, tone, usd } from "./fmt";
+import { fill, parseNum, signedPct, tone } from "./fmt";
+import { useMoney } from "./currency";
 
 /** Hypothetical estimates only. Never a prediction, never a guarantee. */
 export default function Risk({ holdings }: { holdings: HoldingRow[] }) {
+  const { usd, signedUsd } = useMoney();
   const { t } = useLanguage();
   const priced = holdings.filter((h) => h.value !== null && h.value > 0);
   const assetKey = priced.map((h) => h.asset).join(",");

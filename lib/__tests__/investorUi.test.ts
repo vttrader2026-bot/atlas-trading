@@ -79,7 +79,9 @@ describe("privacy and no-trading guarantees", () => {
   it("investor UI never touches browser storage or the journal, and never places orders", () => {
     for (const f of files) {
       const src = read(f);
-      expect(src, f).not.toMatch(/localStorage|sessionStorage|indexedDB/);
+      // The one allowed use of browser storage is the display-currency preference (never investor records).
+      if (!/^(components|lib)[\\/]investor[\\/]currency\.tsx?$/.test(f.replace(/\\/g, "/"))) expect(src, f).not.toMatch(/localStorage|sessionStorage|indexedDB/);
+      else expect(src, f).not.toMatch(/sessionStorage|indexedDB/);
       expect(src, f).not.toMatch(/lib\/journal|components\/journal/);
       expect(src, f).not.toMatch(/\/order|apiKey|secret/i);
     }

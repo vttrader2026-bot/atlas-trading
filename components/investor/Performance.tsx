@@ -8,9 +8,11 @@ import { getKlinesFrom } from "@/lib/binance";
 import { CoinLogo } from "@/components/market/MarketBits";
 import { useLanguage } from "@/lib/i18n";
 import PriceBadge from "./PriceBadge";
-import { fill, price, qty, signedPct, signedUsd, today, tone, usd } from "./fmt";
+import { fill, qty, signedPct, today, tone } from "./fmt";
+import { useMoney } from "./currency";
 
 function LineChart({ points, label }: { points: SeriesPoint[]; label: string }) {
+  const { usd } = useMoney();
   const W = 640, H = 240, L = 8, R = 8, T = 12, B = 24;
   const max = Math.max(1, ...points.flatMap((p) => [p.value, p.cost]));
   const x = (i: number) => L + (points.length <= 1 ? 0 : (i / (points.length - 1)) * (W - L - R));
@@ -45,6 +47,7 @@ async function fetchCloses(asset: string, startMs: number): Promise<Record<strin
 }
 
 export default function Performance({ doc, s }: { doc: InvestorDoc; s: Summary }) {
+  const { usd, signedUsd, price } = useMoney();
   const { t } = useLanguage();
   const assets = useMemo(() => [...new Set(doc.purchases.map((p) => p.asset))].sort(), [doc.purchases]);
   const first = useMemo(() => [...doc.purchases.map((p) => p.date)].sort()[0], [doc.purchases]);

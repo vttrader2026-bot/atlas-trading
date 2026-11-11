@@ -8,6 +8,7 @@ import type { InvestorDoc } from "@/lib/investor/model";
 import { isSupportedTicker } from "@/lib/investor/assets";
 import { useInvestor, type CommitResult } from "@/components/investor/useInvestor";
 import { fill } from "@/components/investor/fmt";
+import { CurrencyBar, CurrencyProvider } from "@/components/investor/currency";
 import Dashboard from "@/components/investor/Dashboard";
 import TradeForm from "@/components/investor/TradeForm";
 import Ledger, { type PurchaseDraft } from "@/components/investor/Ledger";
@@ -56,10 +57,12 @@ export default function InvestorPage() {
   if (state === "error") return <main className="max-w-5xl mx-auto px-6 py-12"><p role="alert" className="text-bear">{t("investor.loadError")}</p></main>;
 
   return (
+    <CurrencyProvider>
     <main className="max-w-5xl mx-auto px-6 py-12 sm:py-14">
       <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("investor.title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-2xl">{t("investor.subtitle")}</p>
       <p className="mt-3 max-w-3xl text-xs leading-relaxed text-text-muted border-s-2 border-gold ps-3">{t("investor.disclaimer")}</p>
+      <CurrencyBar />
 
       <div role="tablist" aria-label={t("investor.title")} className="mt-8 flex gap-1 overflow-x-auto border-b border-line">
         {TABS.map((k) => (
@@ -92,5 +95,6 @@ export default function InvestorPage() {
         </div>
       )}
     </main>
+    </CurrencyProvider>
   );
 }

@@ -4,7 +4,8 @@ import { InvestorDoc, Purchase, Sale, purchaseCost, saleProceeds, r8, sortCashNe
 import { CoinLogo } from "@/components/market/MarketBits";
 import { useLanguage } from "@/lib/i18n";
 import TradeForm, { type TradeInit } from "./TradeForm";
-import { newId, parseNum, price, qty as fmtQty, today, usd } from "./fmt";
+import { newId, parseNum, qty as fmtQty, today } from "./fmt";
+import { useMoney, UsdtNote } from "./currency";
 
 type Run = (m: (d: InvestorDoc) => InvestorDoc) => Promise<boolean>;
 export type PurchaseDraft = { asset: string; amount?: number; price?: number; planId?: string; slot?: string };
@@ -27,6 +28,7 @@ function CashForm({ onCancel, run }: { onCancel: () => void; run: Run }) {
   return (
     <form onSubmit={submit} className="card p-4 space-y-3">
       <p className="text-xs text-text-muted">{t("investor.cashNote")}</p>
+      <UsdtNote />
       <div className="grid gap-3 sm:grid-cols-2">
         <label className={field}>{t("investor.fType")}
           <select className="input mt-1 w-full" value={type} onChange={(e) => setType(e.target.value as "deposit" | "withdrawal")}>
@@ -60,6 +62,7 @@ function Row({ children, onEdit, onDelete }: { children: React.ReactNode; onEdit
 
 export default function Ledger({ doc, run, draft, clearDraft, livePrice }: { doc: InvestorDoc; run: Run; draft: PurchaseDraft | null; clearDraft: () => void; livePrice: (asset: string) => number | null }) {
   const { t } = useLanguage();
+  const { usd, price } = useMoney();
   const [form, setForm] = useState<TradeInit | null>(null);
   const [cash, setCash] = useState(false);
   const blank = (kind: "buy"): TradeInit => ({ kind });

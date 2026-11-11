@@ -6,6 +6,7 @@ import { previewSale } from "@/lib/investor/calc";
 import { calcFee, feeRatePct, formatRate } from "@/lib/investor/fees";
 import { useLanguage } from "@/lib/i18n";
 import AssetPicker from "./AssetPicker";
+import { UsdtNote } from "./currency";
 import { fill, newId, parseNum, qty as fmtQty, signedUsd, today, tone, usd } from "./fmt";
 
 type Run = (m: (d: InvestorDoc) => InvestorDoc) => Promise<boolean>;
@@ -66,6 +67,7 @@ export default function TradeForm({ init, doc, run, onClose }: { init: TradeInit
   return (
     <form onSubmit={submit} className="card p-4 space-y-4" aria-label={sell ? t("investor.addSale") : t("investor.addPurchase")}>
       <h2 className="text-lg font-semibold">{sell ? (asset ? fill(t("investor.sellTitle"), { asset }) : t("investor.addSale")) : t("investor.addPurchase")}</h2>
+      <UsdtNote />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="inv-asset" className={lab}>{t("investor.fAsset")}</label>
