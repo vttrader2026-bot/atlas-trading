@@ -439,6 +439,9 @@ html.light {
 
 /* HOME-PHONE-v1 / INSTALL-APP-v1: slow floating phone and the install sheet's entrance. Both off for reduced motion. */
 @keyframes phoneFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+/* HERO-PHONE-v1: the hero phone is as large as the first screen allows on desktop (about 2.1 x its width tall). */
+.hero-phone-w { max-width: 300px; }
+@media (min-width: 1024px) { .hero-phone-w { max-width: clamp(250px, calc((100svh - 12rem) / 2.1), 340px); } }
 @keyframes installIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .home-phone-float { animation: phoneFloat 6s ease-in-out infinite; }
 .home-phone-float:hover { animation-play-state: paused; }

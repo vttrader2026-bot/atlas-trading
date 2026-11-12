@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/i18n";
 import { useHomeMarket, useMarketOverview, useIntelAssets, useLatestTrades } from "@/lib/useHomeData";
-import HeroBoard from "@/components/home/HeroBoard";
+import HeroPhone from "@/components/home/HeroPhone";
 import MarketStrip from "@/components/home/MarketStrip";
 import ProductShowcase from "@/components/home/ProductShowcase";
 import IntelSection from "@/components/home/IntelSection";
@@ -27,7 +27,7 @@ export default function Home() {
       {/* 1. HERO */}
       <section className="relative">
         <div aria-hidden className="home-grid absolute inset-x-0 top-0 h-[34rem] pointer-events-none" />
-        <div className="relative max-w-6xl mx-auto px-6 pt-16 sm:pt-24 pb-20 sm:pb-28">
+        <div className="relative max-w-6xl mx-auto px-6 pt-12 sm:pt-16 lg:pt-8 pb-16 sm:pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-12 items-center">
             <div>
               <span className="home-rise inline-flex items-center gap-2 text-label px-3 py-1.5 rounded-full border border-line bg-surface/70">
@@ -53,7 +53,7 @@ export default function Home() {
                 )}
               </div>
             </div>
-            <HeroBoard market={market} overview={overview} />
+            <HeroPhone />
           </div>
         </div>
       </section>
