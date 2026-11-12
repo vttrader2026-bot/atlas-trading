@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { useLanguage } from "@/lib/i18n";
 import { formatPrice } from "@/lib/binance";
 import type { PublishedTrade } from "@/lib/tradeFeed";
-import { TP_ALLOCATION, buildRail, deriveState, type CardState } from "@/lib/tradeFeedView";
+import { TP_ALLOCATION, buildRail, deriveState, stopBreached, type CardState } from "@/lib/tradeFeedView";
 
 // Premium Trade Feed signal card. Presentation only: every price shown is the string Atlas
 // published, the live price is the Binance ticker the page already fetched, and the only
@@ -80,6 +80,7 @@ export function SignalCard({
   const dateLocale = lang === "ar" ? "en-GB" : lang === "fr" ? "fr" : "en";
   const when = new Date(trade.createdAt).toLocaleString(dateLocale, { dateStyle: "medium", timeStyle: "short" });
   const msg = t(`tradeFeed.${meta.msg}`);
+  const belowStop = stopBreached(trade, livePrice);
 
   return (
     <article
@@ -154,11 +155,18 @@ export function SignalCard({
             {when}
           </time>
         </div>
-        {livePrice !== null && (
+        {/* The market price is only shown for trades that are still open: on a stopped/closed trade it is
+            unrelated to the trade's result and read as a stale or wrong "actual" price. */}
+        {livePrice !== null && !finished && (
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-label text-text-muted">{t("tradeFeed.live")}</span>
-            <Num className="text-2xl font-bold leading-tight">${formatPrice(livePrice)}</Num>
+            <Num className={"text-2xl font-bold leading-tight" + (belowStop ? " text-bear" : "")}>${formatPrice(livePrice)}</Num>
           </div>
+        )}
+        {belowStop && (
+          <p role="status" className="rounded-lg border border-bear/40 bg-bear/10 px-3 py-2 text-xs text-bear">
+            {t("tradeFeed.belowStop")}
+          </p>
         )}
 
         {/* Price map */}

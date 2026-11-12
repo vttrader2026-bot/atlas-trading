@@ -12,6 +12,10 @@ import {
   type StatusKey, type WatchRow, type WatchSortDir, type WatchSortKey,
 } from "@/lib/watchlist";
 import { ChangePill, CoinLogo } from "@/components/market/MarketBits";
+import AnalysisPanel from "@/components/charts/AnalysisPanel";
+import StarButton from "@/components/watchlist/StarButton";
+import ActiveSignalBadge from "@/components/tradefeed/ActiveSignalBadge";
+import { useActiveSignals, useActiveSignalCoins } from "@/lib/useActiveSignals";
 
 const DEFAULT_DIR: Record<WatchSortKey, WatchSortDir> = { added: "desc", price: "desc", change: "desc", volume: "desc", status: "asc" };
 const DIR_LABELS: Record<WatchSortKey, [string, string]> = {
@@ -35,6 +39,9 @@ function num(v: string | undefined): number | null {
 export default function WatchlistPage() {
   const { t } = useLanguage();
   const wl = useWatchlist();
+  const activeFor = useActiveSignals();
+  const feedCoins = useActiveSignalCoins();
+  const [chartSymbol, setChartSymbol] = useState<string | null>(null);
   const { snap, updatedAt, failed, reload } = useWatchlistMarket();
 
   const [sortKey, setSortKey] = useState<WatchSortKey>("added");
@@ -315,8 +322,11 @@ export default function WatchlistPage() {
                       <tr key={r.symbol} className="mkt-row border-t border-line" data-symbol={r.symbol}>
                         <td className="mkt-td">
                           <span className="flex items-center gap-3">
-                            <CoinLogo base={r.base} size={36} />
-                            <span className="font-data" dir="ltr"><span className="font-semibold text-base">{r.base}</span><span className="text-text-muted text-sm">/USDT</span></span>
+                            <button type="button" onClick={() => setChartSymbol(r.base)} aria-label={`${t("radar.viewChart")}: ${r.base}`} title={t("radar.viewChart")} className="flex items-center gap-3 text-start hover:opacity-80">
+                              <CoinLogo base={r.base} size={36} />
+                              <span className="font-data" dir="ltr"><span className="font-semibold text-base">{r.base}</span><span className="text-text-muted text-sm">/USDT</span></span>
+                            </button>
+                            <ActiveSignalBadge signal={activeFor(r.base)} coin={r.base} />
                           </span>
                         </td>
                         <td className="mkt-td font-data text-end text-base font-medium" dir="ltr">{r.price !== null ? `$${formatPrice(r.price)}` : "—"}</td>
@@ -326,7 +336,7 @@ export default function WatchlistPage() {
                           <StatusCell row={r} changed={changed} label={statusLabel} nowText={(k) => t("watchlist.nowStatus").replace("{status}", statusLabel(k))} noData={t("watchlist.noData")} />
                         </td>
                         <td className="mkt-td text-end whitespace-nowrap">
-                          <Actions row={r} t={t} onRemove={wl.remove} />
+                          <Actions row={r} t={t} onRemove={wl.remove} onChart={setChartSymbol} />
                         </td>
                       </tr>
                     );
@@ -342,10 +352,13 @@ export default function WatchlistPage() {
                 return (
                   <li key={r.symbol} className="px-4 py-3.5" data-symbol={r.symbol}>
                     <div className="flex items-center gap-3">
-                      <CoinLogo base={r.base} size={40} />
+                      <button type="button" onClick={() => setChartSymbol(r.base)} aria-label={`${t("radar.viewChart")}: ${r.base}`} className="shrink-0"><CoinLogo base={r.base} size={40} /></button>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-data" dir="ltr"><span className="font-semibold text-base">{r.base}</span><span className="text-text-muted text-sm">/USDT</span></span>
+                          <button type="button" onClick={() => setChartSymbol(r.base)} className="flex items-center gap-2 text-start">
+                            <span className="font-data" dir="ltr"><span className="font-semibold text-base">{r.base}</span><span className="text-text-muted text-sm">/USDT</span></span>
+                            <ActiveSignalBadge signal={activeFor(r.base)} coin={r.base} />
+                          </button>
                           <span className="font-data text-base font-medium" dir="ltr">{r.price !== null ? `$${formatPrice(r.price)}` : "—"}</span>
                         </div>
                         <div className="mt-1.5 flex items-center justify-between gap-2">
@@ -356,7 +369,7 @@ export default function WatchlistPage() {
                     </div>
                     <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
                       <StatusCell row={r} changed={changed} label={statusLabel} nowText={(k) => t("watchlist.nowStatus").replace("{status}", statusLabel(k))} noData={t("watchlist.noData")} />
-                      <Actions row={r} t={t} onRemove={wl.remove} />
+                      <Actions row={r} t={t} onRemove={wl.remove} onChart={setChartSymbol} />
                     </div>
                   </li>
                 );
@@ -365,6 +378,30 @@ export default function WatchlistPage() {
           </div>
         </section>
       )}
+
+      {/* Coins with an active Trade Feed setup: visible here, one tap to add or remove (the star never duplicates). */}
+      {feedCoins.length > 0 && (
+        <section className="mt-10" aria-label={t("watchlist.fromFeed")}>
+          <h2 className="font-heading text-lg font-bold">{t("watchlist.fromFeed")}</h2>
+          <p className="mt-1 text-sm text-text-muted">{t("watchlist.fromFeedNote")}</p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {feedCoins.map((c) => (
+              <li key={c.coin} className="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2.5">
+                <button type="button" onClick={() => setChartSymbol(c.coin)} className="flex items-center gap-2.5 min-w-0 text-start" aria-label={`${t("radar.viewChart")}: ${c.coin}`}>
+                  <CoinLogo base={c.coin} size={32} />
+                  <span className="font-data font-semibold" dir="ltr">{c.coin}</span>
+                </button>
+                <span className="flex items-center gap-2 shrink-0">
+                  <ActiveSignalBadge signal={{ id: c.id }} coin={c.coin} />
+                  <StarButton symbol={c.coin} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {chartSymbol && <AnalysisPanel baseAsset={chartSymbol} onClose={() => setChartSymbol(null)} />}
     </main>
   );
 }
@@ -383,9 +420,10 @@ function StatusCell({
   );
 }
 
-function Actions({ row, t, onRemove }: { row: WatchRow; t: (k: string) => string; onRemove: (s: string) => void }) {
+function Actions({ row, t, onRemove, onChart }: { row: WatchRow; t: (k: string) => string; onRemove: (s: string) => void; onChart: (base: string) => void }) {
   return (
     <span className="inline-flex items-center gap-2 ms-auto">
+      <button type="button" onClick={() => onChart(row.base)} className="btn-secondary !py-1.5 !px-3 text-sm">{t("radar.viewChart")}</button>
       <Link href={`/analyzer?pair=${row.base}/USDT`} className="btn-secondary !py-1.5 !px-3 text-sm">{t("watchlist.analyze")}</Link>
       <button
         type="button" onClick={() => onRemove(row.symbol)}

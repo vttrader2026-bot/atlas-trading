@@ -4,14 +4,9 @@
 // whose answer is cached. If no name can be found the caller falls back to the symbol alone; nothing is invented.
 import type { Redis } from "@upstash/redis";
 import { getCoinNameFromCmc } from "@/lib/coinmarketcap";
+import { KNOWN } from "@/lib/coinNamesKnown";
 
-const KNOWN: Record<string, string> = {
-  BTC: "Bitcoin", ETH: "Ethereum", BNB: "BNB", SOL: "Solana", XRP: "XRP", ADA: "Cardano", DOGE: "Dogecoin", AVAX: "Avalanche",
-  LINK: "Chainlink", DOT: "Polkadot", TRX: "TRON", TON: "Toncoin", MATIC: "Polygon", POL: "Polygon", LTC: "Litecoin", BCH: "Bitcoin Cash",
-  SHIB: "Shiba Inu", UNI: "Uniswap", ATOM: "Cosmos", XLM: "Stellar", ETC: "Ethereum Classic", NEAR: "NEAR Protocol", APT: "Aptos",
-  ARB: "Arbitrum", OP: "Optimism", SUI: "Sui", INJ: "Injective", AAVE: "Aave", FIL: "Filecoin", HBAR: "Hedera", ALGO: "Algorand",
-  PEPE: "Pepe", RENDER: "Render", FET: "Fetch.ai", TAO: "Bittensor", SEI: "Sei", TIA: "Celestia", ENA: "Ethena", ONDO: "Ondo",
-};
+
 
 const CACHE_KEY = (symbol: string) => `coin:name:${symbol}`;
 const CACHE_SECONDS = 60 * 60 * 24 * 30;

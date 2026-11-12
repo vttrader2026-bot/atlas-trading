@@ -11,6 +11,7 @@ import { ChangePill, CoinLogo, RangeBar } from "@/components/market/MarketBits";
 import StarButton from "@/components/watchlist/StarButton";
 import ActiveSignalBadge from "@/components/tradefeed/ActiveSignalBadge";
 import { useActiveSignals } from "@/lib/useActiveSignals";
+import { searchRows } from "@/lib/radarSearch";
 import { DEFAULT_SORT, SORT_KEYS, defaultDir, sortRows, type SortDir, type SortKey } from "@/lib/radarSort";
 
 const FILTERS: { key: RadarTag | "all"; labelKey: string }[] = [
@@ -57,6 +58,7 @@ export default function RadarPage() {
   // undefined = still loading, null = unavailable (fall back to built-in rules), Set = live spot list
   const [spot, setSpot] = useState<Set<string> | null | undefined>(undefined);
   const [filter, setFilter] = useState<RadarTag | "all">("all");
+  const [query, setQuery] = useState("");
   const [chartSymbol, setChartSymbol] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT.key);
   const [sortDir, setSortDir] = useState<SortDir>(DEFAULT_SORT.dir);
@@ -100,12 +102,15 @@ export default function RadarPage() {
       .slice(0, SHORTLIST_SIZE);
   }, [rows]);
 
+  const searching = query.trim().length > 0;
   const filtered = useMemo(() => {
     if (!rows) return [];
-    const list = filter === "all" ? rows : rows.filter((r) => r.tags.includes(filter));
+    // A search looks across ALL categories (the tag filter is ignored while typing, and kept afterwards).
+    const list = searching ? searchRows(rows, query) : filter === "all" ? rows : rows.filter((r) => r.tags.includes(filter));
     // Default (volume, highest first) is exactly the previous ordering.
-    return sortRows(list, sortKey, sortDir).slice(0, 60);
-  }, [rows, filter, sortKey, sortDir]);
+    const sorted = sortRows(list, sortKey, sortDir);
+    return searching ? sorted : sorted.slice(0, 60);
+  }, [rows, filter, sortKey, sortDir, query, searching]);
 
   // Real counts per screen, derived from the same rows the filters use.
   const counts = useMemo(() => {
@@ -150,6 +155,32 @@ export default function RadarPage() {
           </div>
 
           <div className="mt-14 border-t border-line pt-10">
+            <div className="relative mb-4 max-w-md">
+              <label className="sr-only" htmlFor="radar-search">{t("radar.searchLabel")}</label>
+              <input
+                id="radar-search"
+                type="search"
+                inputMode="search"
+                autoComplete="off"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("radar.searchPlaceholder")}
+                className="input w-full !py-2 !ps-3 !pe-10 text-sm [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none"
+              />
+              {searching && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label={t("radar.searchClear")}
+                  className="absolute end-2 top-1/2 -translate-y-1/2 px-2 text-text-muted hover:text-text"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            {searching && (
+              <p className="mb-3 text-sm text-text-muted" role="status">{t("radar.searchAll")}</p>
+            )}
             <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
             <div className="flex flex-wrap gap-2">
               {FILTERS.map((f) => {
@@ -243,7 +274,7 @@ export default function RadarPage() {
                     {filtered.length === 0 && (
                       <tr>
                         <td colSpan={8} className="text-center py-12 text-base text-text-muted">
-                          {t("radar.empty")}
+                          {searching ? t("radar.searchEmpty") : t("radar.empty")}
                         </td>
                       </tr>
                     )}
@@ -308,7 +339,7 @@ export default function RadarPage() {
               {/* Mobile: compact stacked rows, no horizontal scroll */}
               <div className="sm:hidden divide-y divide-line">
                 {filtered.length === 0 && (
-                  <div className="text-center py-12 text-base text-text-muted">{t("radar.empty")}</div>
+                  <div className="text-center py-12 text-base text-text-muted">{searching ? t("radar.searchEmpty") : t("radar.empty")}</div>
                 )}
                 {filtered.map((row) => {
                   const base = row.ticker.symbol.replace("USDT", "");

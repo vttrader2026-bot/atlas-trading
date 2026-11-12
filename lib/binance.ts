@@ -127,6 +127,16 @@ export async function getKlinesFrom(symbol: string, interval: string, startTime:
   }));
 }
 
+/**
+ * Decimals needed to show a price faithfully. Micro-priced coins (PEPE ~0.000007) used to be cut to a fixed
+ * 6 decimals, which hid every move and made them impossible to compare with a stop loss. Below $0.01 we keep
+ * about 4 significant digits (capped at 10 decimals); everything else keeps the previous output.
+ */
+export function priceDecimals(n: number, digits = 2): number {
+  if (n < 0.01) return Math.min(10, Math.max(6, Math.ceil(-Math.log10(n)) + 3));
+  return n < 1 ? 6 : n < 100 ? 4 : digits;
+}
+
 export function formatPrice(value: string | number, digits = 2): string {
   const n = typeof value === "string" ? parseFloat(value) : value;
   // A genuine $0 price on a live USDT pair never happens — a literal 0 here
@@ -135,7 +145,7 @@ export function formatPrice(value: string | number, digits = 2): string {
   // never a real price. Show the same "unavailable" marker as NaN rather
   // than a misleading "$0.00".
   if (Number.isNaN(n) || n <= 0) return "—";
-  const decimals = n < 1 ? 6 : n < 100 ? 4 : digits;
+  const decimals = priceDecimals(n, digits);
   return n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 

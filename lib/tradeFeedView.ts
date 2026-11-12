@@ -84,3 +84,16 @@ export function buildRail(trade: PublishedTrade, livePrice: number | null): Rail
 
 /** Allocation of the position closed at each target, as set by Atlas's trade management. */
 export const TP_ALLOCATION = [30, 40, 30] as const;
+
+/**
+ * True when an OPEN long's live price is already at or below its published stop loss but the official status
+ * has not been updated yet (the bot or admin closes the signal). It never changes the official state; the card
+ * uses it to say so instead of silently showing a normal "active" trade.
+ */
+export function stopBreached(trade: PublishedTrade, livePrice: number | null): boolean {
+  if (livePrice === null || trade.direction !== "Long") return false;
+  const { state } = deriveState(trade, livePrice);
+  if (state === "stopped" || state === "completed" || state === "closed") return false;
+  const sl = parsePrice(trade.invalidation);
+  return sl !== null && livePrice <= sl;
+}

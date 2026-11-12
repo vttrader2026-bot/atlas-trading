@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
+import EliteRecord from "@/components/elite/EliteRecord";
 
 type Method = "usdt" | "bankily" | "masrivi" | "sedad";
 /** ATLAS ELITE is the only paid plan. */
@@ -235,6 +236,21 @@ function ElitePageInner() {
         </div>
       </div>
 
+      <EliteRecord />
+
+      {/* Membership details */}
+      <section className="card p-4 mt-8" aria-label={s("Membership details", "تفاصيل العضوية")}>
+        <h2 className="font-heading text-lg font-bold">{s("Membership details", "تفاصيل العضوية")}</h2>
+        <ul className="mt-2 text-sm text-text-muted space-y-1.5 list-disc list-inside marker:text-gold">
+          <li>{s(`$${ELITE_PRICE.usd} per month (about ${ELITE_PRICE.mru} MRU).`, `${ELITE_PRICE.usd}$ شهرياً (حوالي ${ELITE_PRICE.mru} أوقية).`)}</li>
+          <li>{s("Pay with USDT, Bankily, Masrivi or Sedad, then upload your payment screenshot.", "ادفع عبر USDT أو بنكيلي أو مصريفي أو سداد، ثم ارفع لقطة شاشة الدفع.")}</li>
+          <li>{s("Payments are checked manually; Elite is activated once your payment is verified.", "تتم مراجعة الدفعات يدوياً، ويُفعّل إيليت بعد التحقق من دفعتك.")}</li>
+          <li>{s("No recurring card charges.", "بدون رسوم بطاقة متكررة.")}</li>
+        </ul>
+        <a href="#subscribe" className="btn-primary mt-4 inline-flex">{s("Subscribe to Elite", "اشترك في إيليت")}</a>
+      </section>
+
+      <div id="subscribe" className="scroll-mt-20" />
       {!isLoaded ? null : !isSignedIn ? (
         <div className="card p-5 mt-6 text-center">
           <p className="text-sm text-text-muted">{s("Sign in to submit a payment request.", "سجّل الدخول لإرسال طلب دفع.")}</p>

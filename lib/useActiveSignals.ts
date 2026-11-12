@@ -37,3 +37,16 @@ export function useActiveSignals(): (symbol: string) => ActiveSignalRef | null {
   }, []);
   return (symbol) => index.get(normalizeSymbol(symbol)) ?? null;
 }
+
+/** Every coin with an active Trade Feed setup (public shape only), for lists such as the Watchlist's "From the Trade Feed". */
+export function useActiveSignalCoins(): { coin: string; id: string }[] {
+  const [list, setList] = useState<{ coin: string; id: string }[]>([]);
+  useEffect(() => {
+    let live = true;
+    void load().then((i) => live && setList([...i].map(([coin, ref]) => ({ coin, id: ref.id }))));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return list;
+}

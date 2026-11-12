@@ -9,6 +9,7 @@ import { getTicker24h, Ticker24h } from "@/lib/binance";
 import type { LockedSignal, PublishedTrade } from "@/lib/tradeFeed";
 import { SignalCard } from "@/components/tradefeed/SignalCard";
 import { LockedSignalCard } from "@/components/tradefeed/LockedSignalCard";
+import { startTickerRefresh, browserRefreshEnv } from "@/lib/tickerRefresh";
 import { SignalActions } from "@/components/tradefeed/SignalActions";
 import { loadTrades } from "@/lib/journal";
 import { loadDraft } from "@/lib/tradePlan";
@@ -227,30 +228,18 @@ export default function TradeFeedPage() {
     };
   }, [isLoaded, isSignedIn]);
 
-  // Live prices for every unique pair currently shown, mirroring the
-  // homepage's BTC card. Failures for any one symbol are swallowed so a bad
-  // pair doesn't block the rest.
+  // Live prices for every unique pair currently shown. Refreshed every 15s while the tab is visible (and on
+  // return to the tab): a single fetch at load made prices freeze at page-open time. A failed refresh keeps the
+  // last good price per symbol instead of wiping it, and one bad pair never blocks the rest.
   useEffect(() => {
     if (!trades || trades.length === 0) return;
-    let cancelled = false;
     const symbols = Array.from(new Set(trades.map((tr) => binanceSymbol(tr.pair))));
-    Promise.all(
-      symbols.map((sym) =>
-        getTicker24h(sym)
-          .then((data) => [sym, data] as const)
-          .catch(() => null)
-      )
-    ).then((results) => {
-      if (cancelled) return;
-      const next: Record<string, Ticker24h> = {};
-      for (const r of results) {
-        if (r) next[r[0]] = r[1];
-      }
-      setTickers(next);
+    return startTickerRefresh({
+      symbols,
+      fetchTicker: getTicker24h,
+      onUpdate: (fresh) => setTickers((prev) => ({ ...prev, ...fresh })),
+      env: browserRefreshEnv(),
     });
-    return () => {
-      cancelled = true;
-    };
   }, [trades]);
 
   async function removeTrade(id: string) {

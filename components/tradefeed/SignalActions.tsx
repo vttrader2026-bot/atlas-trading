@@ -12,6 +12,7 @@ import type { PublishedTrade } from "@/lib/tradeFeed";
 import { isLiveSignal, isLongSignal, watchUpdates, type Watched } from "@/lib/signalLink";
 import { ConfirmTradeDialog } from "@/components/tradefeed/ConfirmTradeDialog";
 import BinanceSpotLink from "@/components/BinanceSpotLink";
+import StarButton from "@/components/watchlist/StarButton";
 
 const pill = "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap";
 const pillIdle = "border-line text-text-muted hover:text-text hover:border-text-muted";
@@ -52,7 +53,8 @@ export function SignalActions({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <StarButton symbol={signal.pair} />
         {long && (live || hasPlan) && (
           <Link href={`/trade-plan?signal=${encodeURIComponent(signal.id)}`} className={`${pill} ${pillIdle}`}>
             {hasPlan ? t("tradeFeed.actPlanOpen") : t("tradeFeed.actPlan")}
