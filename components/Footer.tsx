@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { useLanguage } from "@/lib/i18n";
+import { InstallMenuButton } from "@/components/InstallApp";
 
 const TELEGRAM_URL = "https://t.me/atlastradingcrypto";
 const WHATSAPP_URL = "https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t";
@@ -48,6 +49,7 @@ export default function Footer() {
                 </Link>
               </li>
             ))}
+            <InstallMenuButton asListItem className="text-sm text-text-muted hover:text-gold transition-colors" />
           </ul>
         </div>
 

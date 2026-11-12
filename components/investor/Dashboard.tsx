@@ -10,9 +10,9 @@ import { fill, parseNum, pct, qty, signedPct, tone } from "./fmt";
 import { useMoney, UsdtNote } from "./currency";
 
 type Run = (m: (d: InvestorDoc) => InvestorDoc) => Promise<boolean>;
-const COLORS = ["#f5b942", "#4fa3ff", "#34d399", "#f472b6", "#a78bfa", "#fb923c", "#22d3ee", "#facc15", "#94a3b8", "#f87171", "#2dd4bf", "#c084fc", "#60a5fa", "#a3e635", "#fda4af", "#fcd34d", "#7dd3fc"];
+export const COLORS = ["#f5b942", "#4fa3ff", "#34d399", "#f472b6", "#a78bfa", "#fb923c", "#22d3ee", "#facc15", "#94a3b8", "#f87171", "#2dd4bf", "#c084fc", "#60a5fa", "#a3e635", "#fda4af", "#fcd34d", "#7dd3fc"];
 
-function Stat({ label, value, hint, cls = "" }: { label: string; value: string; hint?: string; cls?: string }) {
+export function Stat({ label, value, hint, cls = "" }: { label: string; value: string; hint?: string; cls?: string }) {
   return (
     <div className="card p-4" title={hint}>
       <div className="text-label text-text-muted">{label}</div>

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { journalEn, journalFr, journalAr, planEn, planFr, planAr } from "@/lib/i18nJournal";
 import { investorEn, investorFr, investorAr } from "@/lib/i18nInvestor";
+import { homeAppEn, homeAppFr, homeAppAr } from "@/lib/i18nHomeApp";
 import { feedEn, feedFr, feedAr, sigJournalEn, sigJournalFr, sigJournalAr, sigPlanEn, sigPlanFr, sigPlanAr } from "@/lib/i18nSignals";
 
 export type Lang = "en" | "ar" | "fr";
@@ -491,6 +492,7 @@ const en: Dict = {
     emptyPosition: "Enter your balance, investment amount, entry price and stop-loss to see the results.",
   },
   investor: { ...investorEn },
+  homeApp: { ...homeAppEn },
   journal: {
     title: "Journal",
     subtitle: "Saved on this device. Sign in to sync it across your devices. Export anytime.",
@@ -1516,6 +1518,7 @@ const ar: Dict = {
     emptyPosition: "أدخل رصيدك ومبلغ الاستثمار وسعر الدخول ووقف الخسارة لرؤية النتائج.",
   },
   investor: { ...investorAr },
+  homeApp: { ...homeAppAr },
   journal: {
     title: "السجل",
     subtitle: "يُحفظ على هذا الجهاز. سجّل الدخول لمزامنته بين أجهزتك. يمكنك التصدير في أي وقت.",
@@ -2541,6 +2544,7 @@ const fr: Dict = {
     emptyPosition: "Entrez votre solde, le montant investi, le prix d'entrée et le stop-loss pour voir les résultats.",
   },
   investor: { ...investorFr },
+  homeApp: { ...homeAppFr },
   journal: {
     title: "Journal",
     subtitle: "Enregistré sur cet appareil. Connectez-vous pour le synchroniser entre vos appareils. Exportez à tout moment.",

@@ -11,6 +11,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import NotificationBell from "@/components/NotificationBell";
 import AccountMenu from "@/components/AccountMenu";
+import { InstallMenuButton } from "@/components/InstallApp";
 import {
   IconOverview,
   IconRadar,
@@ -320,6 +321,7 @@ export default function Nav() {
               <Link href={academyLink.href} className={`px-2 py-2.5 text-sm transition-colors ${isOn(pathname, academyLink.href) ? "text-text" : "text-text-muted hover:text-text"}`}>
                 {academyLink.label}
               </Link>
+              <InstallMenuButton className="px-2 py-2.5 text-start text-sm text-text-muted transition-colors hover:text-text" onAfter={() => setOpen(false)} />
             </div>
           </nav>
 
