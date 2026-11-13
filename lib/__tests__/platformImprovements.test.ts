@@ -32,7 +32,7 @@ describe("Dashboard Investor overview", () => {
 describe("Academy 1-on-1 plan", () => {
   const src = read("components/academy/OneOnOnePlan.tsx");
   it("price, curriculum and a single WhatsApp-only CTA using the existing link", () => {
-    expect(src).toContain("usdt: 50"); expect(src).toContain("mru: 800");
+    expect(src).toContain("usdt: 20"); expect(src).toContain("mru: 800"); expect(src).not.toContain("usdt: 50"); expect(src).not.toMatch(/\b50\b/);
     expect(src).toContain("Technical analysis"); expect(src).toContain("Risk management and trade planning");
     expect((src.match(/<a /g) || []).length).toBe(1);
     expect(src).toContain('ONE_ON_ONE_WHATSAPP_URL = "https://wa.me/message/U4BSGXSUARE7P1"');

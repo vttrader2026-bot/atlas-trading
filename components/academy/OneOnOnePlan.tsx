@@ -5,7 +5,7 @@ import { useLanguage, type Lang } from "@/lib/i18n";
 
 /** Personal WhatsApp message link for 1-on-1 enrollment (a private chat, not a group invitation). */
 export const ONE_ON_ONE_WHATSAPP_URL = "https://wa.me/message/U4BSGXSUARE7P1";
-export const ONE_ON_ONE_PRICE = { usdt: 50, mru: 800 } as const;
+export const ONE_ON_ONE_PRICE = { usdt: 20, mru: 800 } as const;
 
 const COPY: Record<Lang, {
   badge: string; title: string; sub: string; curTitle: string; cur: string[]; priceTitle: string; usdt: string; mru: string;
