@@ -87,10 +87,11 @@ export function positionOf(t: Trade, price: number | null | undefined): Position
   const sold = t.size - left;
   const inv = investedOf(t);
   const costPer = t.size > 0 ? inv / t.size : 0;
-  const gross = exits.reduce((s, e) => s + (e.price - t.entry) * e.qty, 0);
+  const dir = t.side === "Short" ? -1 : 1; // same direction rule as journal.ts (legacy Short records)
+  const gross = exits.reduce((s, e) => s + (e.price - t.entry) * dir * e.qty, 0);
   const realized = exits.length ? gross - feesOf(t) : 0;
   const costSold = costPer * sold;
-  const unreal = left > 0 && price !== null && price !== undefined && price > 0 ? (price - t.entry) * left : left > 0 ? null : 0;
+  const unreal = left > 0 && price !== null && price !== undefined && price > 0 ? (price - t.entry) * dir * left : left > 0 ? null : 0;
   const total = unreal === null ? null : realized + unreal;
   return {
     size: t.size,

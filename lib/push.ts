@@ -140,7 +140,7 @@ export async function notifyTpSlSubscribers(trade: PublishedTrade, level: HitLev
         userIds.slice(i, i + 20).map(async (userId) => {
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           if (!prefs.enabled || !prefs.tradeFeed) return;
-          await sendToUser(userId, (lang) => tpSlPayload(trade, level, lang));
+          await sendToUser(userId, (lang) => tpSlPayload(trade, level, lang), TP_SL_PUSH_TTL);
         }),
       );
     }
@@ -149,11 +149,34 @@ export async function notifyTpSlSubscribers(trade: PublishedTrade, level: HitLev
   }
 }
 
+// LOCK-SAFETY-v1: the daily/weekly guards are claimed (SET NX) before sending so concurrent runs cannot both send.
+// If nobody received the notification (a failed send, a failed read, a crashed loop) the guard is released again so the
+// next cron run can retry. Once at least one device was reached the guard stays: no duplicates, no re-send.
+type RunStats = { sent: number; attempted: number; failed: number; threw: boolean };
+const newStats = (): RunStats => ({ sent: 0, attempted: 0, failed: 0, threw: false });
+const countRejected = (rs: PromiseSettledResult<unknown>[]) => rs.filter((r) => r.status === "rejected").length;
+
+async function releaseIfUndelivered(redis: NonNullable<ReturnType<typeof getRedis>>, keys: string[], st: RunStats): Promise<void> {
+  if (st.sent > 0 || (st.attempted === 0 && st.failed === 0 && !st.threw)) return;
+  for (const key of keys) {
+    try {
+      await redis.del(key);
+    } catch (err) {
+      console.error("push: could not release lock", key, err);
+    }
+  }
+}
+
 function withLocale(p: Payload, lang: Lang): Payload {
   return { ...p, lang: p.lang ?? lang, dir: p.dir ?? (lang === "ar" ? "rtl" : "ltr") };
 }
 
-export async function sendToUser(userId: string, build: (lang: Lang) => Payload): Promise<number> {
+/** Default push expiry (seconds). */
+export const DEFAULT_PUSH_TTL = 60 * 60;
+/** TP/SL alerts stay deliverable for 12 hours, so a phone that was off or offline still gets them. */
+export const TP_SL_PUSH_TTL = 12 * 60 * 60;
+
+export async function sendToUser(userId: string, build: (lang: Lang) => Payload, ttl: number = DEFAULT_PUSH_TTL): Promise<number> {
   const redis = getRedis();
   if (!redis || !configure()) return 0;
   const subs = await redis.hgetall<Record<string, StoredSub>>(subsKey(userId));
@@ -165,7 +188,7 @@ export async function sendToUser(userId: string, build: (lang: Lang) => Payload)
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: sub.keys },
           JSON.stringify(withLocale(build(normalizeLang(sub.lang)), normalizeLang(sub.lang))),
-          { TTL: 3600 },
+          { TTL: ttl },
         );
         delivered++;
       } catch (err) {
@@ -301,11 +324,11 @@ export async function notifyFreeUsersAnalyzerReset(): Promise<{ sent: number; re
   }
 
   const limit = analyzeLimitForPlan("free");
-  let sent = 0;
+  const st = newStats();
   try {
     const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
     for (let i = 0; i < userIds.length; i += 20) {
-      await Promise.allSettled(
+      const rs = await Promise.allSettled(
         userIds.slice(i, i + 20).map(async (userId) => {
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           // Its own toggle, not just the master switch - not everyone wants a
@@ -313,15 +336,19 @@ export async function notifyFreeUsersAnalyzerReset(): Promise<{ sent: number; re
           if (!prefs.enabled || !prefs.analyzerReset) return;
           const plan = await getUserPlan(userId);
           if (plan !== "free") return;
+          st.attempted++;
           const delivered = await sendToUser(userId, (lang) => analyzerResetPayload(lang, limit));
-          if (delivered > 0) sent++;
+          if (delivered > 0) st.sent++;
         }),
       );
+      st.failed += countRejected(rs);
     }
   } catch (err) {
+    st.threw = true;
     console.error("push: notifyFreeUsersAnalyzerReset failed", err);
   }
-  return { sent, reason: "ok" };
+  await releaseIfUndelivered(redis, [guardKey], st);
+  return { sent: st.sent, reason: "ok" };
 }
 
 const RADAR_ALERT_COOLDOWN_SEC = 20 * 60 * 60; // don't re-alert the same symbol+setup for ~a day
@@ -392,11 +419,12 @@ export async function notifyRadarAlerts(): Promise<{ sent: number; reason: strin
   rows.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
   const eligibleRows: RadarRow[] = [];
+  const claimedKeys: string[] = [];
   for (const row of rows) {
     if (eligibleRows.length >= RADAR_ALERT_MAX_PER_RUN) break;
     const guardKey = `push:radar-alert-sent:${row.ticker.symbol}:${row.setup}`;
     const firstTimeThisWindow = await redis.set(guardKey, "1", { nx: true, ex: RADAR_ALERT_COOLDOWN_SEC });
-    if (firstTimeThisWindow) eligibleRows.push(row);
+    if (firstTimeThisWindow) { eligibleRows.push(row); claimedKeys.push(guardKey); }
   }
   // Nothing genuinely new/liquid today - stay silent rather than notify out
   // of habit. This is the fix for "it always sends every day."
@@ -404,23 +432,27 @@ export async function notifyRadarAlerts(): Promise<{ sent: number; reason: strin
 
   // One consolidated "go check Radar" ping, not a per-symbol flood - the
   // eligibility check above already did the filtering.
-  let sent = 0;
+  const st = newStats();
   try {
     const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
     for (let i = 0; i < userIds.length; i += 20) {
-      await Promise.allSettled(
+      const rs = await Promise.allSettled(
         userIds.slice(i, i + 20).map(async (userId) => {
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           if (!prefs.enabled || !prefs.market) return;
+          st.attempted++;
           const delivered = await sendToUser(userId, (lang) => radarDigestPayload(lang));
-          if (delivered > 0) sent++;
+          if (delivered > 0) st.sent++;
         }),
       );
+      st.failed += countRejected(rs);
     }
   } catch (err) {
+    st.threw = true;
     console.error("push: notifyRadarAlerts failed", err);
   }
-  return { sent, reason: "ok" };
+  await releaseIfUndelivered(redis, claimedKeys, st);
+  return { sent: st.sent, reason: "ok" };
 }
 
 export function educationalPayload(lesson: Lesson, lang: Lang): Payload {
@@ -463,23 +495,27 @@ export async function notifyEducational(): Promise<{ sent: number; reason: strin
   if (pool.length === 0) return { sent: 0, reason: "no-lessons-available" };
   const pick = pool[Math.floor(Math.random() * pool.length)];
 
-  let sent = 0;
+  const st = newStats();
   try {
     const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
     for (let i = 0; i < userIds.length; i += 20) {
-      await Promise.allSettled(
+      const rs = await Promise.allSettled(
         userIds.slice(i, i + 20).map(async (userId) => {
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           if (!prefs.enabled || !prefs.educational) return;
+          st.attempted++;
           const delivered = await sendToUser(userId, (lang) => educationalPayload(pick, lang));
-          if (delivered > 0) sent++;
+          if (delivered > 0) st.sent++;
         }),
       );
+      st.failed += countRejected(rs);
     }
   } catch (err) {
+    st.threw = true;
     console.error("push: notifyEducational failed", err);
   }
-  return { sent, reason: "ok" };
+  await releaseIfUndelivered(redis, [guardKey], st);
+  return { sent: st.sent, reason: "ok" };
 }
 
 export function eliteNowPayload(lang: Lang): Payload {
@@ -527,23 +563,27 @@ export async function notifyElitePromo(): Promise<{ sent: number; reason: string
     return { sent: 0, reason: "already-sent-this-week" };
   }
 
-  let sent = 0;
+  const st = newStats();
   try {
     const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
     for (let i = 0; i < userIds.length; i += 20) {
-      await Promise.allSettled(
+      const rs = await Promise.allSettled(
         userIds.slice(i, i + 20).map(async (userId) => {
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           if (!prefs.enabled || !prefs.promotional) return;
           const plan = await getUserPlan(userId);
           if (plan === "elite") return; // never promo existing Elite members
+          st.attempted++;
           const delivered = await sendToUser(userId, (lang) => eliteNowPayload(lang));
-          if (delivered > 0) sent++;
+          if (delivered > 0) st.sent++;
         }),
       );
+      st.failed += countRejected(rs);
     }
   } catch (err) {
+    st.threw = true;
     console.error("push: notifyElitePromo failed", err);
   }
-  return { sent, reason: "ok" };
+  await releaseIfUndelivered(redis, [guardKey], st);
+  return { sent: st.sent, reason: "ok" };
 }
