@@ -1,7 +1,7 @@
 "use client";
 
 // ATLAS ANALYSIS CHART — Phase 5: shared chart used by both Radar and
-// Market Intelligence's "open chart" panels. Presentational only — it
+// Market Pulse's "open chart" panels. Presentational only — it
 // renders whatever candles it's given and recomputes indicators from them;
 // data fetching, timeframe switching, and the Analyze button live in the
 // AnalysisPanel wrapper that owns this component.

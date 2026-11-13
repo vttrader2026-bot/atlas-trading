@@ -68,7 +68,7 @@ export default function Home() {
         <ProductShowcase market={market} assets={assets} assetsFailed={assetsFailed} trades={trades} />
       </HomeSection>
 
-      {/* 4. MARKET INTELLIGENCE */}
+      {/* 4. MARKET PULSE */}
       <HomeSection eyebrow={t("homeV2.intel.eyebrow")} heading={t("homeV2.intel.heading")}>
         <IntelSection assets={assets} failed={assetsFailed} />
       </HomeSection>

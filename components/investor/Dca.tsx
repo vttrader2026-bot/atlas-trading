@@ -5,6 +5,7 @@ import { planProgress } from "@/lib/investor/dca";
 import type { PriceMap } from "@/lib/investor/calc";
 import { CoinLogo } from "@/components/market/MarketBits";
 import { useLanguage } from "@/lib/i18n";
+import BinanceSpotLink from "@/components/BinanceSpotLink";
 import AssetPicker from "./AssetPicker";
 import type { PurchaseDraft } from "./Ledger";
 import { fill, newId, parseNum, price, today, usd } from "./fmt";
@@ -87,6 +88,7 @@ function PlanForm({ prices, run, onDone }: { prices: PriceMap; run: Run; onDone:
   );
 }
 
+const signedPctStr = (n: number) => `${n > 0 ? "+" : ""}${n.toFixed(2)}%`;
 const STATUS_KEY = { done: "stDone", due: "stDue", upcoming: "stUpcoming", triggered: "stTriggered", waiting: "stWaiting" } as const;
 
 function PlanCard({ plan, doc, prices, run, onRecord }: { plan: DcaPlan; doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void }) {
@@ -111,6 +113,13 @@ function PlanCard({ plan, doc, prices, run, onRecord }: { plan: DcaPlan; doc: In
         <div className="h-2 w-full rounded-full bg-surface-raised overflow-hidden" dir="ltr" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pctDone)}><div className="h-full bg-gold" style={{ width: `${pctDone}%` }} /></div>
         <div className="mt-1 text-xs text-text-muted">{fill(t("investor.progress"), { done: pr.doneCount, total: pr.totalCount })}</div>
       </div>
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div><div className="text-xs text-text-muted">{t("investor.dcaQty")}</div><div dir="ltr" className="font-data">{pr.qty > 0 ? `${pr.qty} ${plan.asset}` : "-"}</div></div>
+        <div><div className="text-xs text-text-muted">{t("investor.dcaAvgEntry")}</div><div dir="ltr" className="font-data">{pr.avgEntry !== null ? price(pr.avgEntry) : "-"}</div>
+          {pr.avgEntry !== null && livePrice !== null && pr.avgEntry > 0 && <div dir="ltr" className={`text-[11px] ${livePrice >= pr.avgEntry ? "text-bull" : "text-bear"}`}>{signedPctStr((livePrice / pr.avgEntry - 1) * 100)} {t("investor.dcaVsNow")}</div>}
+        </div>
+      </div>
+      <p className="text-xs text-text-muted leading-relaxed">{t("investor.dcaBinanceNote")}</p>
       {pr.overCommitted && <p role="alert" className="text-sm text-gold">{t("investor.overCommitted")}</p>}
       <div>
         <h3 className="text-label text-text-muted">{t("investor.schedule")}</h3>
@@ -125,6 +134,7 @@ function PlanCard({ plan, doc, prices, run, onRecord }: { plan: DcaPlan; doc: In
               <span dir="ltr" className="font-data">{usd(s.amount)}</span>
               <span className={`tag ${s.status === "done" || s.status === "triggered" ? "tag-bull" : ""}`}>{t(`investor.${STATUS_KEY[s.status]}`)}</span>
               <span className="flex-1" />
+              {s.status !== "done" && <BinanceSpotLink pair={`${plan.asset}/USDT`} className="btn-secondary" hideWhenUnavailable />}
               {s.status !== "done" && <button type="button" className="btn-secondary" onClick={() => onRecord({ asset: plan.asset, amount: s.amount, planId: plan.id, slot: s.key })}>{t("investor.record")}</button>}
             </li>
           ))}

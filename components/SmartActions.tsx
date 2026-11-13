@@ -1,7 +1,7 @@
 "use client";
 
 // SMART ACTIONS: one reusable "what next?" block for a coin, used inside the shared chart panel that
-// both Radar and Market Intelligence open. It only links to existing pages (coin prefilled where the
+// both Radar and Market Pulse open. It only links to existing pages (coin prefilled where the
 // page supports it) and reuses the Watchlist star. It never saves anything and never assumes a trade.
 
 import Link from "next/link";

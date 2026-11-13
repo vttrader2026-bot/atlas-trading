@@ -95,7 +95,7 @@ export default function ProductShowcase({
         )}
       </Tile>
 
-      {/* MARKET INTELLIGENCE */}
+      {/* MARKET PULSE */}
       <Tile className="lg:col-span-3" delay={80} href="/market-intelligence" icon={<IconMarketIntel className="w-5 h-5" />} title={t("nav.marketIntel")} body={t("homeV2.products.intelBody")}>
         {topAssets === null ? (
           <Empty text={assetsFailed ? t("homeV2.intel.unavailable") : t("marketOverview.loading")} />

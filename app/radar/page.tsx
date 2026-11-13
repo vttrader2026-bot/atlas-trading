@@ -136,19 +136,19 @@ export default function RadarPage() {
       {rows && (
         <>
           <div className="mt-10">
-            <div className="flex items-baseline justify-between gap-x-4 gap-y-1 flex-wrap">
+            <div>
               <h2 className="font-heading text-xl sm:text-2xl font-bold tracking-tight">
                 {t("radar.shortlistTitle")}
               </h2>
-              <span className="text-sm text-text-muted">{t("radar.shortlistNote")}</span>
+              <p className="mt-1 max-w-2xl text-sm text-text-muted">{t("radar.shortlistNote")}</p>
             </div>
 
             {shortlist.length === 0 ? (
               <p className="mt-4 text-base text-text-muted">{t("radar.shortlistEmpty")}</p>
             ) : (
-              <div className="mt-4 flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory scrollbar-none -mx-6 px-6 sm:mx-0 sm:px-0 pb-1">
-                {shortlist.map((row) => (
-                  <ShortlistCard key={row.ticker.symbol} row={row} t={t} onViewChart={setChartSymbol} />
+              <div className="mt-4 flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto sm:overflow-visible snap-x snap-mandatory scrollbar-none -mx-6 px-6 sm:mx-0 sm:px-0 pb-1">
+                {shortlist.map((row, i) => (
+                  <ShortlistCard key={row.ticker.symbol} row={row} rank={i + 1} t={t} onViewChart={setChartSymbol} />
                 ))}
               </div>
             )}
@@ -396,43 +396,52 @@ export default function RadarPage() {
 
 function ShortlistCard({
   row,
+  rank,
   t,
   onViewChart,
 }: {
   row: RadarRow;
+  rank: number;
   t: (key: string) => string;
   onViewChart: (base: string) => void;
 }) {
   const base = row.ticker.symbol.replace("USDT", "");
+  // Strength bar: 10pp or more ahead of BTC fills it. Presentation only, the number itself is shown beside it.
+  const strength = Math.max(0, Math.min(100, (row.vsBtcPct / 10) * 100));
   return (
-    <div className="panel p-4 flex flex-col transition-colors hover:border-text-muted min-w-[250px] sm:min-w-0 snap-start shrink-0 sm:shrink relative">
-      <StarButton symbol={row.ticker.symbol} className="absolute top-2 end-2 z-10" />
-      <button onClick={() => onViewChart(base)} className="block w-full text-start">
+    <div className="group relative flex min-w-[240px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-gold/50 sm:min-w-0 sm:shrink">
+      <span aria-hidden className="absolute inset-y-0 start-0 w-1 bg-bull/70" />
+      <div className="flex items-center justify-between">
+        <span className="font-data text-xs text-text-muted" dir="ltr">#{rank}</span>
+        <StarButton symbol={row.ticker.symbol} />
+      </div>
+      <button onClick={() => onViewChart(base)} className="mt-1 block w-full text-start" aria-label={`${t("radar.viewChart")}: ${base}`}>
         <div className="flex items-center gap-3">
-          <CoinLogo base={base} size={36} />
+          <CoinLogo base={base} size={40} />
           <div className="min-w-0">
-            <div className="font-data leading-tight">
-              <span className="font-semibold text-base">{base}</span>
-              <span className="text-text-muted text-sm">/USDT</span>
+            <div className="font-data leading-tight" dir="ltr">
+              <span className="text-lg font-semibold">{base}</span>
+              <span className="text-sm text-text-muted">/USDT</span>
             </div>
-            <div className="mt-1">
-              <ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} />
-            </div>
+            <div className="mt-1"><ConditionBadge condition={row.condition} label={t(`radar.condition.${row.condition}`)} /></div>
           </div>
         </div>
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <span className="font-data text-xl font-semibold">${formatPrice(row.ticker.lastPrice)}</span>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+          <span className="font-data text-2xl font-bold tracking-tight" dir="ltr">${formatPrice(row.ticker.lastPrice)}</span>
           <ChangePill value={row.change} />
         </div>
       </button>
-      <div className="mt-3 text-sm text-gold font-data">
-        <span dir="ltr" style={{ unicodeBidi: "isolate", display: "inline-block" }}>
-          +{row.vsBtcPct.toFixed(2)}pp
-        </span>{" "}
-        {t("radar.vsBtc")}
+      <div className="mt-4">
+        <div className="flex items-baseline justify-between text-sm">
+          <span className="text-text-muted">{t("radar.vsBtc")}</span>
+          <span className="font-data font-semibold text-bull" dir="ltr" style={{ unicodeBidi: "isolate" }}>+{row.vsBtcPct.toFixed(2)}pp</span>
+        </div>
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line" dir="ltr" aria-hidden>
+          <div className="h-full rounded-full bg-bull" style={{ width: `${strength}%` }} />
+        </div>
       </div>
-      <button onClick={() => onViewChart(base)} className="mt-4 block w-full text-center text-sm btn-primary !py-2.5 !px-4">
-        {t("radar.viewChart")}
+      <button onClick={() => onViewChart(base)} className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg border border-line px-3 py-2 text-sm font-medium text-text-muted transition-colors group-hover:border-gold/50 group-hover:text-gold">
+        {t("radar.viewChart")}<span aria-hidden>{"→"}</span>
       </button>
     </div>
   );

@@ -1,4 +1,4 @@
-// ATLAS MARKET INTELLIGENCE — pure scoring/ranking functions.
+// ATLAS MARKET PULSE — pure scoring/ranking functions.
 // No network calls here; everything takes already-fetched data so it stays
 // easy to reason about and test. Nothing here invents numbers: a metric that
 // cannot be computed from real data is left as `null` and surfaced to the

@@ -29,6 +29,16 @@ export function nthDate(start: string, freq: Frequency, n: number): string {
   return ymd(new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), Math.min(day, last))));
 }
 
+/**
+ * Adds or updates a purchase. One plan slot = one purchase: if the slot already has a recorded purchase (double submit,
+ * second tab), that purchase is updated instead of a second transaction being added. Pure.
+ */
+export function withPlanPurchase(purchases: readonly Purchase[], p: Purchase): Purchase[] {
+  const prior = p.planId && p.slot ? slotPurchase(purchases, p.planId, p.slot) : undefined;
+  const next = { ...p, id: prior ? prior.id : p.id };
+  return purchases.some((x) => x.id === next.id) ? purchases.map((x) => (x.id === next.id ? next : x)) : [...purchases, next];
+}
+
 export type PlanProgress = {
   slots: Slot[];
   spent: number;
@@ -38,7 +48,15 @@ export type PlanProgress = {
   doneCount: number;
   totalCount: number;
   history: Purchase[];
+  /** Total quantity bought through this plan (recorded purchases only). */
+  qty: number;
+  /** Average entry = total cost incl. fees / total quantity of the recorded purchases. null until a purchase is recorded. */
+  avgEntry: number | null;
 };
+
+/** The purchase already recorded for a plan slot, if any. One slot = one purchase. */
+export const slotPurchase = (purchases: readonly Purchase[], planId: string, slot: string): Purchase | undefined =>
+  purchases.find((p) => p.planId === planId && p.slot === slot);
 
 export function planProgress(plan: DcaPlan, purchases: Purchase[], today: string, livePrice: number | null): PlanProgress {
   const linked = purchases.filter((p) => p.planId === plan.id);
@@ -59,8 +77,9 @@ export function planProgress(plan: DcaPlan, purchases: Purchase[], today: string
     slots.push({ key: `d${i + 1}`, kind: "dip", amount: d.amount, date: null, triggerPrice: trigger, dropPct: d.dropPct, purchase: p, status: p ? "done" : livePrice !== null && livePrice <= trigger ? "triggered" : "waiting" });
   });
   const spent = r8(linked.reduce((a, p) => a + purchaseCost(p), 0));
+  const qty = r8(linked.reduce((a, p) => a + p.qty, 0));
   const committed = r8(slots.reduce((a, s) => a + s.amount, 0));
-  return { slots, spent, remaining: r8(plan.budget - spent), committed, overCommitted: committed > plan.budget + 1e-9, doneCount: slots.filter((s) => s.status === "done").length, totalCount: slots.length, history: linked.sort((a, b) => b.date.localeCompare(a.date)) };
+  return { slots, spent, remaining: r8(plan.budget - spent), committed, overCommitted: committed > plan.budget + 1e-9, doneCount: slots.filter((s) => s.status === "done").length, totalCount: slots.length, history: linked.sort((a, b) => b.date.localeCompare(a.date)), qty, avgEntry: qty > 0 ? spent / qty : null };
 }
 
 export const plansOf = (doc: InvestorDoc) => doc.plans;

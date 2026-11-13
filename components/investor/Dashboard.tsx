@@ -8,6 +8,7 @@ import { useLanguage } from "@/lib/i18n";
 import PriceBadge from "./PriceBadge";
 import { fill, parseNum, pct, qty, signedPct, tone } from "./fmt";
 import { useMoney, UsdtNote } from "./currency";
+import { downloadInvestorPdf } from "@/lib/investorPdf";
 
 type Run = (m: (d: InvestorDoc) => InvestorDoc) => Promise<boolean>;
 export const COLORS = ["#f5b942", "#4fa3ff", "#34d399", "#f472b6", "#a78bfa", "#fb923c", "#22d3ee", "#facc15", "#94a3b8", "#f87171", "#2dd4bf", "#c084fc", "#60a5fa", "#a3e635", "#fda4af", "#fcd34d", "#7dd3fc"];
@@ -45,10 +46,21 @@ function ManualPriceRow({ asset, current, run }: { asset: string; current?: { pr
 
 export default function Dashboard({ s, doc, run, onSell }: { s: Summary; doc: InvestorDoc; run: Run; onSell: (asset: string, price: number | null) => void }) {
   const { t } = useLanguage();
-  const { usd, signedUsd, price } = useMoney();
+  const { usd, signedUsd, price, currency } = useMoney();
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfErr, setPdfErr] = useState(false);
+  const exportPdf = async () => {
+    setPdfBusy(true); setPdfErr(false);
+    try { await downloadInvestorPdf(doc, s, { currency, money: usd, signed: signedUsd, price }); } catch { setPdfErr(true); }
+    setPdfBusy(false);
+  };
   const needManual = s.holdings.filter((h) => h.price === null || h.price.source === "manual").map((h) => h.asset);
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {pdfErr && <span role="alert" className="text-xs text-bear">{t("investor.pdfError")}</span>}
+        <button type="button" className="btn-secondary" onClick={exportPdf} disabled={pdfBusy}>{pdfBusy ? t("investor.pdfBusy") : t("investor.downloadPdf")}</button>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <Stat label={t("investor.invested")} value={usd(s.invested)} hint={t("investor.investedHint")} />
         <Stat label={t("investor.value")} value={usd(s.value)} hint={t("investor.valueHint")} />

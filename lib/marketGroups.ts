@@ -1,6 +1,6 @@
 import type { AssetCategory } from "@/lib/marketIntelAssets";
 
-// Visual identity for the four Market Intelligence groups. Colours are CSS
+// Visual identity for the four Market Pulse groups. Colours are CSS
 // variables defined (per theme) in app/globals.css; group definitions and
 // membership live in lib/marketIntelAssets.ts and are not touched here.
 export const GROUP_STYLE: Record<AssetCategory, { color: string; mark: string }> = {

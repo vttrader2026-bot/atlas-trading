@@ -1,5 +1,6 @@
 "use client";
 // ATLAS INVESTOR: one form for purchases and sales. Fees are calculated automatically (Binance Taker, optional BNB discount).
+import { withPlanPurchase } from "@/lib/investor/dca";
 import { useEffect, useState } from "react";
 import { InvestorDoc, Purchase, Quote, Sale, r8 } from "@/lib/investor/model";
 import { previewSale } from "@/lib/investor/calc";
@@ -56,10 +57,11 @@ export default function TradeForm({ init, doc, run, onClose }: { init: TradeInit
     setErr(false);
     setSaving(true);
     const base = { id: init.id ?? newId(), asset, date, qty: q, price: p, fee: r8(fee), quote, ...(note.trim() ? { note: note.trim() } : {}) };
-    const done = await run((d) =>
-      sell
-        ? { ...d, sales: upsert(d.sales, base as Sale) }
-        : { ...d, purchases: upsert(d.purchases, { ...base, ...(init.planId ? { planId: init.planId } : {}), ...(init.slot ? { slot: init.slot } : {}) } as Purchase) });
+    const done = await run((d) => {
+      if (sell) return { ...d, sales: upsert(d.sales, base as Sale) };
+      // DCA: one plan slot = one purchase (see withPlanPurchase).
+      return { ...d, purchases: withPlanPurchase(d.purchases, { ...base, ...(init.planId ? { planId: init.planId } : {}), ...(init.slot ? { slot: init.slot } : {}) } as Purchase) };
+    });
     setSaving(false);
     if (done) onClose();
   };

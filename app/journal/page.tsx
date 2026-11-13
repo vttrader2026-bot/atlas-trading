@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Trade, computeDashboard, loadTrades, saveTrades, statusOf, unrealizedPnl } from "@/lib/journal";
 import { useLanguage } from "@/lib/i18n";
+import InvestorOverview from "@/components/investor/InvestorOverview";
 import { loadDraft } from "@/lib/tradePlan";
 import { planToTrade } from "@/lib/planBridge";
 import { getKlinesFrom, getTicker24h } from "@/lib/binance";
@@ -299,11 +300,15 @@ export default function JournalPage() {
 
       <Overview d={dash} unrealized={unrealized} partial={partial} t={t} />
 
+      <InvestorOverview />
+
+      <div id="trade-journal" className="scroll-mt-28">
       {trades.length === 0 ? (
         <div className="mt-8 card p-10 text-center text-text-muted text-sm">{t("journal.noTrades")}</div>
       ) : (
         <TradeViews trades={trades} view={view} setView={setView} q={q} setQ={setQ} prices={prices} onOpen={setSelected} onCloseTrade={(tr) => startEdit(tr, true)} highlight={highlight} t={t} />
       )}
+      </div>
 
       {current && (
         <TradeDetails

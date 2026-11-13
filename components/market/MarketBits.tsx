@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-// Small shared building blocks for market lists (Radar, Market Intelligence,
+// Small shared building blocks for market lists (Radar, Market Pulse,
 // Home previews). Presentation only — all numbers come from the caller.
 
 /** Percentage change with arrow + sign + colour (never colour alone). */

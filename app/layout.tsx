@@ -4,6 +4,7 @@ import Nav from "@/components/Nav";
 import JournalSync from "@/components/JournalSync";
 import TickerStrip from "@/components/TickerStrip";
 import Footer from "@/components/Footer";
+import QuickNav, { QuickNavSpacer } from "@/components/QuickNav";
 import RegisterServiceWorker from "@/components/RegisterServiceWorker";
 import { InstallProvider } from "@/components/InstallApp";
 import { LanguageProvider } from "@/lib/i18n";
@@ -97,8 +98,12 @@ export default function RootLayout({
             <Nav />
             <JournalSync />
             <TickerStrip />
-            {children}
+            <div className="lg:flex">
+              <QuickNav />
+              <div className="min-w-0 flex-1">{children}</div>
+            </div>
             <Footer />
+            <QuickNavSpacer />
           </InstallProvider>
         </LanguageProvider>
       </ClerkProvider>

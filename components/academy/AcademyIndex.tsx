@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
+import OneOnOnePlan from "@/components/academy/OneOnOnePlan";
 import BinanceResourceCard from "@/components/academy/BinanceResourceCard";
 import { SECTION_ORDER, SECTION_LABELS, lessonsBySection } from "@/lib/academy-content";
 
@@ -146,6 +147,8 @@ export default function AcademyIndex() {
           );
         })}
       </div>
+      <OneOnOnePlan whatsappUrl={WHATSAPP_URL} />
+
       <section className="mt-14 border-t border-line pt-10">
         <h2 className="font-heading text-xl sm:text-2xl font-bold tracking-tight">{CHROME.communityTitle[lang]}</h2>
         <p className="mt-2 text-sm text-text-muted max-w-xl leading-relaxed">{CHROME.communityBody[lang]}</p>

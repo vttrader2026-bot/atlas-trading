@@ -1,4 +1,4 @@
-// ATLAS MARKET INTELLIGENCE — self-contained translations for this page.
+// ATLAS MARKET PULSE — self-contained translations for this page.
 // Kept separate from lib/i18n.tsx so this feature never needs to touch that
 // file. Usage: const tr = (key: string) => miT(lang, key);
 
@@ -17,7 +17,7 @@ function flatten(dict: Dict, prefix = ""): Record<string, string> {
 }
 
 const en: Dict = {
-  title: "ATLAS MARKET INTELLIGENCE",
+  title: "ATLAS MARKET PULSE",
   subtitle:
     "A curated market-research view of crypto assets tied to major institutional portfolios, indices, and public narratives. This is a research tool for discovery and comparison — not a signal generator.",
   disclaimer:
@@ -97,7 +97,7 @@ const en: Dict = {
   },
   authGate: {
     title: "Join Atlas Trading for free",
-    body: "Sign in to view Atlas Market Intelligence — strength rankings, historical performance, and more.",
+    body: "Sign in to view Atlas Market Pulse — strength rankings, historical performance, and more.",
     signIn: "Sign In",
     signUp: "Create your free account →",
   },
@@ -184,14 +184,14 @@ const ar: Dict = {
   },
   authGate: {
     title: "انضم إلى Atlas Trading مجانًا",
-    body: "سجّل الدخول لعرض ذكاء السوق أطلس — تصنيف القوة، الأداء التاريخي، والمزيد.",
+    body: "سجّل الدخول لعرض نبض السوق أطلس — تصنيف القوة، الأداء التاريخي، والمزيد.",
     signIn: "تسجيل الدخول",
     signUp: "أنشئ حسابك المجاني ←",
   },
 };
 
 const fr: Dict = {
-  title: "ATLAS MARKET INTELLIGENCE",
+  title: "ATLAS MARKET PULSE",
   subtitle:
     "Un outil de recherche de marché pour suivre une sélection d'actifs crypto liés à des portefeuilles institutionnels, indices et narratifs publics majeurs. Un outil de recherche, pas un générateur de signaux.",
   disclaimer:
@@ -271,7 +271,7 @@ const fr: Dict = {
   },
   authGate: {
     title: "Rejoignez Atlas Trading gratuitement",
-    body: "Connectez-vous pour voir Atlas Market Intelligence — classement de force, performance historique, et plus.",
+    body: "Connectez-vous pour voir Atlas Market Pulse — classement de force, performance historique, et plus.",
     signIn: "Se connecter",
     signUp: "Créez votre compte gratuit →",
   },

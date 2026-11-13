@@ -1,4 +1,4 @@
-// Smart Actions: where a user can go next with a coin they found in Radar or Market Intelligence.
+// Smart Actions: where a user can go next with a coin they found in Radar or Market Pulse.
 // Pure helpers only. Every link opens an existing page; nothing is created or saved from here.
 
 import { isSupportedTicker } from "@/lib/investor/assets";

@@ -1,7 +1,7 @@
 "use client";
 
 // HERO-PHONE-v1: the homepage hero smartphone. Same CSS phone as the Investor showcase (frame, proportions, styling and
-// float animation), with a compact dashboard of the whole Atlas ecosystem: market, Market Intelligence, Radar, an active
+// float animation), with a compact dashboard of the whole Atlas ecosystem: market, Market Pulse, Radar, an active
 // Trade Feed signal, the AI Analyzer and Investor tracking. All DEMO data (lib/demoHero.ts): no network, no account.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLanguage } from "@/lib/i18n";
@@ -103,7 +103,7 @@ export default function HeroPhone() {
                     <Coin c={DEMO_MARKET.eth} />
                   </section>
 
-                  {/* Market Intelligence */}
+                  {/* Market Pulse */}
                   <Panel title={t("nav.marketIntel")} delay={160}>
                     <div className="flex items-center gap-4">
                       <div className="min-w-0 flex-1">

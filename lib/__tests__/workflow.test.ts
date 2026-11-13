@@ -44,7 +44,7 @@ describe("workflow page and navigation wiring", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(page).not.toMatch(/disabled|locked|aria-disabled/);
   });
-  it("Discover lists Radar, Market Intelligence, Watchlist in that order and keeps Open Radar as the main CTA", () => {
+  it("Discover lists Radar, Market Pulse, Watchlist in that order and keeps Open Radar as the main CTA", () => {
     const discover = page.slice(page.indexOf('key: "discover"'), page.indexOf('key: "analyze"'));
     const radar = discover.indexOf('href: "/radar", label');
     const mi = discover.indexOf('href: "/market-intelligence", label: t("nav.marketIntel")');
@@ -55,11 +55,11 @@ describe("workflow page and navigation wiring", () => {
     expect(discover).toMatch(/\n      href: "\/radar",/);
     expect((page.match(/key: "(discover|analyze|plan|execute|manage|review)"/g) ?? []).length).toBe(6);
   });
-  it("Discover descriptions mention Market Intelligence in EN, FR and AR", () => {
+  it("Discover descriptions mention Market Pulse in EN, FR and AR (renamed from Market Intelligence)", () => {
     const d = (l: "en" | "fr" | "ar") => (dictionaries[l].workflow as { steps: { discover: { desc: string; cta: string } } }).steps.discover;
-    expect(d("en").desc).toContain("Market Intelligence");
-    expect(d("fr").desc).toContain("Intelligence Marché");
-    expect(d("ar").desc).toContain("ذكاء السوق");
+    expect(d("en").desc).toContain("Market Pulse");
+    expect(d("fr").desc).toContain("Market Pulse");
+    expect(d("ar").desc).toContain("نبض السوق");
     expect(d("en").cta).toBe("Open Radar");
     expect(d("fr").cta).toBe("Ouvrir le Radar");
     expect(d("ar").cta).toBe("افتح الرادار");

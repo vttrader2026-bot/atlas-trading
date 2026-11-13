@@ -1,7 +1,7 @@
 "use client";
 
 // ATLAS ANALYSIS PANEL — Phase 5: the mobile-first "open chart" experience
-// embedded in Radar and Market Intelligence. Owns candle fetching (with
+// embedded in Radar and Market Pulse. Owns candle fetching (with
 // stale-request cancellation on symbol/timeframe switches), the timeframe
 // and indicator controls, the fullscreen/expanded layout, and the inline
 // "Analyze with Atlas AI" call — all without navigating away from the host

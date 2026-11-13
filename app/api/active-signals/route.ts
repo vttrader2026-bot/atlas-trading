@@ -4,7 +4,7 @@ import { TRADE_FEED_KEY, type PublishedTrade } from "@/lib/tradeFeed";
 import { publicActiveSignals } from "@/lib/activeSignals";
 
 // ACTIVE-SIGNAL-v1: PUBLIC (no sign-in). Returns only [{ symbol, id }] for currently active setups so Radar and
-// Market Intelligence can show an "Active Signal" badge to everyone. Nothing else about a signal is ever returned here;
+// Market Pulse can show an "Active Signal" badge to everyone. Nothing else about a signal is ever returned here;
 // the setup itself still needs the existing Trade Feed access rules.
 export const dynamic = "force-dynamic";
 

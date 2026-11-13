@@ -171,7 +171,7 @@ export default function Nav() {
   }, [pathname]);
 
   // WORKFLOW-v1: simplified primary navigation. Dashboard opens the Journal (trade dashboard and performance);
-  // Markets groups Radar, Market Intelligence and Watchlist. Every other route (Analyzer, Trade Plan, Trade Feed,
+  // Markets groups Radar, Market Pulse and Watchlist. Every other route (Analyzer, Trade Plan, Trade Feed,
   // Risk Calculator, ...) is unchanged and reachable from the Workflow page, the footer and direct links.
   const MARKETS = [
     { href: "/radar", label: t("nav.radar") },

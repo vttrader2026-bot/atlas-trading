@@ -1,6 +1,6 @@
 // ATLAS SHARE — copy and geometry for the downloadable promo cards.
 // Texts were checked against what each section really does and who can use
-// it (Radar and Academy are public; Market Intelligence and the Analyzer need
+// it (Radar and Academy are public; Market Pulse and the Analyzer need
 // a free account; nothing here is Elite-only). Do not add claims about
 // profits, results or accuracy.
 
@@ -71,7 +71,7 @@ export const CARD_CONTENT: Record<
   marketIntel: {
     slug: "market-intelligence",
     tag: { en: "FREE TOOL", ar: "أداة مجانية", fr: "OUTIL GRATUIT" },
-    label: { en: "ATLAS MARKET INTELLIGENCE", ar: "ذكاء السوق من أطلس", fr: "ATLAS MARKET INTELLIGENCE" },
+    label: { en: "ATLAS MARKET PULSE", ar: "نبض السوق من أطلس", fr: "ATLAS MARKET PULSE" },
     headline: { en: "Which coins are outperforming Bitcoin?", ar: "أي العملات تتفوق على البيتكوين؟", fr: "Quelles cryptos surperforment le Bitcoin ?" },
     sentence: {
       en: "A free research view that ranks curated crypto assets by market strength. Not trading signals.",

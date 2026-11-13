@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/lib/i18n";
 import PromoCard from "@/components/share/PromoCard";
+import SharePhones from "@/components/share/SharePhones";
 import {
   CARD_CONTENT,
   CARD_SECTIONS,
@@ -24,6 +25,10 @@ const C: Record<string, L3> = {
     ar: "حمّل بطاقات ترويجية جاهزة لأدوات أطلس وشاركها على تيك توك وتيليجرام وفيسبوك أو أي مكان تنشر فيه.",
     fr: "Téléchargez des cartes promo prêtes à l'emploi pour les outils Atlas et partagez-les sur TikTok, Telegram, Facebook ou ailleurs.",
   },
+  phonesTitle: { en: "Atlas in your pocket", ar: "أطلس في جيبك", fr: "Atlas dans votre poche" },
+  phonesSub: { en: "One platform for analysis, trade planning, the Trade Feed and your long-term portfolio. Screens show illustrative demo data.", ar: "منصة واحدة للتحليل وتخطيط الصفقات وخلاصة الصفقات ومحفظتك طويلة الأجل. الشاشات تعرض بيانات تجريبية توضيحية.", fr: "Une seule plateforme pour l'analyse, la planification, le Trade Feed et votre portefeuille long terme. Les écrans montrent des données de démonstration." },
+  phoneA: { en: "AI Analyzer and Trade Feed", ar: "المحلل الذكي وخلاصة الصفقات", fr: "Analyseur IA et Trade Feed" },
+  phoneB: { en: "Atlas Investor", ar: "أطلس إنفستور", fr: "Atlas Investor" },
   card: { en: "Card", ar: "البطاقة", fr: "Carte" },
   cardLang: { en: "Card language", ar: "لغة البطاقة", fr: "Langue de la carte" },
   cardStyle: { en: "Card style", ar: "نمط البطاقة", fr: "Style de la carte" },
@@ -44,7 +49,7 @@ const C: Record<string, L3> = {
 };
 
 const SECTION_NAME: Record<CardSection, L3> = {
-  marketIntel: { en: "Market Intelligence", ar: "ذكاء السوق", fr: "Market Intelligence" },
+  marketIntel: { en: "Market Pulse", ar: "نبض السوق", fr: "Market Pulse" },
   analyzer: { en: "Analyzer", ar: "المحلل", fr: "Analyseur" },
   radar: { en: "Radar", ar: "الرادار", fr: "Radar" },
   academy: { en: "Academy", ar: "الأكاديمية", fr: "Académie" },
@@ -204,6 +209,8 @@ export default function SharePage() {
     <main className="max-w-5xl mx-auto px-6 py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{tr("title")}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{tr("subtitle")}</p>
+
+      <SharePhones c={{ title: tr("phonesTitle"), sub: tr("phonesSub"), a: tr("phoneA"), b: tr("phoneB") }} />
 
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-start">
         {/* CONTROLS */}
