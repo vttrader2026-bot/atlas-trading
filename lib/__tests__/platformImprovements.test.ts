@@ -68,6 +68,8 @@ describe("Share page", () => {
     expect(p).toContain('from "@/components/home/HeroPhone"'); expect(p).toContain('from "@/components/home/InvestorPhone"');
     const page = read("app/share/page.tsx");
     expect(page).toContain("<SharePhones"); expect(page).toContain("<PromoCard"); expect(page).toContain("toBlob");
+    expect(page).not.toContain("ScaledPreview"); expect(page).not.toContain("previewSize");
+    expect(page).toContain('run(size, "download")'); expect(page).toContain('run(size, "share")'); expect(page).toContain("ref={refs[size]}");
   });
 });
 

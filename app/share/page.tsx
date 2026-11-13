@@ -5,7 +5,6 @@ import { useLanguage } from "@/lib/i18n";
 import PromoCard from "@/components/share/PromoCard";
 import SharePhones from "@/components/share/SharePhones";
 import {
-  CARD_CONTENT,
   CARD_SECTIONS,
   CARD_SIZES,
   cardFileName,
@@ -85,36 +84,6 @@ function Seg<T extends string>({
   );
 }
 
-/** Shows a full-size card scaled down to the width of its container. */
-function ScaledPreview({ size, children }: { size: CardSize; children: React.ReactNode }) {
-  const { w, h } = CARD_SIZES[size];
-  const box = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.3);
-
-  useEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    const update = () => setScale(el.clientWidth / w);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [w]);
-
-  return (
-    <div
-      ref={box}
-      dir="ltr"
-      className="relative w-full overflow-hidden rounded-xl border border-line mx-auto"
-      style={{ aspectRatio: `${w} / ${h}`, maxWidth: size === "tiktok" ? 340 : size === "square" ? 520 : 640 }}
-    >
-      <div style={{ position: "absolute", top: 0, left: 0, width: w, height: h, transform: `scale(${scale})`, transformOrigin: "top left" }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 export default function SharePage() {
   const { lang } = useLanguage();
   const tr = (k: string) => C[k][lang];
@@ -122,7 +91,6 @@ export default function SharePage() {
   const [section, setSection] = useState<CardSection>("radar");
   const [cardLang, setCardLang] = useState<CardLang>("en");
   const [cardStyle, setCardStyle] = useState<CardStyle>("dark");
-  const [previewSize, setPreviewSize] = useState<CardSize>("tiktok");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [canShare, setCanShare] = useState(false);
@@ -203,7 +171,6 @@ export default function SharePage() {
     }
   }
 
-  const content = CARD_CONTENT[section];
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
@@ -212,7 +179,7 @@ export default function SharePage() {
 
       <SharePhones c={{ title: tr("phonesTitle"), sub: tr("phonesSub"), a: tr("phoneA"), b: tr("phoneB") }} />
 
-      <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-start">
+      <div className="mt-10 mx-auto max-w-2xl">
         {/* CONTROLS */}
         <div className="space-y-5">
           <div>
@@ -280,22 +247,6 @@ export default function SharePage() {
             ))}
             {error && <p className="text-sm text-bear">{tr("error")}</p>}
           </div>
-        </div>
-
-        {/* PREVIEW */}
-        <div>
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <div className="text-label text-text-muted">{tr("preview")}</div>
-            <Seg
-              value={previewSize}
-              onChange={setPreviewSize}
-              options={SIZES.map((s) => ({ value: s, label: CARD_SIZES[s].w + "×" + CARD_SIZES[s].h }))}
-            />
-          </div>
-          <ScaledPreview size={previewSize}>
-            <PromoCard section={section} lang={cardLang} style={cardStyle} size={previewSize} />
-          </ScaledPreview>
-          <p className="mt-3 text-xs text-text-muted text-center">{content.label[cardLang]}</p>
         </div>
       </div>
 
