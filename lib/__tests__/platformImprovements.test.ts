@@ -35,14 +35,18 @@ describe("Academy 1-on-1 plan", () => {
     expect(src).toContain("usdt: 50"); expect(src).toContain("mru: 800");
     expect(src).toContain("Technical analysis"); expect(src).toContain("Risk management and trade planning");
     expect((src.match(/<a /g) || []).length).toBe(1);
-    expect(src).toContain("whatsappUrl");
-    expect(src).not.toMatch(/wa\.me|https?:\/\//); // no link or number invented here
+    expect(src).toContain('ONE_ON_ONE_WHATSAPP_URL = "https://wa.me/message/U4BSGXSUARE7P1"');
+    expect(src).toContain("href={ONE_ON_ONE_WHATSAPP_URL}");
+    expect(src).not.toMatch(/chat\.whatsapp\.com/); // the group invitation is not used for 1-on-1
+    expect((src.match(/https?:\/\//g) || []).length).toBe(1);
+    expect(src.match(/private/gi)?.length).toBeGreaterThanOrEqual(4); // EN/FR use "private"/"privé"; checked below
+    expect(src).toMatch(/message privé/); expect(src).toMatch(/رسالة واتساب خاصة/); expect(src).toMatch(/It is not a group/);
     expect(src).not.toMatch(/Bankily|Masrivi|Sedad|\/api\/payments/);
   });
-  it("the Academy page passes its existing WhatsApp constant", () => {
+  it("the group link stays for the community section only, not passed to the 1-on-1 plan", () => {
     const a = read("components/academy/AcademyIndex.tsx");
-    expect(a).toContain("<OneOnOnePlan whatsappUrl={WHATSAPP_URL} />");
-    expect(a).toMatch(/const WHATSAPP_URL = /);
+    expect(a).toContain("<OneOnOnePlan />");
+    expect(a).toMatch(/const WHATSAPP_URL = "https:\/\/chat\.whatsapp\.com/);
   });
 });
 

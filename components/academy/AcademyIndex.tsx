@@ -147,7 +147,7 @@ export default function AcademyIndex() {
           );
         })}
       </div>
-      <OneOnOnePlan whatsappUrl={WHATSAPP_URL} />
+      <OneOnOnePlan />
 
       <section className="mt-14 border-t border-line pt-10">
         <h2 className="font-heading text-xl sm:text-2xl font-bold tracking-tight">{CHROME.communityTitle[lang]}</h2>
