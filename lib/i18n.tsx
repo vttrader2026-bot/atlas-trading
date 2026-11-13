@@ -3189,3 +3189,10 @@ export function useLanguage() {
   return ctx;
 }
 
+
+/** Renders its children in a fixed language, independent of the site's language (used by the Social Media Studio canvas). */
+export function LanguageOverride({ lang, children }: { lang: Lang; children: React.ReactNode }) {
+  const parent = useLanguage();
+  const t = (path: string) => resolve(dictionaries[lang], path);
+  return <LanguageContext.Provider value={{ ...parent, lang, t }}>{children}</LanguageContext.Provider>;
+}

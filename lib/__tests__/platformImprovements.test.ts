@@ -63,13 +63,10 @@ describe("Market Pulse rename and homepage text", () => {
 });
 
 describe("Share page", () => {
-  it("shows reused virtual phones and keeps the card builder and downloads", () => {
-    const p = read("components/share/SharePhones.tsx");
-    expect(p).toContain('from "@/components/home/HeroPhone"'); expect(p).toContain('from "@/components/home/InvestorPhone"');
-    const page = read("app/share/page.tsx");
-    expect(page).toContain("<SharePhones"); expect(page).toContain("<PromoCard"); expect(page).toContain("toBlob");
-    expect(page).not.toContain("ScaledPreview"); expect(page).not.toContain("previewSize");
-    expect(page).toContain('run(size, "download")'); expect(page).toContain('run(size, "share")'); expect(page).toContain("ref={refs[size]}");
+  it("is the Social Media Studio: virtual phones, no promo cards, PNG export kept", () => {
+    const page = read("app/share/page.tsx"), canvas = read("components/studio/StudioCanvas.tsx");
+    expect(page).toContain("<StudioCanvas"); expect(page).toContain("toBlob"); expect(page).not.toContain("PromoCard");
+    expect(canvas).toContain('from "@/components/home/HeroPhone"'); expect(canvas).toContain('from "@/components/home/InvestorPhone"');
   });
 });
 
