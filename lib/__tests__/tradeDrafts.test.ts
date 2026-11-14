@@ -217,7 +217,7 @@ describe("Trade Plan page wiring", () => {
     for (const k of ["drafts.loading", "drafts.empty", "drafts.errSave", "drafts.rename", "drafts.confirmDelete", "drafts.new", "drafts.open"]) expect(panel).toContain(k);
   });
   it("keeps the confirmation, execution and Journal workflow code", () => {
-    for (const s of ["confirmEntry", "revertDraft", "sendToJournal", "planToTrade(", "confirmPlanIfElite", "saveToAccount", "publishToFeed"]) expect(page).toContain(s);
+    for (const s of ["confirmEntry", "revertDraft", "sendToJournal", "planToTrade(", "confirmPlanIfElite", "saveToAccount", "PublishToFeedButton"]) expect(page).toContain(s);
   });
   it("every language has the draft strings", () => {
     const i18n = readFileSync("lib/i18n.tsx", "utf8");

@@ -183,11 +183,10 @@ describe("GET /api/trade-feed - who sees which tier", () => {
 });
 
 describe("POST /api/trade-feed - tier assignment", () => {
-  it("website Trade Plan (admin secret) publishes ELITE automatically", async () => {
+  it("OWNER-PUBLISH-v1: the shared admin secret can no longer publish here (owner publishing is /api/admin/signals/quick-publish)", async () => {
     const res = await post(ADMIN);
-    expect(res.status).toBe(201);
-    expect(h.list[0].tier).toBe("elite");
-    expect(h.list[0].pair).toBe("ETHUSDT");
+    expect(res.status).toBe(403);
+    expect(h.list).toHaveLength(3);
   });
   it("Telegram bot (bot secret) keeps publishing FREE", async () => {
     const res = await post(BOT, { tradeId: "T300" });
@@ -198,8 +197,8 @@ describe("POST /api/trade-feed - tier assignment", () => {
   it("there is no selector: a tier in the request body is ignored", async () => {
     await post(BOT, { tier: "elite" });
     expect(h.list[0].tier).toBe("free");
-    await post(ADMIN, { tier: "free" });
-    expect(h.list[0].tier).toBe("elite");
+    expect((await post(ADMIN, { tier: "free" })).status).toBe(403);
+    expect(h.list).toHaveLength(4);
   });
   it("wrong or missing secret is rejected", async () => {
     expect((await post("nope")).status).toBe(401);
@@ -207,7 +206,7 @@ describe("POST /api/trade-feed - tier assignment", () => {
     expect(h.list).toHaveLength(3);
   });
   it("a published Elite signal reaches Elite and admin viewers but not Free/Analyzer viewers", async () => {
-    await post(ADMIN, { pair: "ADAUSDT" });
+    h.list.unshift(trade({ id: "newelite", tier: "elite", pair: "ADAUSDT" })); // as stored by the owner publish route
     const newId = h.list[0].id as string;
     h.metadata = { plan: "elite" };
     expect(await ids(await getFeed())).toContain(newId);
@@ -217,12 +216,12 @@ describe("POST /api/trade-feed - tier assignment", () => {
     expect(await ids(await getFeed())).not.toContain(newId);
     expect(await ids(await getFeed({ "x-admin-secret": ADMIN }))).toContain(newId);
   });
-  it("push notifications: every new signal notifies once, FREE (bot) and ELITE (website) alike", async () => {
+  it("push notifications: a bot publish notifies once; a refused admin-secret publish notifies nobody", async () => {
     await post(BOT);
     await post(ADMIN);
     h.after.forEach((fn) => fn());
-    expect(push.trade).toHaveBeenCalledTimes(2);
-    expect(push.trade.mock.calls.map((c) => c[0].tier).sort()).toEqual(["elite", "free"]);
+    expect(push.trade).toHaveBeenCalledTimes(1);
+    expect(push.trade.mock.calls.map((c) => c[0].tier)).toEqual(["free"]);
   });
 });
 
@@ -300,10 +299,12 @@ describe("REGRESSION: a FREE account must never retrieve Trade Plan (ELITE) sign
   const publishFromTradePlan = (secret: string) => POST(new Request("http://x/api/trade-feed", { method: "POST", body: JSON.stringify({ secret, ...tradePlanBody }) }));
   const viewers: Array<[string, Record<string, unknown>]> = [["no plan", {}], ["free", { plan: "free" }], ["analyzer", { plan: "analyzer" }], ["expired", { plan: "expired" }]];
 
-  it("a Trade Plan publish is stored as ELITE and no FREE/Analyzer/expired account can fetch it", async () => {
-    expect((await publishFromTradePlan(ADMIN)).status).toBe(201);
+  it("a Trade Plan ELITE signal (stored by the owner route) is invisible to FREE/Analyzer/expired accounts; the old secret publish is refused", async () => {
+    const before = h.list.length;
+    expect((await publishFromTradePlan(ADMIN)).status).toBe(403);
+    expect(h.list).toHaveLength(before);
+    h.list.unshift(trade({ id: "tp-elite", tier: "elite", pair: "BTCUSDT", entryZone: "100-101", tp3: "120" }));
     const published = h.list[0];
-    expect(published.tier).toBe("elite");
     for (const [name, metadata] of viewers) {
       h.metadata = metadata;
       const raw = await (await getFeed()).text();

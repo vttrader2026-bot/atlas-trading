@@ -5,6 +5,7 @@ import { ENGINE_CONFIG, type EngineResult } from "@/lib/analyzerEngine";
 import { useLanguage } from "@/lib/i18n";
 import { saveDraft, firstNumber, type TradePlanDraft } from "@/lib/tradePlan";
 import Frame, { Num } from "@/components/analyzer/Frame";
+import PublishToFeedButton from "@/components/feed/PublishToFeedButton";
 import { fill, px, verdictOf, type AnalysisData } from "@/components/analyzer/types";
 
 
@@ -153,8 +154,23 @@ export default function TradePlanPanel({ data, engine }: { data: AnalysisData; e
           {data.tradePlan.riskNote}
         </p>
       )}
-      <div className="mt-5">
+      <div className="mt-5 flex flex-wrap items-start gap-3">
         <CreateTradePlanButton data={data} />
+        {/* OWNER-PUBLISH-v1: shown only to the owner, and only here (VALID_SETUP with an engine plan). */}
+        <PublishToFeedButton
+          source="analyzer"
+          setup={{
+            pair: data.pair,
+            direction: "Long",
+            timeframe: data.timeframe || "",
+            entryZone: plan.entry.low === plan.entry.high ? px(plan.entry.low) : `${px(plan.entry.low)} – ${px(plan.entry.high)}`,
+            invalidation: px(plan.stopLoss),
+            tp1: px(plan.targets[0].price),
+            tp2: px(plan.targets[1].price),
+            tp3: px(plan.targets[2].price),
+            reasoning: [data.currentCondition?.explanation, data.bullishScenario?.why].filter(Boolean).join(" "),
+          }}
+        />
       </div>
     </Frame>
   );

@@ -102,6 +102,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // OWNER-PUBLISH-v1: publishing from the website is owner-only and goes through POST /api/admin/signals/quick-publish
+  // (Clerk owner identity). A shared admin secret can no longer publish here; the Telegram bot's own secret is unchanged.
+  if (isAdmin) {
+    return NextResponse.json({ error: "Publishing moved to the owner account" }, { status: 403 });
+  }
+
   // The website Trade Plan labels its publishes (source: "trade-plan"). Such a publish must be authenticated
   // as the admin so it can only ever become ELITE. If it arrives with the bot's secret (e.g. a wrong secret
   // saved in the browser) it is refused instead of being silently stored as a FREE, publicly visible signal.

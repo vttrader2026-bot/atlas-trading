@@ -19,9 +19,9 @@ import { fetchFeed, syncLocalRecords } from "@/lib/signalSync";
 import { confirmPlanIfElite, outcomeText } from "@/lib/eliteConfirmClient";
 import { ExitStrategyPicker } from "@/components/journal/ExitStrategyPicker";
 import BinanceSpotLink from "@/components/BinanceSpotLink";
+import PublishToFeedButton from "@/components/feed/PublishToFeedButton";
 import { fillOutsideSignalZone, upsertPlanTrade } from "@/lib/planJournalSync";
 
-const ADMIN_KEY = "atlas-trading.adminSecret";
 
 const ERR_KEY: Record<RiskError, string> = {
   stopNotBelowEntry: "risk.errStop",
@@ -39,8 +39,6 @@ export default function TradePlanPage() {
   const { isLoaded, isSignedIn, userId } = useAuth();
   const [draft, setDraft] = useState<TradePlanDraft>(emptyDraft);
   const [loaded, setLoaded] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [publishMsg, setPublishMsg] = useState<string | null>(null);
   const [savingAccount, setSavingAccount] = useState(false);
   const [accountMsg, setAccountMsg] = useState<string | null>(null);
   const [showSignIn, setShowSignIn] = useState(false);
@@ -336,40 +334,6 @@ export default function TradePlanPage() {
     }
   }
 
-  async function publishToFeed() {
-    if (!draft.pair || draft.direction !== "Long") return;
-    let secret = window.localStorage.getItem(ADMIN_KEY);
-    if (!secret) {
-      secret = window.prompt(t("tradePlan.enterAdminSecret"));
-      if (!secret) return;
-    }
-    setPublishing(true);
-    setPublishMsg(null);
-    try {
-      const res = await fetch("/api/trade-feed", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          secret, source: "trade-plan", pair: draft.pair, direction: draft.direction, timeframe: draft.timeframe,
-          entryZone: draft.entryZone || draft.entry, invalidation: draft.invalidationText || draft.invalidation,
-          // TP3 Only has no TP1 / TP2: publish what the plan shows.
-          tp1: strategy === "tp3" ? "" : draft.tp1, tp2: strategy === "tp3" ? "" : draft.tp2, tp3: draft.tp3, reasoning: draft.reasoning,
-        }),
-      });
-      if (res.status === 401) {
-        window.localStorage.removeItem(ADMIN_KEY);
-        setPublishMsg(t("tradePlan.publishUnauthorized"));
-      } else if (res.ok) {
-        window.localStorage.setItem(ADMIN_KEY, secret);
-        setPublishMsg(t("tradePlan.publishSuccess"));
-      } else setPublishMsg(t("tradePlan.publishError"));
-    } catch {
-      setPublishMsg(t("tradePlan.publishError"));
-    } finally {
-      setPublishing(false);
-    }
-  }
-
   const v = calc.ok ? calc.value : null;
   const calcErr = !calc.ok && calc.error !== "incomplete" ? calc.error : null;
   const sent = journalHas;
@@ -622,9 +586,16 @@ export default function TradePlanPage() {
         ) : (
           <button type="button" onClick={sendToJournal} disabled={!draft.pair || draft.direction === "Wait" || !entered} className="btn-primary">{t("tradePlan.sendToJournal")}</button>
         )}
-        <button type="button" onClick={publishToFeed} disabled={publishing || !draft.pair || draft.direction !== "Long"} className="btn-secondary">
-          {publishing ? t("tradePlan.publishing") : t("tradePlan.publishToFeed")}
-        </button>
+        {/* OWNER-PUBLISH-v1: owner-only; the server re-checks the owner and validates the levels. */}
+        <PublishToFeedButton
+          source="trade-plan"
+          setup={{
+            pair: draft.pair, direction: draft.direction, timeframe: draft.timeframe,
+            entryZone: draft.entryZone || draft.entry, invalidation: draft.invalidationText || draft.invalidation,
+            // TP3 Only has no TP1 / TP2: publish what the plan shows.
+            tp1: strategy === "tp3" ? "" : draft.tp1, tp2: strategy === "tp3" ? "" : draft.tp2, tp3: draft.tp3, reasoning: draft.reasoning,
+          }}
+        />
         <button type="button" onClick={saveToAccount} disabled={savingAccount || !draft.pair} className="btn-secondary">
           {savingAccount ? t("tradePlan.savingToAccount") : t("tradePlan.saveToAccount")}
         </button>
@@ -642,7 +613,6 @@ export default function TradePlanPage() {
         </div>
       )}
       {sendMsg && <p className="mt-3 text-sm text-text-muted" role="status">{sendMsg}</p>}
-      {publishMsg && <p className="mt-3 text-sm text-text-muted">{publishMsg}</p>}
       {accountMsg && (
         <p className="mt-3 text-sm text-text-muted">
           {accountMsg}{" "}
