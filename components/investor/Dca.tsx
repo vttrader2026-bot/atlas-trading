@@ -102,6 +102,8 @@ function PlanCard({ plan, doc, prices, run, onRecord }: { plan: DcaPlan; doc: In
       <div className="flex items-center gap-3">
         <CoinLogo base={plan.asset} size={30} />
         <div className="flex-1 min-w-0"><div className="font-semibold truncate">{plan.name}</div><div dir="ltr" className="font-data text-xs text-text-muted text-start">{plan.asset}</div></div>
+        {/* ONE-BINANCE-BUTTON-v1: a single manual "Open in Binance" link per plan (its own pair); steps only have Record. */}
+        <BinanceSpotLink pair={`${plan.asset}/USDT`} className="btn-secondary" hideWhenUnavailable />
         <button type="button" className="text-xs text-text-muted underline" onClick={() => { if (window.confirm(t("investor.deletePlanConfirm"))) run((d) => ({ ...d, plans: d.plans.filter((p) => p.id !== plan.id) })); }}>{t("investor.deletePlan")}</button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
@@ -134,7 +136,6 @@ function PlanCard({ plan, doc, prices, run, onRecord }: { plan: DcaPlan; doc: In
               <span dir="ltr" className="font-data">{usd(s.amount)}</span>
               <span className={`tag ${s.status === "done" || s.status === "triggered" ? "tag-bull" : ""}`}>{t(`investor.${STATUS_KEY[s.status]}`)}</span>
               <span className="flex-1" />
-              {s.status !== "done" && <BinanceSpotLink pair={`${plan.asset}/USDT`} className="btn-secondary" hideWhenUnavailable />}
               {s.status !== "done" && <button type="button" className="btn-secondary" onClick={() => onRecord({ asset: plan.asset, amount: s.amount, planId: plan.id, slot: s.key })}>{t("investor.record")}</button>}
             </li>
           ))}

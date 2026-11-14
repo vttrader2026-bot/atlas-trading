@@ -55,6 +55,14 @@ describe("Binance manual handoff stays manual", () => {
     expect(dca).toContain("BinanceSpotLink");
     expect(dca).toMatch(/pair=\{`\$\{plan\.asset\}\/USDT`\}/);
   });
+  it("exactly one Binance button per plan, in the plan header, never inside a step row", () => {
+    expect((dca.match(/<BinanceSpotLink/g) || []).length).toBe(1);
+    const header = dca.slice(dca.indexOf("<CoinLogo base={plan.asset}"), dca.indexOf("grid grid-cols-2 sm:grid-cols-4"));
+    expect(header).toContain("<BinanceSpotLink");
+    const steps = dca.slice(dca.indexOf("pr.slots.map"), dca.indexOf("pr.history.length"));
+    expect(steps).not.toContain("BinanceSpotLink");
+    expect(steps).toContain('onRecord({ asset: plan.asset, amount: s.amount, planId: plan.id, slot: s.key })'); // manual recording kept
+  });
   it("the link is a plain anchor: no click handler, no API call, nothing recorded when it is opened", () => {
     expect(link).not.toMatch(/onClick|fetch\(|run\(|commit\(/);
     expect(link).toContain('rel="noopener noreferrer"');
