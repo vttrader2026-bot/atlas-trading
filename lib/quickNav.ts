@@ -3,7 +3,7 @@
 // destinations are additionally hidden here from signed-out visitors so they are never advertised to them.
 import { isPrivatePath } from "@/lib/privateRoutes";
 
-export type QuickItem = { key: string; href: string; labelKey: string; icon: "dashboard" | "feed" | "radar" | "pulse" | "analyzer" | "plan" | "journal" | "investor" };
+export type QuickItem = { key: string; href: string; labelKey: string; icon: "dashboard" | "feed" | "radar" | "pulse" | "analyzer" | "plan" | "journal" | "performance" | "investor" };
 
 export const QUICK_ITEMS: readonly QuickItem[] = [
   { key: "dashboard", href: "/journal", labelKey: "nav.dashboard", icon: "dashboard" },
@@ -14,6 +14,7 @@ export const QUICK_ITEMS: readonly QuickItem[] = [
   { key: "plans", href: "/trade-plan", labelKey: "nav.tradePlan", icon: "plan" },
   // The Journal is the trade list on the Dashboard page: same route, anchored to it.
   { key: "journal", href: "/journal#trade-journal", labelKey: "nav.journal", icon: "journal" },
+  { key: "performance", href: "/performance", labelKey: "nav.performance", icon: "performance" },
   { key: "investor", href: "/investor", labelKey: "nav.investor", icon: "investor" },
 ] as const;
 
@@ -23,7 +24,7 @@ export const BOTTOM_KEYS = ["dashboard", "feed", "radar", "analyzer"] as const;
 const basePath = (href: string) => href.split("#")[0];
 
 /** Main platform pages. Marketing pages (home, academy, elite, share), auth and admin pages never get the navigation. */
-const PLATFORM_PREFIXES = ["/journal", "/trade-feed", "/radar", "/market-intelligence", "/analyzer", "/trade-plan", "/investor", "/watchlist", "/risk", "/workflow"] as const;
+const PLATFORM_PREFIXES = ["/journal", "/trade-feed", "/radar", "/market-intelligence", "/analyzer", "/trade-plan", "/investor", "/performance", "/watchlist", "/risk", "/workflow"] as const;
 export const showQuickNav = (pathname: string | null | undefined): boolean =>
   !!pathname && PLATFORM_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 

@@ -249,6 +249,9 @@ export default function JournalPage() {
           <Link href="/academy/trading-journal-habit" className="inline-block mt-2 text-xs text-gold hover:opacity-80 transition-opacity">
             {t("journal.guideLink")}
           </Link>
+          <Link href="/performance" className="inline-block mt-2 ms-4 text-xs text-gold hover:opacity-80 transition-opacity">
+            {t("perf.journalLink")} →
+          </Link>
         </div>
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={importFromPlan} className="btn-secondary">{t("journal.importPlan")}</button>

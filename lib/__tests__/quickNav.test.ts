@@ -4,8 +4,8 @@ import { QUICK_ITEMS, activeKey, showQuickNav, visibleItems } from "@/lib/quickN
 import { isPrivatePath } from "@/lib/privateRoutes";
 
 describe("Quick navigation routes", () => {
-  it("has the 8 required destinations", () => {
-    expect(QUICK_ITEMS.map((i) => i.key)).toEqual(["dashboard", "feed", "radar", "pulse", "analyzer", "plans", "journal", "investor"]);
+  it("has the 9 required destinations", () => {
+    expect(QUICK_ITEMS.map((i) => i.key)).toEqual(["dashboard", "feed", "radar", "pulse", "analyzer", "plans", "journal", "performance", "investor"]);
   });
   it("every destination is a real page", () => {
     for (const i of QUICK_ITEMS) expect(existsSync(`app${i.href.split("#")[0]}/page.tsx`), i.href).toBe(true);
@@ -22,7 +22,7 @@ describe("Quick navigation permissions", () => {
     expect(out.map((i) => i.key)).toEqual(["feed", "radar", "pulse", "analyzer", "plans"]);
     for (const i of out) expect(isPrivatePath(i.href.split("#")[0])).toBe(false);
   });
-  it("signed-in users see all 8", () => expect(visibleItems(true)).toHaveLength(8));
+  it("signed-in users see all 9", () => expect(visibleItems(true)).toHaveLength(9));
   it("the server-side gate is unchanged (private prefixes still enforced in proxy.ts)", () => {
     expect(isPrivatePath("/journal")).toBe(true); expect(isPrivatePath("/investor")).toBe(true);
     expect(readFileSync("proxy.ts", "utf8")).toMatch(/isPrivatePath/);

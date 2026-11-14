@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { journalEn, journalFr, journalAr, planEn, planFr, planAr } from "@/lib/i18nJournal";
+import { perfEn, perfFr, perfAr } from "@/lib/i18nPerformance";
 import { investorEn, investorFr, investorAr } from "@/lib/i18nInvestor";
 import { homeAppEn, homeAppFr, homeAppAr } from "@/lib/i18nHomeApp";
 import { feedEn, feedFr, feedAr, sigJournalEn, sigJournalFr, sigJournalAr, sigPlanEn, sigPlanFr, sigPlanAr } from "@/lib/i18nSignals";
@@ -205,6 +206,7 @@ const en: Dict = {
     riskCalculator: "Risk Calculator",
     ticker: "Ticker",
     journal: "Journal",
+    performance: "Performance",
     risk: "Risk",
     tradeFeed: "Trade Feed",
     academy: "Academy",
@@ -496,6 +498,7 @@ const en: Dict = {
     emptyPosition: "Enter your balance, investment amount, entry price and stop-loss to see the results.",
   },
   investor: { ...investorEn },
+  perf: { ...perfEn },
   homeApp: { ...homeAppEn },
   journal: {
     title: "Journal",
@@ -1244,6 +1247,7 @@ const ar: Dict = {
     riskCalculator: "حاسبة المخاطر",
     ticker: "الأسعار",
     journal: "السجل",
+    performance: "الأداء",
     risk: "حاسبة المخاطر",
     tradeFeed: "خلاصة الصفقات",
     academy: "تعلّم",
@@ -1534,6 +1538,7 @@ const ar: Dict = {
     emptyPosition: "أدخل رصيدك ومبلغ الاستثمار وسعر الدخول ووقف الخسارة لرؤية النتائج.",
   },
   investor: { ...investorAr },
+  perf: { ...perfAr },
   homeApp: { ...homeAppAr },
   journal: {
     title: "السجل",
@@ -2281,6 +2286,7 @@ const fr: Dict = {
     riskCalculator: "Calculateur de risque",
     ticker: "Cours",
     journal: "Journal",
+    performance: "Performance",
     risk: "Risque",
     tradeFeed: "Fil de trades",
     academy: "Académie",
@@ -2572,6 +2578,7 @@ const fr: Dict = {
     emptyPosition: "Entrez votre solde, le montant investi, le prix d'entrée et le stop-loss pour voir les résultats.",
   },
   investor: { ...investorFr },
+  perf: { ...perfFr },
   homeApp: { ...homeAppFr },
   journal: {
     title: "Journal",

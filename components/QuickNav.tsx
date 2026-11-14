@@ -18,6 +18,7 @@ function Icon({ name }: { name: QuickItem["icon"] }) {
     case "pulse": return <IconMarketIntel className={cls} />;
     case "analyzer": return <IconAnalyzer className={cls} />;
     case "journal": return <IconJournal className={cls} />;
+    case "performance": return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={cls} aria-hidden="true"><path d="M4 20V4" /><path d="M4 20h16" /><path d="M7 15l4-5 3 3 5-7" /></svg>;
     case "plan": return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={cls} aria-hidden="true"><path d="M7 3h8l4 4v14H7z" /><path d="M15 3v4h4M10 12h6M10 16h6" /></svg>;
     default: return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={cls} aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9V3Z" /><path d="M15.5 3.7A9 9 0 0 1 20.3 8.5h-4.8V3.7Z" /></svg>;
   }
