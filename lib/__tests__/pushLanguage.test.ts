@@ -31,6 +31,7 @@ vi.mock("@/lib/userStore", () => ({
   }),
 }));
 vi.mock("@/lib/plan", async (orig) => ({ ...(await orig<typeof import("@/lib/plan")>()), getUserPlan: async (u: string) => h.plans[u] ?? "free" }));
+vi.mock("@/lib/entitlements", () => ({ getEntitlements: async (u: string) => ({ plan: h.plans[u] ?? "free", status: "verified" }) }));
 
 import {
   analyzerResetPayload, educationalPayload, eliteNowPayload, normalizeLang, notifyFreeUsersAnalyzerReset,
@@ -189,7 +190,7 @@ describe("wiring", () => {
     ]);
     const push = readFileSync("lib/push.ts", "utf8");
     for (const k of ["prefs.analyzerReset", "prefs.tradeFeed", "prefs.market", "prefs.educational", "prefs.promotional"]) expect(push).toContain(k);
-    expect(push).toContain('if (plan === "elite") return;');
-    expect(push).toContain('if (plan !== "free") return;');
+    expect(push).toContain('ent.plan === "elite") return;');
+    expect(push).toContain('ent.plan !== "free") return;');
   });
 });

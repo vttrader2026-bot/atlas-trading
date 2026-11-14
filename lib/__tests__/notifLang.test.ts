@@ -101,7 +101,7 @@ describe("permission is requested only after a click, and the existing flow is i
   });
   it("keeps preferences, categories and the Elite-only promo rule as they were", () => {
     expect(Object.keys(defaultPrefs)).toEqual(["enabled", "tradeFeed", "market", "educational", "promotional", "analyzerReset"]);
-    expect(src("lib/push.ts")).toContain('if (plan === "elite") return; // never promo existing Elite members');
+    expect(src("lib/push.ts")).toContain('if (ent.status === "unverified" || ent.plan === "elite") return;');
   });
   it("shows browser permission, device status and a choose-a-category hint", () => {
     const acc = src("app/account/page.tsx");

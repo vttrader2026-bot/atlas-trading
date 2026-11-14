@@ -1,6 +1,7 @@
 // ADMIN-v1: the one place a payment request is approved or rejected (the owner dashboard and the legacy
 // ADMIN_SECRET route both call it).  A request can be decided ONCE: only "pending" can change.
 import { clerkClient } from "@clerk/nextjs/server";
+import { invalidateEntitlements } from "@/lib/entitlementCache";
 import { getRedis } from "@/lib/userStore";
 import { getPaymentRequest, updatePaymentRequestStatus, type PaymentRequest } from "@/lib/paymentRequests";
 import { planEliteApproval, type Meta } from "@/lib/membership";
@@ -39,7 +40,12 @@ export async function approvePayment(id: string, reviewer: string, now: number =
     const p = planEliteApproval(meta, now);
     kind = p.kind;
     until = p.until;
-    if (p.patch) await client.users.updateUserMetadata(existing.userId, { privateMetadata: p.patch });
+    if (p.patch) {
+      await client.users.updateUserMetadata(existing.userId, { privateMetadata: p.patch });
+      // Only after the Clerk write succeeded: forget the cached membership so the new plan applies immediately.
+      // invalidateEntitlements never throws; if it cannot clear the cache it logs and the record expires on its own.
+      await invalidateEntitlements(existing.userId);
+    }
   } catch (err) {
     // Nothing was recorded as approved: the request stays pending and can be retried.
     console.error("payments: could not update the member's plan", err);

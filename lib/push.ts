@@ -2,7 +2,8 @@ import webpush from "web-push";
 import { createHash } from "crypto";
 import { getRedis } from "@/lib/userStore";
 import { normalizePrefs } from "@/lib/notificationPrefs";
-import { analyzeLimitForPlan, getUserPlan } from "@/lib/plan";
+import { analyzeLimitForPlan } from "@/lib/plan";
+import { getEntitlements } from "@/lib/entitlements";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 import { buildRadarRows, type RadarRow } from "@/lib/radar";
 import { getAllTickers24h, getTicker24h, getSpotTradingSymbols } from "@/lib/binance";
@@ -334,8 +335,10 @@ export async function notifyFreeUsersAnalyzerReset(): Promise<{ sent: number; re
           // Its own toggle, not just the master switch - not everyone wants a
           // midnight ping, so this stays strictly opt-in.
           if (!prefs.enabled || !prefs.analyzerReset) return;
-          const plan = await getUserPlan(userId);
-          if (plan !== "free") return;
+          // Only CONFIRMED Free members get the Free-plan reminder. A member whose plan could not be verified (Clerk
+          // unreachable, nothing cached) may be a paying ELITE member, so they are skipped, never treated as Free.
+          const ent = await getEntitlements(userId);
+          if (ent.status === "unverified" || ent.plan !== "free") return;
           st.attempted++;
           const delivered = await sendToUser(userId, (lang) => analyzerResetPayload(lang, limit));
           if (delivered > 0) st.sent++;
@@ -571,8 +574,10 @@ export async function notifyElitePromo(): Promise<{ sent: number; reason: string
         userIds.slice(i, i + 20).map(async (userId) => {
           const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
           if (!prefs.enabled || !prefs.promotional) return;
-          const plan = await getUserPlan(userId);
-          if (plan === "elite") return; // never promo existing Elite members
+          // Never promo an ELITE member (including one kept on ELITE from the grace cache) and never promo a member
+          // whose plan could not be verified: they may be a paying subscriber.
+          const ent = await getEntitlements(userId);
+          if (ent.status === "unverified" || ent.plan === "elite") return;
           st.attempted++;
           const delivered = await sendToUser(userId, (lang) => eliteNowPayload(lang));
           if (delivered > 0) st.sent++;

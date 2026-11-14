@@ -33,6 +33,7 @@ vi.mock("@/lib/userStore", () => ({
   }),
 }));
 vi.mock("@/lib/plan", () => ({ getUserPlan: async () => h.plan, analyzeLimitForPlan: () => 3 }));
+vi.mock("@/lib/entitlements", () => ({ getEntitlements: async () => ({ plan: h.plan, status: "verified" }) }));
 vi.mock("@/lib/binance", () => ({
   getAllTickers24h: async () => [],
   getTicker24h: async () => ({ priceChangePercent: "0" }),

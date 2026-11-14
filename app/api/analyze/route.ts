@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { providersConfigured, runAnalysis } from "@/lib/ai";
 import { auth } from "@clerk/nextjs/server";
 import { USAGE_UNAVAILABLE_MESSAGE, analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
+import { getEntitlements, membershipUnverifiedResponse } from "@/lib/entitlements";
 import { getTicker24h } from "@/lib/binance";
 import { applyEngineToAnalysis, engineFactsBlock } from "@/lib/analyzerEngineApply";
 import { engineForScreenshot } from "@/lib/analyzerEngineServer";
@@ -175,7 +176,10 @@ export async function POST(req: NextRequest) {
 
   // Read-only check — do NOT consume a use yet. We only spend one of the
   // user's daily attempts once the analysis genuinely succeeds, below.
-  const usage = await peekAnalyzeUsage(userId);
+  // Membership is resolved ONCE per request; the same snapshot serves the up-front check and the final charge.
+  const membership = await getEntitlements(userId);
+  if (membership.status === "unverified") return membershipUnverifiedResponse(); // 503, retryable, no usage touched, no AI call
+  const usage = await peekAnalyzeUsage(userId, membership);
   if (usage.unavailable) {
     return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
   }
@@ -266,7 +270,7 @@ export async function POST(req: NextRequest) {
   applyEngineToAnalysis(parsed, engine, lang);
   if (verifiedPair) parsed.pair = verifiedPair;
   if (verifiedTimeframe) parsed.timeframe = verifiedTimeframe.toUpperCase();
-  const consumed = await consumeAnalyzeUsage(userId);
+  const consumed = await consumeAnalyzeUsage(userId, membership);
   // The counter is authoritative: if it cannot confirm this use (outage or a parallel request took the last one), the analysis is withheld.
   if (consumed.unavailable) return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
   if (!consumed.allowed) return NextResponse.json({ error: analyzeLimitReachedMessage(consumed.plan, consumed.limit) }, { status: 429 });

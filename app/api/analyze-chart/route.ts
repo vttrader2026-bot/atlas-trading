@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { providersConfigured, runAnalysis } from "@/lib/ai";
 import { auth } from "@clerk/nextjs/server";
 import { USAGE_UNAVAILABLE_MESSAGE, analyzeLimitReachedMessage, consumeAnalyzeUsage, peekAnalyzeUsage } from "@/lib/plan";
+import { getEntitlements, membershipUnverifiedResponse } from "@/lib/entitlements";
 import { getCandles, MarketDataError, type Interval } from "@/lib/marketData";
 import { SUPPORTED_INTERVALS } from "@/lib/marketDataTypes";
 import { buildPrompt, computeFacts, HIGHER_TF, LOWER_TF, type Facts } from "@/lib/analyzerPrompt";
@@ -44,7 +45,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "The analyzer is temporarily unavailable." }, { status: 503 });
   }
 
-  const usage = await peekAnalyzeUsage(userId);
+  // Membership is resolved ONCE per request; the same snapshot serves the up-front check and the final charge.
+  const membership = await getEntitlements(userId);
+  if (membership.status === "unverified") return membershipUnverifiedResponse(); // 503, retryable, no usage touched, no AI call
+  const usage = await peekAnalyzeUsage(userId, membership);
   if (usage.unavailable) {
     return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
   }
@@ -164,7 +168,7 @@ export async function POST(req: NextRequest) {
   const parsed = result.parsed;
   // Engine output replaces anything the model wrote about levels or the plan.
   applyEngineToAnalysis(parsed, engine, lang);
-  const consumed = await consumeAnalyzeUsage(userId);
+  const consumed = await consumeAnalyzeUsage(userId, membership);
   // The counter is authoritative: if it cannot confirm this use (outage or a parallel request took the last one), the analysis is withheld.
   if (consumed.unavailable) return NextResponse.json({ error: USAGE_UNAVAILABLE_MESSAGE }, { status: 503 });
   if (!consumed.allowed) return NextResponse.json({ error: analyzeLimitReachedMessage(consumed.plan, consumed.limit) }, { status: 429 });

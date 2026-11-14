@@ -7,6 +7,7 @@ const h = vi.hoisted(() => ({
   userId: "user_1" as string | null,
   usage: { allowed: true, plan: "free", remaining: 2, limit: 3 },
   peek: vi.fn(),
+  ent: vi.fn(),
   consume: vi.fn(),
   getCandles: vi.fn(),
   gemini: vi.fn(),
@@ -21,6 +22,7 @@ vi.mock("@/lib/plan", () => ({
   analyzeLimitReachedMessage: () => "limit reached",
   USAGE_UNAVAILABLE_MESSAGE: "usage unavailable",
 }));
+vi.mock("@/lib/entitlements", async (orig) => ({ ...(await orig<typeof import("@/lib/entitlements")>()), getEntitlements: h.ent }));
 vi.mock("@/lib/binance", () => ({ getTicker24h: async () => ({ lastPrice: h.ticker }) }));
 vi.mock("@/lib/marketData", async () => {
   const actual = await vi.importActual<typeof import("@/lib/marketData")>("@/lib/marketData");
@@ -83,6 +85,7 @@ beforeEach(() => {
   process.env.GEMINI_API_KEY = "test-key";
   h.userId = "user_1";
   h.usage = { allowed: true, plan: "free", remaining: 2, limit: 3 };
+  h.ent.mockReset().mockImplementation(async () => ({ plan: "free", status: "verified" }));
   h.peek.mockReset().mockImplementation(async () => h.usage);
   h.consume.mockReset().mockResolvedValue({ allowed: true, plan: "free", remaining: 1, limit: 3 });
   h.getCandles.mockReset().mockImplementation(async () => ({ pair: { symbol: "TESTUSDT" }, candles: validCandles(), stale: false }));
@@ -424,5 +427,51 @@ describe("screenshot route: Auto-detect and manual override", () => {
     h.getCandles.mockRejectedValue(new MarketDataError("UNKNOWN_SYMBOL", "x"));
     const res2 = await chartPOST(chartReq({ baseAsset: "NOPE" }));
     expect(res2.status).toBe(404);
+  });
+});
+
+describe("membership verification (ENTITLEMENTS-v2)", () => {
+  const unverified = () => h.ent.mockImplementation(async () => ({ plan: "free", status: "unverified" }));
+  it("chart: an unverified member gets a retryable 503 and nothing is consumed, fetched or sent to the model", async () => {
+    unverified();
+    const res = await chartPOST(chartReq());
+    const body: any = await res.json();
+    expect(res.status).toBe(503);
+    expect(body).toMatchObject({ code: "membership_unverified", retryable: true });
+    expect(res.headers.get("retry-after")).toBe("30");
+    expect(h.peek).not.toHaveBeenCalled();
+    expect(h.consume).not.toHaveBeenCalled();
+    expect(h.getCandles).not.toHaveBeenCalled();
+    expect(h.gemini).not.toHaveBeenCalled();
+  });
+  it("screenshot: an unverified member gets the same 503 before any work", async () => {
+    unverified();
+    const res = await shotPOST(shotReq({}));
+    expect(res.status).toBe(503);
+    expect(((await res.json()) as any).retryable).toBe(true);
+    expect(h.peek).not.toHaveBeenCalled();
+    expect(h.consume).not.toHaveBeenCalled();
+    expect(h.gemini).not.toHaveBeenCalled();
+  });
+  it("anonymous requests are still 401 and never resolve a membership", async () => {
+    h.userId = null;
+    expect((await chartPOST(chartReq())).status).toBe(401);
+    expect((await shotPOST(shotReq({}))).status).toBe(401);
+    expect(h.ent).not.toHaveBeenCalled();
+  });
+  it("chart: membership is resolved ONCE and the same snapshot reaches both usage checks", async () => {
+    const snapshot = { plan: "elite", status: "stale" };
+    h.ent.mockImplementation(async () => snapshot);
+    const res = await chartPOST(chartReq());
+    expect(res.status).toBe(200);
+    expect(h.ent).toHaveBeenCalledTimes(1);
+    expect(h.peek).toHaveBeenCalledTimes(1);
+    expect(h.consume).toHaveBeenCalledTimes(1);
+    expect(h.peek.mock.calls[0][1]).toBe(snapshot);
+    expect(h.consume.mock.calls[0][1]).toBe(snapshot);
+  });
+  it("a stale (grace) ELITE member is served normally", async () => {
+    h.ent.mockImplementation(async () => ({ plan: "elite", status: "stale" }));
+    expect((await chartPOST(chartReq())).status).toBe(200);
   });
 });

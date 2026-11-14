@@ -5,6 +5,7 @@ import { auditLog, needsConfirm, noStore, readBody, requireOwner } from "@/lib/a
 import { memberView, type ClerkUserLike } from "@/lib/adminMembers";
 import { MEMBER_ACTIONS, planMemberAction, type MemberAction, type Meta } from "@/lib/membership";
 import { listPaymentRequestsForUser } from "@/lib/paymentRequests";
+import { invalidateEntitlements } from "@/lib/entitlementCache";
 import { getRedis } from "@/lib/userStore";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +56,9 @@ export async function POST(req: Request, { params }: Ctx) {
     const plan = planMemberAction((user.privateMetadata ?? {}) as Meta, action, { days: body.days, until: body.until }, now);
     if (!plan.ok) return NextResponse.json({ error: ERRORS[plan.error] ?? "Not allowed" }, { status: 409 });
     const updated = await client.users.updateUserMetadata(id, { privateMetadata: plan.patch });
-    await auditLog(getRedis(), owner.userId, `member.${action}`, id, { patch: plan.patch });
+    // Only after the Clerk write succeeded (renew, activate, suspend, revoke, set expiry...): drop the cached membership.
+    const cacheCleared = await invalidateEntitlements(id);
+    await auditLog(getRedis(), owner.userId, `member.${action}`, id, { patch: plan.patch, ...(cacheCleared ? {} : { entitlementCache: "not-cleared" }) });
     return NextResponse.json({ ok: true, member: memberView(updated as unknown as ClerkUserLike, now) }, { headers: noStore });
   } catch (err) {
     console.error("admin/members action failed", err);
