@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { getRedis } from "@/lib/userStore";
+import { PLAN_LIMITS, type Plan } from "@/lib/entitlementConfig";
+import { effectivePlan } from "@/lib/entitlementRules";
+import { getEntitlements, type MemberEntitlements } from "@/lib/entitlements";
 
-/**
- * The only two plans: FREE and ATLAS ELITE. (Accounts that still carry the retired "analyzer" value in their Clerk
- * metadata are simply FREE; the stored value is never touched or deleted.)
- */
-export type Plan = "free" | "elite";
+// Kept here so every existing import keeps working; the rules and the configuration live in lib/entitlement*.ts.
+export { effectivePlan };
+export type { Plan };
 
-// Single source of truth for what each plan includes. Change limits here,
-// not in scattered checks elsewhere in the app.
+// Single source of truth for what each plan includes: lib/entitlementConfig.ts. Change limits there, not here.
 const DAILY_ANALYZE_LIMIT: Record<Plan, number> = {
-  free: 3,
-  elite: 20,
+  free: PLAN_LIMITS.free.analyzerPerDay,
+  elite: PLAN_LIMITS.elite.analyzerPerDay,
 };
 
 /** User-facing message when today's analysis allowance is used up. */
@@ -23,37 +23,19 @@ export function analyzeLimitReachedMessage(plan: Plan, limit: number): string {
 }
 
 /**
- * ADMIN-v1: the plan a member ACTUALLY has right now, from their Clerk privateMetadata.
- *  - `suspended: true` removes paid access immediately (the stored plan is kept, so unsuspending restores it).
- *  - An ELITE plan with `eliteUntil` (epoch ms) stops at that moment. A malformed `eliteUntil` fails closed to "free".
- *  - ELITE without `eliteUntil` (every member created before expiry existed) has no end date and stays active.
- */
-export function effectivePlan(meta: Record<string, unknown> | null | undefined, now: number = Date.now()): Plan {
-  const raw = meta?.plan;
-  if (raw !== "elite") return "free";
-  if (meta?.suspended === true) return "free";
-  const until = meta?.eliteUntil;
-  if (until !== undefined && until !== null && (typeof until !== "number" || !Number.isFinite(until) || until <= now)) return "free";
-  return "elite";
-}
-
-/**
  * The only function that should decide what plan a user is on. Reads
  * Clerk's server-only privateMetadata - never a client-supplied value -
  * and defaults to "free" for anyone with no plan set yet, or if anything
  * goes wrong reading it. A missing/anonymous userId is always "free".
  */
 export async function getUserPlan(userId: string | null | undefined): Promise<Plan> {
-  if (!userId) return "free";
-  try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    return effectivePlan(user.privateMetadata as Record<string, unknown> | null);
-  } catch (err) {
-    console.error("plan: getUserPlan failed, defaulting to free", err);
-    return "free";
-  }
+  // NOTE: an "unverified" member (Clerk unreachable, nothing cached) is reported as "free" here. Code that would harm a
+  // paying member by treating them as Free must call getEntitlements() and check `status` instead.
+  return (await getEntitlements(userId)).plan;
 }
+
+/** The membership snapshot a request resolved once (see getEntitlements); passing it avoids a second lookup. */
+export type MembershipSnapshot = Pick<MemberEntitlements, "plan" | "status">;
 
 /** Is the currently signed-in user (per this request's session) on Elite? */
 export async function isElite(): Promise<boolean> {
@@ -109,9 +91,11 @@ const usageKey = (userId: string) => `usage:analyze:${userId}:${new Date().toISO
  * rather than letting FREE or ELITE users past their limit. The increment is atomic (INCR first,
  * then compare), so parallel requests cannot all slip under the limit.
  */
-export async function consumeAnalyzeUsage(userId: string): Promise<UsageResult> {
-  const plan = await getUserPlan(userId);
+export async function consumeAnalyzeUsage(userId: string, membership?: MembershipSnapshot): Promise<UsageResult> {
+  const m = membership ?? (await getEntitlements(userId));
+  const plan = m.plan;
   const limit = analyzeLimitForPlan(plan);
+  if (m.status === "unverified") return usageUnavailable(plan, limit); // membership unknown: never touch the counter
   const redis = getRedis();
   if (!redis) {
     console.error("plan: Upstash not configured - refusing analysis because usage limits cannot be enforced");
@@ -140,9 +124,11 @@ export async function consumeAnalyzeUsage(userId: string): Promise<UsageResult> 
  * Like consumeAnalyzeUsage, but read-only: does not increment the counter. Used for the up-front
  * check and to show an accurate remaining count without spending an analysis. Fails closed too.
  */
-export async function peekAnalyzeUsage(userId: string): Promise<UsageResult> {
-  const plan = await getUserPlan(userId);
+export async function peekAnalyzeUsage(userId: string, membership?: MembershipSnapshot): Promise<UsageResult> {
+  const m = membership ?? (await getEntitlements(userId));
+  const plan = m.plan;
   const limit = analyzeLimitForPlan(plan);
+  if (m.status === "unverified") return usageUnavailable(plan, limit);
   const redis = getRedis();
   if (!redis) {
     console.error("plan: Upstash not configured - cannot read usage");
