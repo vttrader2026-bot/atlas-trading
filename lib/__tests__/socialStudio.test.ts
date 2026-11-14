@@ -101,8 +101,8 @@ describe("old card system is gone and the Studio is wired", () => {
   });
   it("keeps share + download, exports an exact-size off-screen canvas, reuses the existing phones", () => {
     const page = read("app/share/page.tsx"), canvas = read("components/studio/StudioCanvas.tsx");
-    expect(page).toContain("toBlob"); expect(page).toContain("navigator.share"); expect(page).toContain('run(format, "download")'); expect(page).toContain("runAll");
-    expect(page).toContain("position: \"fixed\", left: -100000"); expect(page).toContain("pixelRatio: 1");
+    expect(page).toContain("renderStudioPng"); expect(read("lib/studioExport.ts")).toContain("toBlob"); expect(page).toContain("navigator.share"); expect(page).toContain('run(format, "download")'); expect(page).toContain("runAll");
+    expect(page).toContain("position: \"fixed\", left: -100000"); expect(read("lib/studioExport.ts")).toContain("pixelRatio: 1");
     expect(canvas).toContain('from "@/components/home/HeroPhone"'); expect(canvas).toContain('from "@/components/home/InvestorPhone"');
     expect(canvas).toContain("LanguageOverride"); expect(canvas).toContain('dir={rtl ? "rtl" : "ltr"}');
     expect(read("app/share/layout.tsx")).toContain("Noto_Sans_Arabic");

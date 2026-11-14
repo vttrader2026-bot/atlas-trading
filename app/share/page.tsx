@@ -3,6 +3,7 @@
 // (the homepage and Investor phones plus feature screens) with editable text, 4 social formats, EN/FR/AR, light/dark, PNG export.
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/lib/i18n";
+import { StudioExportError, describeExportError, renderStudioPng } from "@/lib/studioExport";
 import StudioCanvas, { type Background, type CanvasSpec } from "@/components/studio/StudioCanvas";
 import {
   DESC_MAX, FEATURES, FORMATS, FORMAT_IDS, HEADLINE_MAX, PRESETS, SCREEN_IDS, defaultPhones, featureOf, screenName, studioFileName,
@@ -84,7 +85,7 @@ export default function SharePage() {
   const [phones, setPhones] = useState<PhoneAdj[]>(() => defaultPhones("overview", 2));
   const [edits, setEdits] = useState<Record<string, { h?: string; d?: string }>>({});
   const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [exportFmt, setExportFmt] = useState<FormatId | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
   const [canShare, setCanShare] = useState(false);
@@ -117,21 +118,8 @@ export default function SharePage() {
     setExportFmt(f);
     try {
       await sleep(900); // the hidden canvas mounts and its phones measure and scale themselves
-      const node = exportRef.current;
-      if (!node) throw new Error("export canvas missing");
       const { w, h } = FORMATS[f];
-      // Make sure every face used is loaded before the browser rasterises it (Arabic would fall back otherwise).
-      const fam = getComputedStyle(node).fontFamily;
-      const text = node.textContent || "";
-      await document.fonts.ready;
-      await Promise.all(["500", "600", "700", "800"].map((wt) => document.fonts.load(`${wt} 40px ${fam}`, text).catch(() => [])));
-      await document.fonts.ready;
-      const { toBlob } = await import("html-to-image");
-      const opts = { width: w, height: h, pixelRatio: 1, cacheBust: true, backgroundColor: undefined };
-      await toBlob(node, opts); // first pass warms font/image embedding; the second is kept
-      const blob = await toBlob(node, opts);
-      if (!blob) throw new Error("render failed");
-      return blob;
+      return await renderStudioPng(exportRef.current, w, h);
     } finally {
       setExportFmt(null);
     }
@@ -151,7 +139,7 @@ export default function SharePage() {
   async function run(f: FormatId, mode: "download" | "share") {
     if (busy) return;
     setBusy(`${mode}-${f}`);
-    setError(false);
+    setError(null);
     try {
       const blob = await makeBlob(f);
       const name = studioFileName(template, f, lang, theme);
@@ -168,8 +156,8 @@ export default function SharePage() {
       }
       save(blob, name);
     } catch (err) {
-      console.error("Studio export failed", err);
-      setError(true);
+      console.error("Studio export failed", FORMATS[f].ratio, err);
+      setError(`${FORMATS[f].ratio}: ${describeExportError(err)}`);
     } finally {
       setBusy(null);
     }
@@ -178,18 +166,19 @@ export default function SharePage() {
   async function runAll() {
     if (busy) return;
     setBusy("all");
-    setError(false);
-    try {
-      for (const f of FORMAT_IDS) {
+    setError(null);
+    const failed: string[] = [];
+    for (const f of FORMAT_IDS) {
+      try {
         save(await makeBlob(f), studioFileName(template, f, lang, theme));
-        await sleep(300);
+      } catch (err) {
+        console.error("Studio export failed", FORMATS[f].ratio, err);
+        failed.push(`${FORMATS[f].ratio}: ${err instanceof StudioExportError ? err.message : describeExportError(err)}`);
       }
-    } catch (err) {
-      console.error("Studio export failed", err);
-      setError(true);
-    } finally {
-      setBusy(null);
+      await sleep(300);
     }
+    if (failed.length) setError(`${failed.length}/${FORMAT_IDS.length} — ${failed.join(" | ")}`);
+    setBusy(null);
   }
 
   const input = "w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-text focus:border-gold/60 focus:outline-none";
@@ -222,7 +211,12 @@ export default function SharePage() {
             </button>
           </div>
           <p className="mt-2 text-center text-xs text-text-muted">{tr("note")}</p>
-          {error && <p className="mt-2 text-center text-sm text-bear">{tr("error")}</p>}
+          {error && (
+            <div role="alert" className="mt-2 text-center text-sm text-bear">
+              <p>{tr("error")}</p>
+              <p dir="ltr" className="mt-1 break-words font-data text-xs opacity-80">{error}</p>
+            </div>
+          )}
         </div>
 
         {/* CONTROLS */}

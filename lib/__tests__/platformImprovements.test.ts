@@ -65,7 +65,7 @@ describe("Market Pulse rename and homepage text", () => {
 describe("Share page", () => {
   it("is the Social Media Studio: virtual phones, no promo cards, PNG export kept", () => {
     const page = read("app/share/page.tsx"), canvas = read("components/studio/StudioCanvas.tsx");
-    expect(page).toContain("<StudioCanvas"); expect(page).toContain("toBlob"); expect(page).not.toContain("PromoCard");
+    expect(page).toContain("<StudioCanvas"); expect(page).toContain("renderStudioPng"); expect(read("lib/studioExport.ts")).toContain("toBlob"); expect(page).not.toContain("PromoCard");
     expect(canvas).toContain('from "@/components/home/HeroPhone"'); expect(canvas).toContain('from "@/components/home/InvestorPhone"');
   });
 });

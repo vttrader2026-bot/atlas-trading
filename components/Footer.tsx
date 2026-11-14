@@ -9,7 +9,7 @@ const TELEGRAM_URL = "https://t.me/atlastradingcrypto";
 const WHATSAPP_URL = "https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t";
 
 export default function Footer() {
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
 
   const exploreLinks = [
     { href: "/radar", label: t("nav.radar") },
@@ -20,7 +20,6 @@ export default function Footer() {
     { href: "/journal", label: t("nav.journal") },
     { href: "/investor", label: t("investor.footerLink") },
     { href: "/academy", label: t("nav.academy") },
-    { href: "/share", label: lang === "ar" ? "مشاركة" : lang === "fr" ? "Partager" : "Share" },
   ];
 
   return (
