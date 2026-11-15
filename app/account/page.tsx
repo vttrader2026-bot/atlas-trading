@@ -11,6 +11,7 @@ import { defaultPrefs, type NotificationPrefs } from "@/lib/notificationPrefs";
 import type { SavedPlan } from "@/lib/savedPlans";
 import { isActivePlan } from "@/lib/tradePlansAtomic";
 import { PLAN_LIMITS } from "@/lib/entitlementConfig";
+import OwnerStudioLink from "@/components/account/OwnerStudioLink";
 
 function Toggle({
   label,
@@ -231,6 +232,7 @@ export default function AccountPage() {
 
       {isLoaded && isSignedIn && (
         <div className="mt-8 space-y-8">
+          <OwnerStudioLink />
           <section id="notifications" className="rounded-xl border border-white/10 p-6 scroll-mt-20">
             <h2 className="text-lg font-semibold">{t("account.notificationsTitle")}</h2>
             <p className="text-text-muted text-sm mt-1 max-w-xl">{t("account.notificationsNote")}</p>
