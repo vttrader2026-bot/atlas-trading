@@ -6,6 +6,7 @@ import { perfEn, perfFr, perfAr } from "@/lib/i18nPerformance";
 import { pubFeedEn, pubFeedFr, pubFeedAr } from "@/lib/i18nPublishFeed";
 import { feedAdminEn, feedAdminFr, feedAdminAr } from "@/lib/i18nFeedAdmin";
 import { investorEn, investorFr, investorAr } from "@/lib/i18nInvestor";
+import { planLimitsEn, planLimitsFr, planLimitsAr } from "@/lib/i18nPlanLimits";
 import { homeAppEn, homeAppFr, homeAppAr } from "@/lib/i18nHomeApp";
 import { feedEn, feedFr, feedAr, sigJournalEn, sigJournalFr, sigJournalAr, sigPlanEn, sigPlanFr, sigPlanAr } from "@/lib/i18nSignals";
 
@@ -500,6 +501,7 @@ const en: Dict = {
     emptyPosition: "Enter your balance, investment amount, entry price and stop-loss to see the results.",
   },
   investor: { ...investorEn },
+  planLimits: { ...planLimitsEn },
   perf: { ...perfEn },
   pubFeed: { ...pubFeedEn },
   feedAdmin: { ...feedAdminEn },
@@ -1542,6 +1544,7 @@ const ar: Dict = {
     emptyPosition: "أدخل رصيدك ومبلغ الاستثمار وسعر الدخول ووقف الخسارة لرؤية النتائج.",
   },
   investor: { ...investorAr },
+  planLimits: { ...planLimitsAr },
   perf: { ...perfAr },
   pubFeed: { ...pubFeedAr },
   feedAdmin: { ...feedAdminAr },
@@ -2584,6 +2587,7 @@ const fr: Dict = {
     emptyPosition: "Entrez votre solde, le montant investi, le prix d'entrée et le stop-loss pour voir les résultats.",
   },
   investor: { ...investorFr },
+  planLimits: { ...planLimitsFr },
   perf: { ...perfFr },
   pubFeed: { ...pubFeedFr },
   feedAdmin: { ...feedAdminFr },

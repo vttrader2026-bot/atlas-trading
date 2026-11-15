@@ -9,6 +9,8 @@ import { saveDraft } from "@/lib/tradePlan";
 import { enablePush, disablePush, thisDeviceSubscribed, permissionState, type PermissionState } from "@/lib/pushClient";
 import { defaultPrefs, type NotificationPrefs } from "@/lib/notificationPrefs";
 import type { SavedPlan } from "@/lib/savedPlans";
+import { isActivePlan } from "@/lib/tradePlansAtomic";
+import { PLAN_LIMITS } from "@/lib/entitlementConfig";
 
 function Toggle({
   label,
@@ -48,6 +50,10 @@ export default function AccountPage() {
   const [prefsMsg, setPrefsMsg] = useState<string | null>(null);
   const [plans, setPlans] = useState<SavedPlan[] | null>(null);
   const [plansFailed, setPlansFailed] = useState(false);
+  // PHASE-3B: the active-plan limit comes from the server (null = unknown); the tab filters the list.
+  const [planLimit, setPlanLimit] = useState<number | null>(null);
+  const [planTab, setPlanTab] = useState<"active" | "entered" | "archived">("active");
+  const [planMsg, setPlanMsg] = useState<string | null>(null);
   const [deviceOn, setDeviceOn] = useState<boolean | null>(null);
   const [perm, setPerm] = useState<PermissionState | null>(null);
 
@@ -63,7 +69,10 @@ export default function AccountPage() {
     fetch("/api/me/plans", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("bad status"))))
       .then((data) => {
-        if (!cancelled) setPlans(Array.isArray(data.plans) ? data.plans : []);
+        if (!cancelled) {
+          setPlans(Array.isArray(data.plans) ? data.plans : []);
+          setPlanLimit(typeof data.limit === "number" ? data.limit : null);
+        }
       })
       .catch(() => {
         if (!cancelled) setPlansFailed(true);
@@ -178,6 +187,27 @@ export default function AccountPage() {
     }
   }
 
+  // PHASE-3B: Entered / Archived / Restore. The server decides; a refused Restore (limit) or an unverified membership is explained.
+  async function changePlan(id: string, action: "entered" | "archived" | "restore") {
+    setPlanMsg(null);
+    try {
+      const res = await fetch("/api/me/plans", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, action }) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.plan) setPlans((prev) => (prev ? prev.map((p) => (p.id === id ? data.plan : p)) : prev));
+      } else if (res.status === 409) setPlanMsg(limitText(planLimit));
+      else if (res.status === 503) setPlanMsg(t("planLimits.unverified"));
+      else setPlanMsg(t("planLimits.actionError"));
+    } catch {
+      setPlanMsg(t("planLimits.actionError"));
+    }
+  }
+  const limitText = (limit: number | null) =>
+    t("planLimits.limitReached").replace("{limit}", String(limit ?? "")) + (limit !== null && limit < PLAN_LIMITS.elite.activeTradePlans ? " " + t("planLimits.limitElite").replace("{n}", String(PLAN_LIMITS.elite.activeTradePlans)) : "");
+  const activeCount = plans ? plans.filter(isActivePlan).length : 0;
+  const tabOf = (p: SavedPlan) => (p.status === "entered" ? "entered" : p.status === "archived" ? "archived" : "active");
+  const shownPlans = plans?.filter((p) => tabOf(p) === planTab);
+
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t("account.title")}</h1>
@@ -280,6 +310,22 @@ export default function AccountPage() {
 
           <section>
             <h2 className="text-lg font-semibold">{t("account.plansTitle")}</h2>
+            {plans !== null && (
+              <div className="mt-2 flex flex-wrap items-center gap-2" data-plan-limits>
+                <span className="text-xs text-text-muted font-data">
+                  {planLimit === null ? t("planLimits.activeCountUnknown").replace("{n}", String(activeCount)) : t("planLimits.activeCount").replace("{n}", String(activeCount)).replace("{limit}", String(planLimit))}
+                </span>
+                <span className="flex-1" />
+                {(["active", "entered", "archived"] as const).map((k) => (
+                  <button key={k} type="button" aria-pressed={planTab === k} onClick={() => setPlanTab(k)} className={`text-xs px-3 py-1 rounded-full border transition-colors ${planTab === k ? "border-gold/50 text-gold" : "border-line text-text-muted hover:text-text"}`}>
+                    {t(`planLimits.tab${k === "active" ? "Active" : k === "entered" ? "Entered" : "Archived"}`)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {planLimit !== null && activeCount > planLimit && <p className="mt-2 text-xs text-text-muted">{t("planLimits.overLimit")}</p>}
+            {planLimit !== null && activeCount >= planLimit && <p className="mt-2 text-xs text-gold">{limitText(planLimit)}</p>}
+            {planMsg && <p role="status" className="mt-2 text-xs text-bear">{planMsg}</p>}
             <div className="mt-3 space-y-3">
               {plansFailed && <p className="text-bear text-sm">{t("account.plansError")}</p>}
               {!plansFailed && plans === null && (
@@ -288,7 +334,8 @@ export default function AccountPage() {
               {plans !== null && plans.length === 0 && (
                 <p className="text-text-muted text-sm">{t("account.plansEmpty")}</p>
               )}
-              {plans?.map((plan) => (
+              {plans !== null && plans.length > 0 && shownPlans?.length === 0 && <p className="text-text-muted text-sm">{t("planLimits.emptyTab")}</p>}
+              {shownPlans?.map((plan) => (
                 <article key={plan.id} className="rounded-xl border border-white/10 p-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -303,6 +350,8 @@ export default function AccountPage() {
                       {plan.timeframe && (
                         <span className="text-xs text-text-muted font-data">{plan.timeframe}</span>
                       )}
+                      {plan.status === "entered" && <span className="tag tag-bull">{t("planLimits.chipEntered")}</span>}
+                      {plan.status === "archived" && <span className="tag">{t("planLimits.chipArchived")}</span>}
                     </div>
                     {plan.entryZone && (
                       <p className="text-xs text-text-muted mt-1 truncate">
@@ -310,7 +359,22 @@ export default function AccountPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                    {isActivePlan(plan) && (
+                      <button type="button" onClick={() => changePlan(plan.id, "entered")} className="text-xs px-3 py-1 rounded-full border border-line hover:border-text-muted transition-colors">
+                        {t("planLimits.markEntered")}
+                      </button>
+                    )}
+                    {plan.status !== "archived" && (
+                      <button type="button" onClick={() => changePlan(plan.id, "archived")} className="text-xs px-3 py-1 rounded-full border border-line hover:border-text-muted transition-colors">
+                        {t("planLimits.archive")}
+                      </button>
+                    )}
+                    {!isActivePlan(plan) && (
+                      <button type="button" onClick={() => changePlan(plan.id, "restore")} className="text-xs px-3 py-1 rounded-full border border-line hover:border-text-muted transition-colors">
+                        {t("planLimits.restore")}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => openPlan(plan)}

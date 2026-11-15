@@ -1,6 +1,7 @@
 "use client";
 
 // ATLAS-TRADEPLAN-v2
+import { PLAN_LIMITS } from "@/lib/entitlementConfig";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
@@ -326,7 +327,18 @@ export default function TradePlanPage() {
     setAccountMsg(null);
     try {
       const res = await fetch("/api/me/plans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft) });
-      setAccountMsg(res.ok ? t("tradePlan.savedToAccount") : t("tradePlan.accountSaveError"));
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setAccountMsg(data.duplicate ? t("planLimits.alreadySaved") : t("tradePlan.savedToAccount"));
+      } else if (res.status === 409) {
+        const data = await res.json().catch(() => ({}));
+        const limit = typeof data.limit === "number" ? data.limit : "";
+        setAccountMsg(t("planLimits.limitReached").replace("{limit}", String(limit)) + (typeof limit === "number" && limit < PLAN_LIMITS.elite.activeTradePlans ? " " + t("planLimits.limitElite").replace("{n}", String(PLAN_LIMITS.elite.activeTradePlans)) : ""));
+      } else if (res.status === 503) {
+        setAccountMsg(t("planLimits.unverified"));
+      } else {
+        setAccountMsg(t("tradePlan.accountSaveError"));
+      }
     } catch {
       setAccountMsg(t("tradePlan.accountSaveError"));
     } finally {
