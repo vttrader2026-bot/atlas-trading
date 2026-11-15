@@ -126,7 +126,6 @@ export function SignalCard({
             </div>
           </div>
 
-          {adminAction ? <div className="shrink-0">{adminAction}</div> : null}
         </header>
 
         {/* State + live price */}
@@ -287,6 +286,7 @@ export function SignalCard({
           )}
         </footer>
         {actions}
+        {adminAction ? <div className="border-t border-line pt-3">{adminAction}</div> : null}
       </div>
     </article>
   );

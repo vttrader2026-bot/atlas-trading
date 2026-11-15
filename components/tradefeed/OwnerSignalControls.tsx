@@ -15,7 +15,12 @@ import type { PublishedTrade } from "@/lib/tradeFeed";
 type Kind = "edit" | "status" | "cancel" | "delete";
 type Form = { pair: string; timeframe: string; entryZone: string; invalidation: string; tp1: string; tp2: string; tp3: string; reasoning: string };
 const toForm = (t: PublishedTrade): Form => ({ pair: t.pair, timeframe: t.timeframe, entryZone: t.entryZone, invalidation: t.invalidation, tp1: t.tp1, tp2: t.tp2, tp3: t.tp3, reasoning: t.reasoning });
-const btn = "text-xs rounded-full px-3 py-1 border";
+const btn = "inline-flex min-w-0 items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium leading-tight transition-colors";
+const icon = { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true, className: "shrink-0" } as const;
+const IconEdit = () => <svg {...icon}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>;
+const IconStatus = () => <svg {...icon}><path d="M20 6 9 17l-5-5" /></svg>;
+const IconCancel = () => <svg {...icon}><circle cx="12" cy="12" r="9" /><path d="m5.6 5.6 12.8 12.8" /></svg>;
+const IconDelete = () => <svg {...icon}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></svg>;
 
 export default function OwnerSignalControls({ trade, onUpdated, onDeleted, onNotice }: {
   trade: PublishedTrade;
@@ -33,6 +38,8 @@ export default function OwnerSignalControls({ trade, onUpdated, onDeleted, onNot
   const hit = trade.hitLevels ?? [];
   const levels = ([["TP1", trade.tp1], ["TP2", trade.tp2], ["TP3", trade.tp3]] as const).filter(([k, v]) => v && !hit.includes(k));
   const fill = (s: string, vars: Record<string, string>) => Object.entries(vars).reduce((a, [k, v]) => a.replace(`{${k}}`, v), s);
+  // Delete is the last button: when an odd number of buttons is shown it spans both columns so the grid stays even.
+  const shown = (closed ? 0 : hit.length === 0 ? 3 : 2) + 1;
   const base = `/api/admin/signals/${encodeURIComponent(trade.id)}`;
   const close = () => setOpen(null);
   const run = async (key: string, call: () => ReturnType<typeof adminApi<{ trade?: PublishedTrade }>>, after?: (d: { trade?: PublishedTrade }) => void): Promise<string | null> => {
@@ -57,11 +64,11 @@ export default function OwnerSignalControls({ trade, onUpdated, onDeleted, onNot
 
   return (
     <>
-      <div className="flex flex-wrap justify-end gap-1.5" data-owner-controls>
-        {!closed && hit.length === 0 && <button type="button" onClick={() => { setForm(toForm(trade)); setOpen("edit"); }} className={`${btn} border-line text-text-muted hover:text-text`}>{t("feedAdmin.edit")}</button>}
-        {!closed && <button type="button" onClick={() => { setOutcome(levels[0]?.[0] ?? "SL"); setReason(""); setOpen("status"); }} className={`${btn} border-gold/40 text-gold hover:bg-gold/10`}>{t("feedAdmin.status")}</button>}
-        {!closed && <button type="button" onClick={() => { setReason(""); setOpen("cancel"); }} className={`${btn} border-line text-text-muted hover:text-text`}>{t("feedAdmin.cancel")}</button>}
-        <button type="button" onClick={() => setOpen("delete")} className={`${btn} border-bear/40 text-bear hover:bg-bear/10`}>{t("feedAdmin.delete")}</button>
+      <div className="grid w-full grid-cols-2 gap-2" data-owner-controls>
+        {!closed && hit.length === 0 && <button type="button" onClick={() => { setForm(toForm(trade)); setOpen("edit"); }} className={`${btn} border-line text-text-muted hover:text-text hover:bg-surface-raised`}><IconEdit />{t("feedAdmin.edit")}</button>}
+        {!closed && <button type="button" onClick={() => { setOutcome(levels[0]?.[0] ?? "SL"); setReason(""); setOpen("status"); }} className={`${btn} border-gold/40 text-gold hover:bg-gold/10`}><IconStatus />{t("feedAdmin.status")}</button>}
+        {!closed && <button type="button" onClick={() => { setReason(""); setOpen("cancel"); }} className={`${btn} border-line text-text-muted hover:text-text hover:bg-surface-raised`}><IconCancel />{t("feedAdmin.cancel")}</button>}
+        <button type="button" onClick={() => setOpen("delete")} className={`${btn} border-bear/50 bg-bear/10 text-bear hover:bg-bear/20 ${shown % 2 === 0 ? "" : "col-span-2"}`}><IconDelete />{t("feedAdmin.delete")}</button>
       </div>
 
       {open === "edit" && (
