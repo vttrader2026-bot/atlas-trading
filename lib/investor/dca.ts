@@ -83,3 +83,27 @@ export function planProgress(plan: DcaPlan, purchases: Purchase[], today: string
 }
 
 export const plansOf = (doc: InvestorDoc) => doc.plans;
+
+// PHASE-3C: which plans are ACTIVE (they count toward the membership limit).
+/** Every scheduled slot of a plan: the initial buy, each recurring buy and each dip level. Same keys planProgress() uses. */
+export function planSlotKeys(plan: DcaPlan): string[] {
+  const keys: string[] = [];
+  if (plan.initial > 0) keys.push("initial");
+  for (let i = 0; i < plan.recurring.count; i++) keys.push(`r${i + 1}`);
+  plan.dips.forEach((_, i) => keys.push(`d${i + 1}`));
+  return keys;
+}
+
+/** Completed = it has slots and every one has its purchase recorded. A plan with no slots is never completed. */
+export function isPlanCompleted(plan: DcaPlan, purchases: readonly Purchase[]): boolean {
+  const keys = planSlotKeys(plan);
+  if (keys.length === 0) return false;
+  const done = new Set(purchases.filter((p) => p.planId === plan.id && p.slot).map((p) => p.slot as string));
+  return keys.every((k) => done.has(k));
+}
+
+export type PlanState = "active" | "completed" | "closed";
+/** A manually closed plan is "closed" even if it is also complete; otherwise complete plans are "completed". */
+export const planState = (plan: DcaPlan, purchases: readonly Purchase[]): PlanState => (plan.closedAt ? "closed" : isPlanCompleted(plan, purchases) ? "completed" : "active");
+export const isPlanActive = (plan: DcaPlan, purchases: readonly Purchase[]): boolean => planState(plan, purchases) === "active";
+export const activePlanCount = (doc: Pick<InvestorDoc, "plans" | "purchases">): number => doc.plans.filter((p) => isPlanActive(p, doc.purchases)).length;

@@ -7,9 +7,25 @@ const h = vi.hoisted(() => ({ user: null as string | null, store: new Map<string
 vi.mock("@/lib/userStore", () => ({
   requireUser: async () =>
     h.user
-      ? { userId: h.user, redis: { get: async (k: string) => h.store.get(k) ?? null, set: async (k: string, v: unknown) => void h.store.set(k, v) } }
+      ? {
+          userId: h.user,
+          redis: {
+            get: async (k: string) => h.store.get(k) ?? null,
+            set: async (k: string, v: unknown) => void h.store.set(k, v),
+            // JS twin of INVESTOR_WRITE_SCRIPT (the real Lua runs in dcaLua.test.ts): compare the revision, then write.
+            eval: async (_s: string, keys: string[], a: string[]) => {
+              const cur = (h.store.get(keys[0]) as { revision?: number } | undefined)?.revision ?? 0;
+              if (cur !== Number(a[0])) return 0;
+              h.store.set(keys[0], JSON.parse(a[1]));
+              h.store.set(keys[1], cur + 1);
+              return 1;
+            },
+          },
+        }
       : NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
 }));
+
+vi.mock("@/lib/entitlements", () => ({ getEntitlements: async () => ({ plan: "free", status: "verified" }) }));
 
 import { GET, PUT } from "@/app/api/me/investor/route";
 
@@ -35,7 +51,7 @@ describe("/api/me/investor", () => {
     const r = await put({ baseRevision: 0, doc: doc({ purchases: [buy] }) });
     expect(r.status).toBe(200);
     expect((await r.json()).doc.revision).toBe(1);
-    expect([...h.store.keys()]).toEqual(["user:u1:investor"]);
+    expect([...h.store.keys()].sort()).toEqual(["user:u1:investor", "user:u1:investor:rev"]);
     expect(h.store.has("user:u1:journal")).toBe(false);
   });
   it("each user only sees their own records", async () => {

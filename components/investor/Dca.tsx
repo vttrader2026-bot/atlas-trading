@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { DcaPlan, Frequency, InvestorDoc } from "@/lib/investor/model";
-import { planProgress } from "@/lib/investor/dca";
+import { planProgress, planState } from "@/lib/investor/dca";
+import { PLAN_LIMITS } from "@/lib/entitlementConfig";
 import type { PriceMap } from "@/lib/investor/calc";
 import { CoinLogo } from "@/components/market/MarketBits";
 import { useLanguage } from "@/lib/i18n";
@@ -91,12 +92,14 @@ function PlanForm({ prices, run, onDone }: { prices: PriceMap; run: Run; onDone:
 const signedPctStr = (n: number) => `${n > 0 ? "+" : ""}${n.toFixed(2)}%`;
 const STATUS_KEY = { done: "stDone", due: "stDue", upcoming: "stUpcoming", triggered: "stTriggered", waiting: "stWaiting" } as const;
 
-function PlanCard({ plan, doc, prices, run, onRecord }: { plan: DcaPlan; doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void }) {
+function PlanCard({ plan, doc, prices, run, onRecord, atLimit }: { plan: DcaPlan; doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void; atLimit: boolean }) {
   const { t } = useLanguage();
   const { usd, price } = useMoney(); // display currency (the form above stays in USDT)
   const livePrice = prices[plan.asset]?.price ?? null;
   const pr = planProgress(plan, doc.purchases, today(), livePrice);
   const pctDone = pr.totalCount ? (pr.doneCount / pr.totalCount) * 100 : 0;
+  const state = planState(plan, doc.purchases);
+  const completed = pr.totalCount > 0 && pr.doneCount === pr.totalCount;
   return (
     <section className="card p-4 space-y-4">
       <div className="flex items-center gap-3">
@@ -104,6 +107,10 @@ function PlanCard({ plan, doc, prices, run, onRecord }: { plan: DcaPlan; doc: In
         <div className="flex-1 min-w-0"><div className="font-semibold truncate">{plan.name}</div><div dir="ltr" className="font-data text-xs text-text-muted text-start">{plan.asset}</div></div>
         {/* ONE-BINANCE-BUTTON-v1: a single manual "Open in Binance" link per plan (its own pair); steps only have Record. */}
         <BinanceSpotLink pair={`${plan.asset}/USDT`} className="btn-secondary" hideWhenUnavailable />
+        {state === "completed" && <span className="tag tag-bull">{t("dcaLimits.stateCompleted")}</span>}
+        {state === "closed" && <span className="tag">{t("dcaLimits.stateClosed")}</span>}
+        {state === "active" && <button type="button" className="btn-secondary" onClick={() => { if (window.confirm(t("dcaLimits.closeConfirm"))) run((d) => ({ ...d, plans: d.plans.map((p) => (p.id === plan.id ? { ...p, closedAt: new Date().toISOString() } : p)) })); }}>{t("dcaLimits.close")}</button>}
+        {state === "closed" && !completed && <button type="button" disabled={atLimit} className="btn-secondary disabled:opacity-50" onClick={() => run((d) => ({ ...d, plans: d.plans.map((p) => { if (p.id !== plan.id) return p; const { closedAt: _closedAt, ...rest } = p; void _closedAt; return rest; }) }))}>{t("dcaLimits.restore")}</button>}
         <button type="button" className="text-xs text-text-muted underline" onClick={() => { if (window.confirm(t("investor.deletePlanConfirm"))) run((d) => ({ ...d, plans: d.plans.filter((p) => p.id !== plan.id) })); }}>{t("investor.deletePlan")}</button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
@@ -153,15 +160,28 @@ function PlanCard({ plan, doc, prices, run, onRecord }: { plan: DcaPlan; doc: In
   );
 }
 
-export default function Dca({ doc, prices, run, onRecord }: { doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void }) {
+export default function Dca({ doc, prices, run, onRecord, limit = null, active = 0 }: { doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void; limit?: number | null; active?: number }) {
   const { t } = useLanguage();
   const [creating, setCreating] = useState(false);
+  // The server enforces the limit; this only explains it and avoids a pointless click.
+  const atLimit = limit !== null && active >= limit;
+  const mine = (wantActive: boolean) => doc.plans.filter((p) => (planState(p, doc.purchases) === "active") === wantActive);
+  const activePlans = mine(true);
+  const otherPlans = mine(false);
   return (
     <div className="space-y-5">
       <p className="text-sm text-text-muted">{t("investor.dcaIntro")}</p>
-      {creating ? <PlanForm prices={prices} run={run} onDone={() => setCreating(false)} /> : <button type="button" className="btn-primary" onClick={() => setCreating(true)}>{t("investor.newPlan")}</button>}
+      <div className="flex flex-wrap items-center gap-3" data-dca-limits>
+        {creating ? null : <button type="button" disabled={atLimit} className="btn-primary disabled:opacity-50" onClick={() => setCreating(true)}>{t("investor.newPlan")}</button>}
+        <span className="text-xs text-text-muted font-data">{limit === null ? fill(t("dcaLimits.activeCountUnknown"), { n: active }) : fill(t("dcaLimits.activeCount"), { n: active, limit })}</span>
+      </div>
+      {limit !== null && active > limit && <p className="text-xs text-text-muted">{t("dcaLimits.overLimit")}</p>}
+      {atLimit && <p className="text-xs text-gold">{fill(t("dcaLimits.limitReached"), { limit: limit ?? 0 })}{limit !== null && limit < PLAN_LIMITS.elite.activeDcaPlans ? " " + fill(t("dcaLimits.limitElite"), { max: PLAN_LIMITS.elite.activeDcaPlans }) : ""}</p>}
+      {creating && <PlanForm prices={prices} run={run} onDone={() => setCreating(false)} />}
       {doc.plans.length === 0 && !creating && <p className="card p-6 text-sm text-text-muted">{t("investor.noPlans")}</p>}
-      {doc.plans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} />)}
+      {activePlans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} atLimit={atLimit} />)}
+      {otherPlans.length > 0 && <h3 className="text-label text-text-muted pt-2">{t("dcaLimits.sectionClosed")}</h3>}
+      {otherPlans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} atLimit={atLimit} />)}
     </div>
   );
 }

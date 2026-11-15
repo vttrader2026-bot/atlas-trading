@@ -31,7 +31,7 @@ export const LIMIT_ENFORCEMENT: Record<LimitKey, "live" | "planned"> = {
   analyzerPerDay: "live",
   watchlistItems: "live",
   activeTradePlans: "live",
-  activeDcaPlans: "planned",
+  activeDcaPlans: "live",
 };
 
 /** Access-controlled features that exist in the application and are decided by the plan. */

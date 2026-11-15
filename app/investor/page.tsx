@@ -21,7 +21,7 @@ type Tab = (typeof TABS)[number];
 
 export default function InvestorPage() {
   const { t } = useLanguage();
-  const { doc, state, saving, commit } = useInvestor();
+  const { doc, state, saving, commit, dcaLimit, dcaActive } = useInvestor();
   const live = useLiveTickers();
   const [tab, setTab] = useState<Tab>("Dashboard");
   const [notice, setNotice] = useState<string | null>(null);
@@ -44,7 +44,10 @@ export default function InvestorPage() {
   const summary = useMemo(() => summarize(doc, prices), [doc, prices]);
 
   const message = useCallback((r: Extract<CommitResult, { ok: false }>) =>
-    r.error === "oversell" ? fill(t("investor.oversell"), { held: r.detail?.held ?? 0, asset: r.detail?.asset ?? "" }) : t(`investor.${r.error === "save" ? "saveError" : r.error}`), [t]);
+    r.error === "oversell" ? fill(t("investor.oversell"), { held: r.detail?.held ?? 0, asset: r.detail?.asset ?? "" })
+    : r.error === "limit" ? t("dcaLimits.limit")
+    : r.error === "unverified" ? t("dcaLimits.unverified")
+    : t(`investor.${r.error === "save" ? "saveError" : r.error}`), [t]);
 
   const run = useCallback(async (m: (d: InvestorDoc) => InvestorDoc) => {
     const r = await commit(m);
@@ -81,7 +84,7 @@ export default function InvestorPage() {
       <div id="inv-panel" role="tabpanel" aria-labelledby={`inv-tab-${tab}`} className="mt-3">
         {tab === "Dashboard" && <Dashboard s={summary} doc={doc} run={run} onSell={(asset, price) => setSell({ asset, price })} />}
         {tab === "Ledger" && <Ledger doc={doc} run={run} draft={draft} clearDraft={() => setDraft(null)} livePrice={(a) => prices[a]?.price ?? null} />}
-        {tab === "Dca" && <Dca doc={doc} prices={prices} run={run} onRecord={(d) => { setDraft(d); setTab("Ledger"); }} />}
+        {tab === "Dca" && <Dca doc={doc} prices={prices} run={run} limit={dcaLimit} active={dcaActive} onRecord={(d) => { setDraft(d); setTab("Ledger"); }} />}
         {tab === "Risk" && <Risk holdings={summary.holdings} />}
         {tab === "Performance" && <Performance doc={doc} s={summary} />}
       </div>

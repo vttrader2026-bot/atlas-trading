@@ -47,6 +47,8 @@ export type DcaPlan = {
   dips: { dropPct: number; amount: number }[];
   refPrice: number;
   createdAt: string;
+  /** Set when the member closes the plan by hand (ISO time). A closed plan is not active; Restore removes it. */
+  closedAt?: string;
 };
 export type ManualPrice = { price: number; at: string };
 
@@ -64,7 +66,7 @@ export type InvestorDoc = {
 
 export const emptyDoc = (): InvestorDoc => ({ revision: 0, purchases: [], sales: [], cash: [], plans: [], manualPrices: {}, bnbDiscount: false });
 
-export const LIMITS = { records: 5000, cash: 2000, plans: 50, note: 200, dips: 10, recurringCount: 520, maxValue: 1e12 } as const;
+export const LIMITS = { records: 5000, cash: 2000, plans: 200, note: 200, dips: 10, recurringCount: 520, maxValue: 1e12 } as const;
 
 /** Round to 8 decimals: enough for any crypto quantity, and stops 0.1 + 0.2 style drift. */
 export const r8 = (n: number) => Math.round((n + Number.EPSILON) * 1e8) / 1e8;
@@ -160,7 +162,8 @@ export function parseDoc(raw: unknown, now = Date.now()): ParseResult {
       if (dropPct === null || dropPct >= 100 || da === null) return fail("Invalid plan");
       dips.push({ dropPct, amount: da });
     }
-    plans.push({ id: pid, name, asset: x.asset, budget, initial, recurring: { amount, frequency: r.frequency, startDate: r.startDate, count }, dips, refPrice, createdAt: x.createdAt });
+    if (x.closedAt !== undefined && (typeof x.closedAt !== "string" || !x.closedAt || x.closedAt.length > 40)) return fail("Invalid plan");
+    plans.push({ id: pid, name, asset: x.asset, budget, initial, recurring: { amount, frequency: r.frequency, startDate: r.startDate, count }, dips, refPrice, createdAt: x.createdAt, ...(typeof x.closedAt === "string" ? { closedAt: x.closedAt } : {}) });
   }
   const manualPrices: Record<string, ManualPrice> = {};
   if (!obj(raw.manualPrices)) return fail("Invalid prices");

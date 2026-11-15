@@ -5,6 +5,7 @@ import { journalEn, journalFr, journalAr, planEn, planFr, planAr } from "@/lib/i
 import { perfEn, perfFr, perfAr } from "@/lib/i18nPerformance";
 import { pubFeedEn, pubFeedFr, pubFeedAr } from "@/lib/i18nPublishFeed";
 import { feedAdminEn, feedAdminFr, feedAdminAr } from "@/lib/i18nFeedAdmin";
+import { dcaLimitsEn, dcaLimitsFr, dcaLimitsAr } from "@/lib/i18nDcaLimits";
 import { investorEn, investorFr, investorAr } from "@/lib/i18nInvestor";
 import { planLimitsEn, planLimitsFr, planLimitsAr } from "@/lib/i18nPlanLimits";
 import { homeAppEn, homeAppFr, homeAppAr } from "@/lib/i18nHomeApp";
@@ -500,6 +501,7 @@ const en: Dict = {
     emptyRisk: "Enter your balance, risk %, entry price and stop-loss to see the results.",
     emptyPosition: "Enter your balance, investment amount, entry price and stop-loss to see the results.",
   },
+  dcaLimits: { ...dcaLimitsEn },
   investor: { ...investorEn },
   planLimits: { ...planLimitsEn },
   perf: { ...perfEn },
@@ -1543,6 +1545,7 @@ const ar: Dict = {
     emptyRisk: "أدخل رصيدك ونسبة المخاطرة وسعر الدخول ووقف الخسارة لرؤية النتائج.",
     emptyPosition: "أدخل رصيدك ومبلغ الاستثمار وسعر الدخول ووقف الخسارة لرؤية النتائج.",
   },
+  dcaLimits: { ...dcaLimitsAr },
   investor: { ...investorAr },
   planLimits: { ...planLimitsAr },
   perf: { ...perfAr },
@@ -2586,6 +2589,7 @@ const fr: Dict = {
     emptyRisk: "Entrez votre solde, le risque %, le prix d'entrée et le stop-loss pour voir les résultats.",
     emptyPosition: "Entrez votre solde, le montant investi, le prix d'entrée et le stop-loss pour voir les résultats.",
   },
+  dcaLimits: { ...dcaLimitsFr },
   investor: { ...investorFr },
   planLimits: { ...planLimitsFr },
   perf: { ...perfFr },
