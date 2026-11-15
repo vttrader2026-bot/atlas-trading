@@ -1,16 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
-// A tiny in-memory stand-in for Upstash Redis, shared by every "user".
+// A tiny in-memory stand-in for Upstash Redis, shared by every "user". Its eval() is a JS twin of WATCHLIST_WRITE_SCRIPT
+// (the real script is run against a real Redis in watchlistLua.test.ts).
 const db = new Map<string, unknown>();
-const redis = { get: async (k: string) => db.get(k) ?? null, set: async (k: string, v: unknown) => { db.set(k, v); return "OK"; } };
+const redis = {
+  get: async (k: string) => db.get(k) ?? null,
+  set: async (k: string, v: unknown) => { db.set(k, v); return "OK"; },
+  eval: async (_s: string, keys: string[], args: string[]) => {
+    const rev = Number(db.get(keys[1]) ?? 0);
+    if (rev !== Number(args[0])) return 0;
+    const before = ((db.get(keys[0]) as { items?: unknown[] } | undefined)?.items ?? []).length;
+    const next = JSON.parse(args[1]) as { items: unknown[] };
+    if (next.items.length > Number(args[2]) && next.items.length > before) return -1;
+    db.set(keys[0], next);
+    db.set(keys[1], rev + 1);
+    return 1;
+  },
+};
 let currentUser: string | null = "user_a";
 const plans: Record<string, string> = {};
 
 vi.mock("@/lib/userStore", () => ({
   requireUser: async () => (currentUser ? { userId: currentUser, redis } : NextResponse.json({ error: "Unauthorized" }, { status: 401 })),
 }));
-vi.mock("@/lib/plan", () => ({ getUserPlan: async (id: string) => plans[id] ?? "free" }));
+vi.mock("@/lib/entitlements", () => ({ getEntitlements: async (id: string) => ({ plan: plans[id] ?? "free", status: "verified" }) }));
 
 import { GET, POST } from "@/app/api/me/watchlist/route";
 
@@ -36,20 +50,20 @@ describe("/api/me/watchlist", () => {
     await post({ op: "add", symbol: "BTCUSDT" });
     let body = await get();
     expect(body.items.map((i: { symbol: string }) => i.symbol)).toEqual(["BTCUSDT", "ETHUSDT"]);
-    expect(body.limit).toBe(10);
+    expect(body.limit).toBe(5);
     await post({ op: "remove", symbol: "BTC" });
     body = await get();
     expect(body.items.map((i: { symbol: string }) => i.symbol)).toEqual(["ETHUSDT"]);
   });
 
-  it("free users stop at 10 with a 409 'limit' (not a crash); Elite goes to 50", async () => {
-    for (let i = 0; i < 10; i++) expect((await post({ op: "add", symbol: `FREE${i}` })).status).toBe(200);
-    const over = await post({ op: "add", symbol: "ELEVENTH" });
+  it("free users stop at 5 with a 409 'limit' (not a crash); Elite goes to 50", async () => {
+    for (let i = 0; i < 5; i++) expect((await post({ op: "add", symbol: `FREE${i}` })).status).toBe(200);
+    const over = await post({ op: "add", symbol: "SIXTH" });
     expect(over.status).toBe(409);
     const ob = await over.json();
     expect(ob.error).toBe("limit");
-    expect(ob.limit).toBe(10);
-    expect(ob.items).toHaveLength(10);
+    expect(ob.limit).toBe(5);
+    expect(ob.items).toHaveLength(5);
 
     currentUser = "user_elite";
     plans.user_elite = "elite";
@@ -63,9 +77,9 @@ describe("/api/me/watchlist", () => {
     await post({ op: "add", symbol: "BTC" });
     const res = await post({ op: "merge", symbols: ["BTC", "ETH", "SOL", "ETH", ...Array.from({ length: 12 }, (_, i) => `M${i}`)] });
     const body = await res.json();
-    expect(body.items).toHaveLength(10);
-    expect(new Set(body.items.map((i: { symbol: string }) => i.symbol)).size).toBe(10);
-    expect(body.dropped).toBe(5);
+    expect(body.items).toHaveLength(5);
+    expect(new Set(body.items.map((i: { symbol: string }) => i.symbol)).size).toBe(5);
+    expect(body.dropped).toBe(10); // 14 new coins (ETH, SOL, M0-M11), 4 fit (5 minus BTC), 10 dropped
   });
 
   it("one user cannot read or change another user's list", async () => {

@@ -23,12 +23,12 @@ export const PLAN_LIMITS: Record<Plan, Record<LimitKey, number>> = {
 /**
  * Whether the application enforces a limit today.
  *  - "live": enforced from PLAN_LIMITS now (the daily AI analyses, via lib/plan.ts).
- *  - "planned": defined here, not enforced yet. Existing enforcement (e.g. lib/watchlistConfig.ts) is unchanged until
- *    its own phase switches it over and flips this flag.
+ *  - "planned": defined here, not enforced yet; flipped to "live" when its own phase is done.
+ *  The Watchlist is "live" (lib/watchlistConfig.ts -> limitFor, enforced in app/api/me/watchlist via lib/watchlistAtomic.ts).
  */
 export const LIMIT_ENFORCEMENT: Record<LimitKey, "live" | "planned"> = {
   analyzerPerDay: "live",
-  watchlistItems: "planned",
+  watchlistItems: "live",
   activeTradePlans: "planned",
   activeDcaPlans: "planned",
 };

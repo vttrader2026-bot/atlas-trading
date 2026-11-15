@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
 import EliteRecord from "@/components/elite/EliteRecord";
+import { PLAN_LIMITS } from "@/lib/entitlementConfig";
 
 type Method = "usdt" | "bankily" | "masrivi" | "sedad";
 /** ATLAS ELITE is the only paid plan. */
@@ -193,7 +194,7 @@ function ElitePageInner() {
             <li>{s("Market Radar + charts", "رادار السوق + الرسوم البيانية")}</li>
             <li>{s("AI Analyzer — 3/day", "المحلل بالذكاء الاصطناعي — 3/يوم")}</li>
             <li>{s("Trade Plan, Risk calculator, Journal", "خطة الصفقة، حاسبة المخاطر، السجل")}</li>
-            <li>{s("Watchlist — 10 coins", "قائمة المراقبة — 10 عملات")}</li>
+            <li>{s(`Watchlist — ${PLAN_LIMITS.free.watchlistItems} coins`, `قائمة المراقبة — ${PLAN_LIMITS.free.watchlistItems} عملات`)}</li>
           </ul>
         </div>
         <div className="card card-accent p-4 text-left ring-1 ring-gold">

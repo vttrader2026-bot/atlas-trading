@@ -6,7 +6,7 @@ import { useWatchlist } from "@/lib/useWatchlist";
 import { useLanguage } from "@/lib/i18n";
 import { normalizeSymbol, baseOf } from "@/lib/watchlist";
 import { onServerLimit } from "@/lib/watchlistStore";
-import { WATCHLIST_LIMITS } from "@/lib/watchlistConfig";
+import { PLAN_LIMITS } from "@/lib/entitlementConfig";
 
 /** Add / remove a coin from the Watchlist. `symbol` accepts "BTCUSDT", "BTC/USDT" or "BTC". */
 export default function StarButton({ symbol, className = "", size = 20 }: { symbol: string; className?: string; size?: number }) {
@@ -59,7 +59,7 @@ export default function StarButton({ symbol, className = "", size = 20 }: { symb
           {msg.plan !== "elite" && (
             <>
               {" "}
-              <Link href="/elite" className="text-gold underline">{t("watchlist.elitePitch").replace("{n}", String(WATCHLIST_LIMITS.elite))}</Link>
+              <Link href="/elite" className="text-gold underline">{t("watchlist.elitePitch").replace("{n}", String(PLAN_LIMITS.elite.watchlistItems))}</Link>
             </>
           )}
         </span>

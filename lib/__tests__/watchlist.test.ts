@@ -3,7 +3,7 @@ import {
   applyOp, normalizeSeen, normalizeState, normalizeSymbol, sortWatchRows, statusChange,
   type WatchRow, type WatchState,
 } from "@/lib/watchlist";
-import { WATCHLIST_LIMITS, watchlistLimit } from "@/lib/watchlistConfig";
+import { watchlistLimit } from "@/lib/watchlistConfig";
 
 const empty: WatchState = { items: [], seen: {} };
 const row = (symbol: string, o: Partial<WatchRow> = {}): WatchRow => ({
@@ -70,12 +70,10 @@ describe("normalizeState / normalizeSeen", () => {
 });
 
 describe("limits config", () => {
-  it("free 10, elite 50, from one place", () => {
-    expect(WATCHLIST_LIMITS.free).toBe(10);
-    expect(WATCHLIST_LIMITS.elite).toBe(50);
-    expect(watchlistLimit("free")).toBe(10);
+  it("free 5, elite 50, from the entitlement configuration", () => {
+    expect(watchlistLimit("free")).toBe(5);
     expect(watchlistLimit("elite")).toBe(50);
-    expect(watchlistLimit(undefined)).toBe(10);
+    expect(watchlistLimit(undefined)).toBe(5);
   });
 });
 

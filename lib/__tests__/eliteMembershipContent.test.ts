@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { dictionaries } from "@/lib/i18n";
 import { eliteNowPayload } from "@/lib/push";
 import { analyzeLimitForPlan } from "@/lib/plan";
-import { WATCHLIST_LIMITS } from "@/lib/watchlistConfig";
+import { watchlistLimit } from "@/lib/watchlistConfig";
 
 type Dict = Record<string, string>;
 const sec = (l: "en" | "ar" | "fr") => dictionaries[l].eliteSection as unknown as Dict;
@@ -41,7 +41,7 @@ describe("ATLAS ELITE plan content", () => {
   });
   it("the advertised limits are the real limits (20 analyses a day, 50 watchlist coins)", () => {
     expect(analyzeLimitForPlan("elite")).toBe(20);
-    expect(WATCHLIST_LIMITS.elite).toBe(50);
+    expect(watchlistLimit("elite")).toBe(50);
     for (const l of ["en", "ar", "fr"] as const) {
       expect(sec(l).f6).toMatch(/20/);
       expect(sec(l).f7).toMatch(/50/);

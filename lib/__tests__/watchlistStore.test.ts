@@ -52,16 +52,16 @@ describe("signed out (browser storage)", () => {
   it("adds, removes, persists across a reload, and stops at the free limit", async () => {
     let st = await fresh();
     st.attach(null);
-    for (let i = 0; i < 10; i++) expect(st.addSymbol(`C${i}X`).ok).toBe(true);
+    for (let i = 0; i < 5; i++) expect(st.addSymbol(`C${i}X`).ok).toBe(true);
     const over = st.addSymbol("EXTRAX");
-    expect(over).toMatchObject({ ok: false, reason: "limit", limit: 10 });
+    expect(over).toMatchObject({ ok: false, reason: "limit", limit: 5 });
     st.removeSymbol("C0X");
-    expect(st.getState().items).toHaveLength(9);
+    expect(st.getState().items).toHaveLength(4);
     expect(calls).toBe(0); // signed-out use never talks to the server
 
     st = await fresh(); // "refresh the page"
     st.attach(null);
-    expect(syms(st.getState())).toHaveLength(9);
+    expect(syms(st.getState())).toHaveLength(4);
     expect(syms(st.getState())).not.toContain("C0XUSDT");
   });
 });
@@ -114,8 +114,8 @@ describe("signed in (account storage)", () => {
     const free = await fresh();
     free.attach("user_free");
     await settle();
-    for (let i = 0; i < 10; i++) free.addSymbol(`F${i}X`);
-    expect(free.addSymbol("OVERX")).toMatchObject({ ok: false, reason: "limit", limit: 10, plan: "free" });
+    for (let i = 0; i < 5; i++) free.addSymbol(`F${i}X`);
+    expect(free.addSymbol("OVERX")).toMatchObject({ ok: false, reason: "limit", limit: 5, plan: "free" });
     await settle(); // let queued saves finish before the next test changes the session
   });
 

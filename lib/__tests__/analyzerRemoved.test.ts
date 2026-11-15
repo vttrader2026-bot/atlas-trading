@@ -20,7 +20,7 @@ vi.mock("@/lib/telegram", () => ({ sendPaymentProofToAdmin: async (_p: string, c
 import { POST as paymentsPOST } from "@/app/api/payments/route";
 import { analyzeLimitForPlan, analyzeLimitReachedMessage, effectivePlan, getUserPlan } from "@/lib/plan";
 import { memberState } from "@/lib/membership";
-import { WATCHLIST_LIMITS, watchlistLimit } from "@/lib/watchlistConfig";
+import { watchlistLimit } from "@/lib/watchlistConfig";
 import { dictionaries } from "@/lib/i18n";
 
 const ROOT = join(__dirname, "..", "..");
@@ -40,15 +40,15 @@ describe("old Analyzer accounts are simply FREE and nothing breaks", () => {
     expect(effectivePlan(h.meta)).toBe("free");
     expect(await getUserPlan("u1")).toBe("free");
     expect(analyzeLimitForPlan(await getUserPlan("u1"))).toBe(3);
-    expect(watchlistLimit("analyzer")).toBe(WATCHLIST_LIMITS.free);
+    expect(watchlistLimit("analyzer")).toBe(watchlistLimit("free"));
     expect(memberState({ plan: "analyzer" }, Date.now())).toBe("free");
   });
-  it("only FREE (3/day, 10 coins) and ELITE (20/day, 50 coins) remain", () => {
+  it("only FREE (3/day, 5 coins) and ELITE (20/day, 50 coins) remain", () => {
     expect(analyzeLimitForPlan("free")).toBe(3);
     expect(analyzeLimitForPlan("elite")).toBe(20);
-    expect(WATCHLIST_LIMITS).toEqual({ free: 10, elite: 50 });
     expect(watchlistLimit("elite")).toBe(50);
-    expect(watchlistLimit(undefined)).toBe(10);
+    expect(watchlistLimit("free")).toBe(5);
+    expect(watchlistLimit(undefined)).toBe(5);
   });
 });
 

@@ -1,9 +1,7 @@
-// Watchlist limits per plan. Change the numbers here and nowhere else.
-export const WATCHLIST_LIMITS = {
-  free: 10,
-  elite: 50,
-} as const;
+// Watchlist limits per plan. The numbers live ONLY in lib/entitlementConfig.ts (PLAN_LIMITS.*.watchlistItems);
+// this is a thin adapter so Watchlist code keeps one familiar function. Do not add numbers here.
+import { limitFor } from "@/lib/entitlementRules";
 
 export function watchlistLimit(plan: string | null | undefined): number {
-  return plan === "elite" ? WATCHLIST_LIMITS.elite : WATCHLIST_LIMITS.free;
+  return limitFor(plan, "watchlistItems");
 }

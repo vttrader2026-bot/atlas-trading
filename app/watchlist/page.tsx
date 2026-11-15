@@ -6,7 +6,7 @@ import { formatCompact, formatPrice } from "@/lib/binance";
 import { useLanguage } from "@/lib/i18n";
 import { useWatchlist } from "@/lib/useWatchlist";
 import { useWatchlistMarket } from "@/lib/useWatchlistMarket";
-import { WATCHLIST_LIMITS } from "@/lib/watchlistConfig";
+import { PLAN_LIMITS } from "@/lib/entitlementConfig";
 import {
   WATCH_SORT_KEYS, baseOf, normalizeSymbol, sortWatchRows, statusChange,
   type StatusKey, type WatchRow, type WatchSortDir, type WatchSortKey,
@@ -165,7 +165,7 @@ export default function WatchlistPage() {
       {wl.plan !== "elite" && (
         <>
           {" "}
-          <Link href="/elite" className="text-gold underline">{t("watchlist.elitePitch").replace("{n}", String(WATCHLIST_LIMITS.elite))}</Link>
+          <Link href="/elite" className="text-gold underline">{t("watchlist.elitePitch").replace("{n}", String(PLAN_LIMITS.elite.watchlistItems))}</Link>
         </>
       )}
     </>
