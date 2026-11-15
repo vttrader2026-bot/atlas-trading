@@ -49,6 +49,19 @@ export function closeSignal(t: PublishedTrade, outcome: CloseOutcome, reason: st
   return { ...t, status: "closed", hitLevels: hits, closing: { outcome, reason, result, closedAt: now, verified: true } };
 }
 
+/**
+ * Records a PARTIAL take-profit (TP1 or TP2): the hit levels are added and the signal stays OPEN with no closing record.
+ * Every original field (entry, stop, targets) is kept. Returns null when that level was already recorded, so the same
+ * target is never recorded or notified twice. TP3 and SL end the trade: those go through closeSignal().
+ */
+export function recordTargetHit(t: PublishedTrade, level: "TP1" | "TP2"): PublishedTrade | null {
+  const hits = [...(t.hitLevels ?? [])];
+  if (hits.includes(level)) return null;
+  const n = Number(level.slice(2));
+  for (let i = 1; i <= n; i++) if (!hits.includes(`TP${i}`)) hits.push(`TP${i}`);
+  return { ...t, hitLevels: hits };
+}
+
 export type SignalTier = "free" | "elite";
 
 /** Effective tier of a stored trade. Missing = "free" (backward compatible). Any unrecognised value fails closed to "elite". */

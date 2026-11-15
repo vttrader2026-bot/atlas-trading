@@ -11,6 +11,8 @@ import { SignalCard } from "@/components/tradefeed/SignalCard";
 import { LockedSignalCard } from "@/components/tradefeed/LockedSignalCard";
 import { startTickerRefresh, browserRefreshEnv } from "@/lib/tickerRefresh";
 import { SignalActions } from "@/components/tradefeed/SignalActions";
+import OwnerSignalControls from "@/components/tradefeed/OwnerSignalControls";
+import { useIsOwner } from "@/lib/useIsOwner";
 import { loadTrades } from "@/lib/journal";
 import { loadDraft } from "@/lib/tradePlan";
 import { normalizeWatch, type Watched } from "@/lib/signalLink";
@@ -90,7 +92,8 @@ export default function TradeFeedPage() {
   const [failed, setFailed] = useState(false);
   // True only for an active ELITE member (set by the server); enables Confirm Trade on ELITE signals.
   const [canConfirm, setCanConfirm] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const isOwner = useIsOwner(); // FEED-ADMIN-v1: display only; every management API re-checks the owner on the server
+  const [notice, setNotice] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [tickers, setTickers] = useState<Record<string, Ticker24h>>({});
   // Connected workflow: which signals the user follows, and which are already in their Journal / plan draft.
@@ -190,33 +193,32 @@ export default function TradeFeedPage() {
   const hasEnoughDataForStats = trades !== null && publishedCount >= MIN_TRADES_FOR_STATS;
 
   useEffect(() => {
-    // Admin mode is only a UI switch; the API still checks the secret.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsAdmin(new URLSearchParams(window.location.search).get("admin") === "1");
-  }, []);
-
-  useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
     let cancelled = false;
-    // Admin mode (?admin=1) sends the admin secret the Trade Plan page already stores, so the admin sees both tiers.
-    const headers: Record<string, string> = {};
-    try {
-      if (new URLSearchParams(window.location.search).get("admin") === "1") {
-        const adminSecret = window.localStorage.getItem("atlas-trading.adminSecret");
-        if (adminSecret) headers["x-admin-secret"] = adminSecret;
-      }
-    } catch {
-      /* storage unavailable: fall back to the normal plan-based view */
-    }
-    fetch("/api/trade-feed", { cache: "no-store", headers })
+    // Public feed for everyone (also gives canConfirm / locked previews). The owner then gets the complete FREE + ELITE feed from
+    // the owner-only route; no secret is sent from the browser.
+    fetch("/api/trade-feed", { cache: "no-store" })
       .then((res) => {
         if (!res.ok) throw new Error("bad status");
         return res.json();
       })
-      .then((data) => {
+      .then(async (data) => {
+        let list = Array.isArray(data.trades) ? data.trades : [];
+        let lockedList = Array.isArray(data.locked) ? data.locked : [];
+        if (isOwner) {
+          try {
+            const r = await fetch("/api/admin/signals/feed", { cache: "no-store" });
+            if (r.ok) {
+              const d = await r.json();
+              if (Array.isArray(d.trades)) { list = d.trades; lockedList = []; }
+            }
+          } catch {
+            /* keep the public feed */
+          }
+        }
         if (!cancelled) {
-          setTrades(Array.isArray(data.trades) ? data.trades : []);
-          setLocked(Array.isArray(data.locked) ? data.locked : []);
+          setTrades(list);
+          setLocked(lockedList);
           setCanConfirm(data.canConfirm === true);
         }
       })
@@ -226,7 +228,7 @@ export default function TradeFeedPage() {
     return () => {
       cancelled = true;
     };
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, isOwner]);
 
   // Live prices for every unique pair currently shown. Refreshed every 15s while the tab is visible (and on
   // return to the tab): a single fetch at load made prices freeze at page-open time. A failed refresh keeps the
@@ -241,53 +243,6 @@ export default function TradeFeedPage() {
       env: browserRefreshEnv(),
     });
   }, [trades]);
-
-  async function removeTrade(id: string) {
-    if (!window.confirm(t("tradeFeed.confirmRemove"))) return;
-    const secret = window.prompt(t("tradePlan.enterAdminSecret"));
-    if (!secret) return;
-    setMessage(null);
-    try {
-      const res = await fetch("/api/trade-feed", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret, id }),
-      });
-      if (res.status === 401) {
-        setMessage(t("tradePlan.publishUnauthorized"));
-      } else if (res.ok) {
-        setTrades((prev) => (prev ? prev.filter((x) => x.id !== id) : prev));
-      } else {
-        setMessage(t("tradeFeed.removeError"));
-      }
-    } catch {
-      setMessage(t("tradeFeed.removeError"));
-    }
-  }
-
-  // CLOSE-ELITE-v1 (admin mode only; the API checks the admin secret).
-  async function closeEliteTrade(id: string) {
-    const outcome = window.prompt(t("tradeFeed.closePrompt"))?.trim().toUpperCase();
-    if (!outcome) return;
-    const reason = window.prompt(t("tradeFeed.closeReason")) ?? "";
-    let secret = "";
-    try {
-      secret = window.localStorage.getItem("atlas-trading.adminSecret") ?? "";
-    } catch {
-      /* storage unavailable */
-    }
-    secret = secret || window.prompt(t("tradePlan.enterAdminSecret")) || "";
-    if (!secret) return;
-    setMessage(null);
-    try {
-      const res = await fetch("/api/trade-feed/close", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ secret, id, outcome, reason }) });
-      const data = await res.json().catch(() => null);
-      if (res.ok && data?.trade) setTrades((prev) => (prev ? prev.map((x) => (x.id === id ? { ...x, ...data.trade } : x)) : prev));
-      else setMessage(res.status === 401 ? t("tradePlan.publishUnauthorized") : res.status === 409 ? t("tradeFeed.closeDone") : t("tradeFeed.closeErr"));
-    } catch {
-      setMessage(t("tradeFeed.closeErr"));
-    }
-  }
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
@@ -346,6 +301,7 @@ export default function TradeFeedPage() {
         )}
 
         {message && <p className="text-bear text-sm">{message}</p>}
+        {notice && <p role="status" className="text-bull text-sm">{notice}</p>}
         {failed && <p className="text-bear text-sm">{t("tradeFeed.error")}</p>}
         {!failed && trades === null && (
           <p className="text-text-muted text-sm">{t("tradeFeed.loading")}</p>
@@ -388,25 +344,13 @@ export default function TradeFeedPage() {
                 />
               }
               adminAction={
-                isAdmin ? (
-                  <div className="flex flex-col items-end gap-1.5">
-                    {trade.tier === "elite" && trade.status !== "closed" && (
-                      <button
-                        type="button"
-                        onClick={() => closeEliteTrade(trade.id)}
-                        className="text-xs text-gold border border-gold/40 rounded-full px-3 py-1 hover:bg-gold/10"
-                      >
-                        {t("tradeFeed.closeSignal")}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeTrade(trade.id)}
-                      className="text-xs text-bear border border-bear/40 rounded-full px-3 py-1 hover:bg-bear/10"
-                    >
-                      {t("tradeFeed.remove")}
-                    </button>
-                  </div>
+                isOwner ? (
+                  <OwnerSignalControls
+                    trade={trade}
+                    onUpdated={(next) => setTrades((prev) => (prev ? prev.map((x) => (x.id === next.id ? { ...x, ...next } : x)) : prev))}
+                    onDeleted={(id) => setTrades((prev) => (prev ? prev.filter((x) => x.id !== id) : prev))}
+                    onNotice={setNotice}
+                  />
                 ) : null
               }
             />

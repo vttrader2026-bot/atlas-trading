@@ -59,6 +59,18 @@ export async function readBody(req: Request): Promise<Record<string, unknown> | 
 export const noStore = { "Cache-Control": "no-store" } as const;
 
 /** Best-effort audit trail of every admin write (newest first, last 1000). Never blocks the action. */
+/** Like auditLog but reports whether the entry was written, for actions that must not happen without a record. */
+export async function auditLogStrict(redis: { lpush: (k: string, ...v: unknown[]) => Promise<unknown>; ltrim: (k: string, a: number, b: number) => Promise<unknown> }, actor: string, action: string, target: string, detail: Record<string, unknown> = {}): Promise<boolean> {
+  try {
+    await redis.lpush("atlas:admin-audit", { at: Date.now(), actor, action, target, ...detail });
+    await redis.ltrim("atlas:admin-audit", 0, 999).catch(() => 0);
+    return true;
+  } catch (err) {
+    console.error("admin: audit log failed", err);
+    return false;
+  }
+}
+
 export async function auditLog(redis: { lpush: (k: string, ...v: unknown[]) => Promise<unknown>; ltrim: (k: string, a: number, b: number) => Promise<unknown> } | null, actor: string, action: string, target: string, detail: Record<string, unknown> = {}) {
   if (!redis) return;
   try {

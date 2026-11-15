@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { journalEn, journalFr, journalAr, planEn, planFr, planAr } from "@/lib/i18nJournal";
 import { perfEn, perfFr, perfAr } from "@/lib/i18nPerformance";
 import { pubFeedEn, pubFeedFr, pubFeedAr } from "@/lib/i18nPublishFeed";
+import { feedAdminEn, feedAdminFr, feedAdminAr } from "@/lib/i18nFeedAdmin";
 import { investorEn, investorFr, investorAr } from "@/lib/i18nInvestor";
 import { homeAppEn, homeAppFr, homeAppAr } from "@/lib/i18nHomeApp";
 import { feedEn, feedFr, feedAr, sigJournalEn, sigJournalFr, sigJournalAr, sigPlanEn, sigPlanFr, sigPlanAr } from "@/lib/i18nSignals";
@@ -501,6 +502,7 @@ const en: Dict = {
   investor: { ...investorEn },
   perf: { ...perfEn },
   pubFeed: { ...pubFeedEn },
+  feedAdmin: { ...feedAdminEn },
   homeApp: { ...homeAppEn },
   journal: {
     title: "Journal",
@@ -1542,6 +1544,7 @@ const ar: Dict = {
   investor: { ...investorAr },
   perf: { ...perfAr },
   pubFeed: { ...pubFeedAr },
+  feedAdmin: { ...feedAdminAr },
   homeApp: { ...homeAppAr },
   journal: {
     title: "السجل",
@@ -2583,6 +2586,7 @@ const fr: Dict = {
   investor: { ...investorFr },
   perf: { ...perfFr },
   pubFeed: { ...pubFeedFr },
+  feedAdmin: { ...feedAdminFr },
   homeApp: { ...homeAppFr },
   journal: {
     title: "Journal",

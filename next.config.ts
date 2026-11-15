@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
     return [
       { source: "/coins", destination: "/radar", permanent: false },
       { source: "/coins/:symbol", destination: "/radar", permanent: false },
+      // FEED-ADMIN-v1: Trade Feed management now lives on /trade-feed (owner-only controls on each signal).
+      { source: "/tradefeedadmin", destination: "/trade-feed", permanent: false },
+      { source: "/tradefeedadmin/:path*", destination: "/trade-feed", permanent: false },
     ];
   },
 };
