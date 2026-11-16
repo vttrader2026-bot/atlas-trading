@@ -9,10 +9,11 @@ import { useLanguage } from "@/lib/i18n";
 import { useWatchlist } from "@/lib/useWatchlist";
 import { normalizeSymbol } from "@/lib/watchlist";
 import { smartActions, smartBase, type SmartActionKey } from "@/lib/smartActions";
+import BinanceSpotLink from "@/components/BinanceSpotLink";
 import StarButton from "@/components/watchlist/StarButton";
 
 const ICON: Record<SmartActionKey, React.ReactNode> = {
-  analyze: <path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6" />,
+  binance: <path d="M7 17 17 7M9 7h8v8" />,
   plan: <path d="M9 5h10M9 12h10M9 19h10M4.5 5l1 1 2-2M4.5 12l1 1 2-2M4.5 19l1 1 2-2" />,
   bought: <path d="M5 4h11l3 3v13H5zM9 11h6M9 15h6" />,
   invest: <path d="M12 3a9 9 0 1 0 9 9h-9V3Z" />,
@@ -27,7 +28,8 @@ export default function SmartActions({ base, analyzed = false }: { base: string;
   const sym = normalizeSymbol(coin);
   const onList = !!sym && wl.has(sym);
   const name = `⁨${coin}⁩`; // keeps the Latin ticker intact inside Arabic text
-  const fillCoin = (s: string) => s.replace("{coin}", name);
+  const pairText = `⁨${coin}/USDT⁩`; // whole pair isolated so it never flips in Arabic
+  const fillCoin = (s: string) => s.replace("{coin}", name).replace("{pair}", pairText);
 
   return (
     <section aria-label={fillCoin(t("chart.smart.title"))} data-smart-actions className="mt-4 rounded-xl border border-line p-3 sm:p-4">
@@ -44,6 +46,26 @@ export default function SmartActions({ base, analyzed = false }: { base: string;
       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
         {actions.map((a) => {
           const hot = analyzed && a.key === "plan";
+          const card = "flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors h-full border-line hover:border-gold/60 hover:bg-gold/5";
+          const body = (
+            <>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0 text-gold">
+                {ICON[a.key]}
+              </svg>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">{t(`chart.smart.${a.key}`)}{a.key === "binance" && <span aria-hidden="true"> ↗</span>}</span>
+                <span className="block text-xs text-text-muted leading-snug">{fillCoin(t(`chart.smart.${a.key}Hint`))}</span>
+              </span>
+            </>
+          );
+          if (a.key === "binance") {
+            // External: opens the exact Binance Spot pair in a new tab (BinanceSpotLink: noopener, live Spot check).
+            return (
+              <div key={a.key} data-smart="binance">
+                <BinanceSpotLink pair={`${coin}/USDT`} className={card} wrapperClassName="h-full">{body}</BinanceSpotLink>
+              </div>
+            );
+          }
           return (
             <Link
               key={a.key}
@@ -53,13 +75,7 @@ export default function SmartActions({ base, analyzed = false }: { base: string;
                 hot ? "border-gold bg-gold/10" : "border-line hover:border-gold/60 hover:bg-gold/5"
               }`}
             >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0 text-gold">
-                {ICON[a.key]}
-              </svg>
-              <span className="min-w-0">
-                <span className="block text-sm font-medium">{t(`chart.smart.${a.key}`)}</span>
-                <span className="block text-xs text-text-muted leading-snug">{fillCoin(t(`chart.smart.${a.key}Hint`))}</span>
-              </span>
+              {body}
             </Link>
           );
         })}

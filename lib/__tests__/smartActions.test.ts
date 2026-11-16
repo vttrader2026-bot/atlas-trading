@@ -27,7 +27,7 @@ describe("Investor eligibility (only the 17 supported coins)", () => {
 describe("links", () => {
   it("offers all four actions for a supported coin, with the coin prefilled", () => {
     expect(smartActions("BTC")).toEqual([
-      { key: "analyze", href: "/analyzer?pair=BTC%2FUSDT" },
+      { key: "binance", href: "https://www.binance.com/en/trade/BTC_USDT?type=spot" },
       { key: "plan", href: "/trade-plan?pair=BTC%2FUSDT" },
       { key: "bought", href: "/journal?pair=BTC%2FUSDT" },
       { key: "invest", href: "/investor?asset=BTC" },
@@ -36,7 +36,7 @@ describe("links", () => {
   it("never offers Investor for other coins", () => {
     for (const c of ["PEPE", "SHIB", "UNI", "1INCH"]) {
       const keys = smartActions(c).map((a) => a.key);
-      expect(keys).toEqual(["analyze", "plan", "bought"]);
+      expect(keys).toEqual(["binance", "plan", "bought"]);
     }
   });
   it("returns nothing for something that is not a USDT coin", () => {
@@ -44,19 +44,24 @@ describe("links", () => {
     expect(smartActions("BTC/ETH")).toEqual([]);
     expect(smartBase("ethusdt")).toBe("ETH");
   });
-  it("the Analyzer link uses the query the Analyzer already reads", () => {
-    expect(src("app/analyzer/page.tsx")).toContain('searchParams.get("pair")');
-    expect(decodeURIComponent(smartActions("SOL")[0].href.split("=")[1])).toBe("SOL/USDT");
+  it("Trade on Binance targets the exact Spot pair of the selected coin; Analyze is no longer offered", () => {
+    for (const [input, base] of [["SOL", "SOL"], ["ethusdt", "ETH"], ["PEPE/USDT", "PEPE"], ["1INCH", "1INCH"]]) {
+      const a = smartActions(input);
+      expect(a.some((x) => (x.key as string) === "analyze")).toBe(false);
+      expect(a.find((x) => x.key === "binance")?.href).toBe(`https://www.binance.com/en/trade/${base}_USDT?type=spot`);
+      expect(a.find((x) => x.href.includes("/analyzer"))).toBeUndefined();
+    }
   });
 });
 
 describe("strings in EN, FR and AR", () => {
-  const keys = ["title", "onWatchlist", "offWatchlist", "analyze", "analyzeHint", "plan", "planHint", "bought", "boughtHint", "invest", "investHint", "note", "afterAnalysis"];
+  const keys = ["title", "onWatchlist", "offWatchlist", "binance", "binanceHint", "plan", "planHint", "bought", "boughtHint", "invest", "investHint", "note", "afterAnalysis"];
   it("has every Smart Actions string, with the {coin} placeholder where needed", () => {
     for (const l of ["en", "fr", "ar"] as const) {
       const s = (dictionaries[l].chart as unknown as { smart: Record<string, string> }).smart;
       for (const k of keys) expect(s[k]?.length).toBeGreaterThan(0);
-      for (const k of ["title", "analyzeHint", "planHint"]) expect(s[k]).toContain("{coin}");
+      for (const k of ["title", "planHint"]) expect(s[k]).toContain("{coin}");
+      expect(s.binanceHint).toContain("{pair}");
     }
   });
   it("has the Trade Plan 'plan kept' message in all three languages", () => {
@@ -96,6 +101,13 @@ describe("wiring and safety", () => {
     const inv = src("app/investor/page.tsx");
     expect(inv).toContain("isSupportedTicker(a)");
     expect(inv).toContain("setDraft({ asset: a })");
+  });
+  it("the Binance action opens a new tab safely through the existing link component and keeps the other actions as links", () => {
+    expect(comp).toContain("BinanceSpotLink");
+    expect(comp).toContain('a.key === "binance"');
+    expect(src("components/BinanceSpotLink.tsx")).toContain('target="_blank"');
+    expect(src("components/BinanceSpotLink.tsx")).toContain('rel="noopener noreferrer"');
+    expect(comp).toContain("<Link");
   });
   it("leaves the Analyzer untouched", () => {
     expect(src("app/analyzer/page.tsx")).not.toMatch(/SmartActions|smartActions/);

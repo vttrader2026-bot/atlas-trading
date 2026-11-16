@@ -12,6 +12,8 @@ export default function BinanceSpotLink({
   className = "btn-secondary",
   showNotice = false,
   hideWhenUnavailable = false,
+  children,
+  wrapperClassName,
 }: {
   pair: string;
   className?: string;
@@ -19,6 +21,9 @@ export default function BinanceSpotLink({
   showNotice?: boolean;
   /** Renders nothing (instead of a disabled button with a reason) when the pair cannot be linked. */
   hideWhenUnavailable?: boolean;
+  /** Custom content for the link (default: "Open in Binance ↗"). */
+  children?: React.ReactNode;
+  wrapperClassName?: string;
 }) {
   const { t, lang } = useLanguage();
   const [symbols, setSymbols] = useState<ReadonlySet<string> | null>(null);
@@ -41,16 +46,16 @@ export default function BinanceSpotLink({
   if (!r.ok) {
     if (hideWhenUnavailable) return null;
     return (
-      <div>
-        <span aria-disabled="true" className={`${className} opacity-50 cursor-not-allowed`}>{t("tradePlan.openBinance")}</span>
+      <div className={wrapperClassName}>
+        <span aria-disabled="true" className={`${className} opacity-50 cursor-not-allowed`}>{children ?? t("tradePlan.openBinance")}</span>
         <p className="mt-1.5 text-xs text-text-muted">{t(r.reason === "invalid" ? "tradePlan.binanceInvalid" : "tradePlan.binanceUnsupported")}</p>
       </div>
     );
   }
   return (
-    <div>
+    <div className={wrapperClassName}>
       <a href={r.url} target="_blank" rel="noopener noreferrer" className={className}>
-        {t("tradePlan.openBinance")} <span aria-hidden="true">↗</span>
+        {children ?? (<>{t("tradePlan.openBinance")} <span aria-hidden="true">↗</span></>)}
       </a>
       {showNotice && <p className="mt-1.5 text-xs text-text-muted leading-relaxed">{t("tradePlan.binanceNotice")}</p>}
     </div>
