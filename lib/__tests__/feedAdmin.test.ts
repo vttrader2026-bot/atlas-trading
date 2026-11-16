@@ -37,6 +37,7 @@ vi.mock("next/server", async (orig) => ({ ...(await orig<typeof import("next/ser
 vi.mock("@/lib/push", () => ({
   notifyTradeSubscribers: (t: unknown) => h.newPush.push(t),
   notifyTpSlSubscribers: (t: unknown, level: string) => h.tpsl.push([t, level]),
+  notifySignalEvent: (t: unknown, event: string) => h.tpsl.push([t, event]), // SIGNAL-EVENTS-v1: owner status/cancel notify through this
   notifyTradeClosedSubscribers: (t: unknown) => h.closedPush.push(t),
 }));
 
@@ -181,16 +182,25 @@ describe("Update status", () => {
     h.lists[TRADE_FEED_KEY] = [trade("tp3only", { tp1: "", tp2: "" })];
     expect((await st("tp3only", "TP1")).status).toBe(400);
   });
-  it("a FREE signal notifies once per newly hit level (like the bot); an ELITE signal never notifies the general list", async () => {
+  it("SIGNAL-EVENTS-v1: the chosen result is notified once for FREE and ELITE signals (audience is decided in notifySignalEvent); implied earlier targets are not announced", async () => {
     await st("free1", "TP2");
-    expect(h.tpsl.map((c) => c[1])).toEqual(["TP1", "TP2"]);
+    expect(h.tpsl.map((c) => c[1])).toEqual(["TP2"]);
     h.tpsl = [];
     await st("free1", "TP3");
     expect(h.tpsl.map((c) => c[1])).toEqual(["TP3"]);
     h.tpsl = [];
     await st("elite1", "TP1");
     await st("elite1", "TP3");
-    expect(h.tpsl).toHaveLength(0);
+    expect(h.tpsl.map((c) => [(c[0] as { id: string }).id, c[1]])).toEqual([["elite1", "TP1"], ["elite1", "TP3"]]);
+    expect(h.closedPush).toHaveLength(0); // the old broadcast helper is not used by the owner routes
+  });
+  it("SIGNAL-EVENTS-v1: cancelling a FREE or an ELITE signal sends one 'closed' event; a refused cancel sends nothing", async () => {
+    h.tpsl = [];
+    expect((await CANCEL(req("POST", { confirm: true }), ctx("free1"))).status).toBe(200);
+    expect((await CANCEL(req("POST", { confirm: true }), ctx("elite1"))).status).toBe(200);
+    expect((await CANCEL(req("POST", { confirm: true }), ctx("elite1"))).status).toBe(409);
+    expect((await CANCEL(req("POST", {}), ctx("nope"))).status).toBe(400);
+    expect(h.tpsl.map((c) => [(c[0] as { id: string }).id, c[1]])).toEqual([["free1", "CLOSED"], ["elite1", "CLOSED"]]);
   });
   it("a partial hit locks Edit (levels stay as published) and can still be cancelled or deleted", async () => {
     await st("free1", "TP1");

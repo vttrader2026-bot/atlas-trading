@@ -12,13 +12,13 @@ import { LockedSignalCard } from "@/components/tradefeed/LockedSignalCard";
 import { startTickerRefresh, browserRefreshEnv } from "@/lib/tickerRefresh";
 import { SignalActions } from "@/components/tradefeed/SignalActions";
 import OwnerSignalControls from "@/components/tradefeed/OwnerSignalControls";
+import { InvestmentSignalCard, LockedInvestmentCard } from "@/components/tradefeed/InvestmentSignalCard";
+import ShareInvestmentDialog from "@/components/investor/ShareInvestmentDialog";
+import type { InvestmentSignal, LockedInvestment } from "@/lib/investmentSignal";
 import { useIsOwner } from "@/lib/useIsOwner";
 import { loadTrades } from "@/lib/journal";
 import { loadDraft } from "@/lib/tradePlan";
-import { normalizeWatch, type Watched } from "@/lib/signalLink";
 import { DRAFT_EVENT, JOURNAL_EVENT, syncLocalRecords } from "@/lib/signalSync";
-
-const nowMs = () => Date.now();
 
 // Deterministic color per pair so each coin badge looks distinct without
 // needing a real logo asset for every symbol Atlas might publish.
@@ -94,11 +94,12 @@ export default function TradeFeedPage() {
   const [canConfirm, setCanConfirm] = useState(false);
   const isOwner = useIsOwner(); // FEED-ADMIN-v1: display only; every management API re-checks the owner on the server
   const [notice, setNotice] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  // INVEST-SIGNAL-v1: the second publication type, loaded separately (Spot Swing feed above is unchanged).
+  const [investments, setInvestments] = useState<InvestmentSignal[]>([]);
+  const [investLocked, setInvestLocked] = useState<LockedInvestment[]>([]);
+  const [shareOpen, setShareOpen] = useState(false);
   const [tickers, setTickers] = useState<Record<string, Ticker24h>>({});
-  // Connected workflow: which signals the user follows, and which are already in their Journal / plan draft.
-  const [watched, setWatched] = useState<Watched[]>([]);
-  const [watchBusy, setWatchBusy] = useState<string | null>(null);
+  // Connected workflow: which signals are already in the member's Journal / plan draft.
   const [journalBySignal, setJournalBySignal] = useState<Record<string, string>>({});
   const [planSignalId, setPlanSignalId] = useState<string | null>(null);
   // ACTIVE-SIGNAL-v1: /trade-feed?signal=<id> scrolls to that setup and highlights it briefly.
@@ -139,10 +140,12 @@ export default function TradeFeedPage() {
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
     let cancelled = false;
-    fetch("/api/me/signals", { cache: "no-store" })
+    fetch("/api/investment-signals", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!cancelled && d) setWatched(normalizeWatch(d).items);
+        if (cancelled || !d) return;
+        setInvestments(Array.isArray(d.investments) ? d.investments : []);
+        setInvestLocked(Array.isArray(d.locked) ? d.locked : []);
       })
       .catch(() => {});
     return () => {
@@ -154,38 +157,6 @@ export default function TradeFeedPage() {
   useEffect(() => {
     if (trades) syncLocalRecords(trades);
   }, [trades]);
-
-  async function watchOp(body: Record<string, unknown>, optimistic: Watched[]) {
-    const before = watched;
-    setWatched(optimistic);
-    setWatchBusy(String(body.id));
-    setMessage(null);
-    try {
-      const res = await fetch("/api/me/signals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const data = await res.json().catch(() => null);
-      if (res.ok && data) setWatched(normalizeWatch(data).items);
-      else {
-        setWatched(before);
-        setMessage(res.status === 409 ? t("tradeFeed.watchLimit") : t("tradeFeed.watchErr"));
-      }
-    } catch {
-      setWatched(before);
-      setMessage(t("tradeFeed.watchErr"));
-    } finally {
-      setWatchBusy(null);
-    }
-  }
-  function toggleWatch(tr: PublishedTrade) {
-    const cur = watched.find((w) => w.id === tr.id);
-    if (cur) return watchOp({ op: "unwatch", id: tr.id }, watched.filter((w) => w.id !== tr.id));
-    const w: Watched = { id: tr.id, pair: tr.pair, at: nowMs(), status: tr.status === "closed" ? "closed" : "open", hitLevels: tr.hitLevels ?? [] };
-    return watchOp({ op: "watch", id: tr.id, pair: tr.pair, status: w.status, hitLevels: w.hitLevels }, [w, ...watched]);
-  }
-  function markSeen(tr: PublishedTrade) {
-    const status = tr.status === "closed" ? "closed" : "open";
-    const hit = tr.hitLevels ?? [];
-    return watchOp({ op: "seen", id: tr.id, status, hitLevels: hit }, watched.map((w) => (w.id === tr.id ? { ...w, status, hitLevels: hit } : w)));
-  }
 
   // Real counts from the actual feed \u2014 never shown until there's enough data.
   const publishedCount = (trades?.length ?? 0) + locked.length;
@@ -255,6 +226,7 @@ export default function TradeFeedPage() {
           <Link href="/journal" className="btn-secondary shrink-0">{t("tradeFeed.myJournal")}</Link>
         )}
       </div>
+      {isOwner && <button type="button" data-new-investment-signal onClick={() => setShareOpen(true)} className="btn-secondary mt-4">{t("investSignal.newSignal")}</button>}
 
       {isLoaded && !isSignedIn && (
         <div className="mt-6 rounded-2xl border border-line bg-surface p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -300,7 +272,6 @@ export default function TradeFeedPage() {
           </div>
         )}
 
-        {message && <p className="text-bear text-sm">{message}</p>}
         {notice && <p role="status" className="text-bull text-sm">{notice}</p>}
         {failed && <p className="text-bear text-sm">{t("tradeFeed.error")}</p>}
         {!failed && trades === null && (
@@ -311,6 +282,9 @@ export default function TradeFeedPage() {
         )}
       </div>
 
+      {(investments.length > 0 || investLocked.length > 0) && trades && trades.length + locked.length > 0 && (
+        <h2 className="mt-6 text-lg font-semibold">{t("investSignal.sectionSwing")}</h2>
+      )}
       <div className="mt-4 grid sm:grid-cols-2 gap-4">
         {trades && mixed(trades, locked).map((item) => {
           if ("locked" in item) {
@@ -335,10 +309,6 @@ export default function TradeFeedPage() {
                   signal={trade}
                   journalTradeId={journalBySignal[trade.id] ?? null}
                   hasPlan={planSignalId === trade.id}
-                  watched={watched.find((w) => w.id === trade.id) ?? null}
-                  watchBusy={watchBusy === trade.id}
-                  onToggleWatch={() => toggleWatch(trade)}
-                  onSeen={() => markSeen(trade)}
                   onTook={() => window.dispatchEvent(new Event(JOURNAL_EVENT))}
                   confirmable={trade.tier === "elite" ? canConfirm : true}
                 />
@@ -358,6 +328,34 @@ export default function TradeFeedPage() {
           );
         })}
       </div>
+
+      {(investments.length > 0 || investLocked.length > 0) && (
+        <section aria-label={t("investSignal.sectionInvest")} data-investment-section>
+          <h2 className="mt-10 text-lg font-semibold">{t("investSignal.sectionInvest")}</h2>
+          <div className="mt-4 grid sm:grid-cols-2 gap-4">
+            {[...investments, ...investLocked].sort((a, b) => b.createdAt - a.createdAt).map((item) =>
+              "locked" in item ? (
+                <LockedInvestmentCard key={item.id} signal={item} logo={<CoinLogo pair={item.pair} />} />
+              ) : (
+                <InvestmentSignalCard
+                  key={item.id}
+                  signal={item}
+                  logo={<CoinLogo pair={item.pair} />}
+                  isOwner={isOwner}
+                  onUpdated={(s) => setInvestments((prev) => prev.map((x) => (x.id === s.id ? s : x)))}
+                  onNotice={setNotice}
+                />
+              ),
+            )}
+          </div>
+        </section>
+      )}
+      {shareOpen && (
+        <ShareInvestmentDialog
+          onClose={() => setShareOpen(false)}
+          onDone={(s) => { setInvestments((prev) => [s, ...prev]); setNotice(t("investSignal.published")); }}
+        />
+      )}
 
         </>
       )}

@@ -1,12 +1,13 @@
 // FEED-ADMIN-v1: owner updates the result of a published signal: TP1 / TP2 / TP3 / SL hit.
 // TP1 and TP2 are PARTIAL: the hit is recorded and the signal stays open (recordTargetHit). TP3 and SL close it through the
 // existing closeSignal(). A target already recorded is refused (409), so it is never stored or notified twice. Original levels are kept. Cancelling is a separate route
-// (./cancel) and deleting is DELETE on the parent route. FREE signals notify exactly like the bot's TP/SL update does;
-// ELITE signals never push to the general subscriber list.
+// (./cancel) and deleting is DELETE on the parent route. SIGNAL-EVENTS-v1: the chosen result is notified once (never twice for the
+// same signal and result) to the signal's own audience: FREE signals to everyone with signal notifications on, ELITE signals only
+// to active ELITE members and the owner.
 import { NextResponse, after } from "next/server";
 import { auditLog, needsConfirm, noStore, readBody, requireOwner } from "@/lib/adminAuth";
 import { FEED_MAX } from "@/lib/adminSignals";
-import { notifyTpSlSubscribers } from "@/lib/push";
+import { notifySignalEvent, type SignalEvent } from "@/lib/push";
 import { TRADE_FEED_KEY, closeSignal, recordTargetHit, tradeTier, type CloseOutcome, type PublishedTrade } from "@/lib/tradeFeed";
 import { getRedis } from "@/lib/userStore";
 
@@ -40,10 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!updated) return NextResponse.json({ error: `${outcome} is already recorded` }, { status: 409 });
     await redis.lset(TRADE_FEED_KEY, index, updated);
     await auditLog(redis, owner.userId, "signal.status", id, { tier: tradeTier(updated), outcome, closed: !partial });
-    if (tradeTier(updated) === "free") {
-      const before = current.hitLevels ?? [];
-      for (const level of (updated.hitLevels ?? []).filter((l) => !before.includes(l))) after(() => notifyTpSlSubscribers(updated, level));
-    }
+    after(() => notifySignalEvent(updated, outcome as SignalEvent));
     return NextResponse.json({ ok: true, trade: updated }, { headers: noStore });
   } catch (err) {
     console.error("admin/signals status failed", err);

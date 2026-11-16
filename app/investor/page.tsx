@@ -6,6 +6,9 @@ import { useLiveTickers } from "@/lib/useLiveTickers";
 import { resolvePrices, summarize } from "@/lib/investor/calc";
 import type { InvestorDoc } from "@/lib/investor/model";
 import { isSupportedTicker } from "@/lib/investor/assets";
+import { planToInvestmentDraft } from "@/lib/investmentSignal";
+import ShareInvestmentDialog from "@/components/investor/ShareInvestmentDialog";
+import { useIsOwner } from "@/lib/useIsOwner";
 import { useInvestor, type CommitResult } from "@/components/investor/useInvestor";
 import { fill } from "@/components/investor/fmt";
 import { CurrencyBar, CurrencyProvider } from "@/components/investor/currency";
@@ -27,15 +30,29 @@ export default function InvestorPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [draft, setDraft] = useState<PurchaseDraft | null>(null);
   const [sell, setSell] = useState<{ asset: string; price: number | null } | null>(null);
+  const isOwner = useIsOwner(); // display only; the publish API re-checks the owner on the server
+  const [share, setShare] = useState<ReturnType<typeof planToInvestmentDraft> | null>(null);
+  const [shared, setShared] = useState(false);
+  const [planAsset, setPlanAsset] = useState<string | null>(null); // /investor?plan=COIN from an Investment Signal
 
   // /investor?asset=BTC (from Smart Actions): open the usual purchase form with the coin filled in. Only the 17 supported coins; nothing is saved until Save.
   useEffect(() => {
-    const a = new URLSearchParams(window.location.search).get("asset")?.trim().toUpperCase();
-    if (!a) return;
+    const q = new URLSearchParams(window.location.search);
+    const a = q.get("asset")?.trim().toUpperCase();
+    const p = q.get("plan")?.trim().toUpperCase();
+    if (!a && !p) return;
     window.history.replaceState(null, "", window.location.pathname);
+    // INVEST-SIGNAL-v1: /investor?plan=COIN (from an Investment Signal) opens the new DCA plan form with the coin only. The member decides budget, schedule and purchases.
+    if (p && isSupportedTicker(p)) {
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setPlanAsset(p);
+      setTab("Dca");
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return;
+    }
+    if (!a) return;
     if (!isSupportedTicker(a)) return;
     // Opening the purchase form from an external link is the point of this effect.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft({ asset: a });
     setTab("Ledger");
   }, []);
@@ -84,10 +101,13 @@ export default function InvestorPage() {
       <div id="inv-panel" role="tabpanel" aria-labelledby={`inv-tab-${tab}`} className="mt-3">
         {tab === "Dashboard" && <Dashboard s={summary} doc={doc} run={run} onSell={(asset, price) => setSell({ asset, price })} />}
         {tab === "Ledger" && <Ledger doc={doc} run={run} draft={draft} clearDraft={() => setDraft(null)} livePrice={(a) => prices[a]?.price ?? null} />}
-        {tab === "Dca" && <Dca doc={doc} prices={prices} run={run} limit={dcaLimit} active={dcaActive} onRecord={(d) => { setDraft(d); setTab("Ledger"); }} />}
+        {tab === "Dca" && <Dca doc={doc} prices={prices} run={run} limit={dcaLimit} active={dcaActive} startAsset={planAsset} onShare={isOwner ? (p) => setShare(planToInvestmentDraft(p)) : undefined} onRecord={(d) => { setDraft(d); setTab("Ledger"); }} />}
         {tab === "Risk" && <Risk holdings={summary.holdings} />}
         {tab === "Performance" && <Performance doc={doc} s={summary} />}
       </div>
+
+      {shared && <p role="status" className="mt-3 text-sm text-bull">{t("investSignal.published")}</p>}
+      {share && <ShareInvestmentDialog initial={share} onClose={() => setShare(null)} onDone={() => setShared(true)} />}
 
       {sell && (
         <div role="dialog" aria-modal="true" aria-label={t("investor.addSale")} className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-8"

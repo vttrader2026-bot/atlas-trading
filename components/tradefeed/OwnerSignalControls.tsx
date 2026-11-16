@@ -86,7 +86,7 @@ export default function OwnerSignalControls({ trade, onUpdated, onDeleted, onNot
         <ConfirmDialog title={t("feedAdmin.statusTitle")} confirmLabel={t("feedAdmin.statusSave")} onClose={close}
           onConfirm={() => run("statusDone", () => adminApi(`${base}/status`, "POST", { confirm: true, outcome, reason }), merge)}>
           <p>{t("feedAdmin.statusNote")}</p>
-          {free && <p>{t("feedAdmin.statusFreeNote")}</p>}
+          <p>{t(free ? "feedAdmin.statusFreeNote" : "feedAdmin.statusEliteNote")}</p>
           <div>
             <label htmlFor={`own-${trade.id}-outcome`} className="text-xs text-text-muted">{t("feedAdmin.outcome")}</label>
             <select id={`own-${trade.id}-outcome`} value={outcome} onChange={(e) => setOutcome(e.target.value)} className="input mt-1 w-full">

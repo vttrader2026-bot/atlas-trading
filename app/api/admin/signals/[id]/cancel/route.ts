@@ -1,6 +1,7 @@
 // ADMIN-v1: cancel a published (open) signal with the existing closeSignal(): original levels are kept, a closing record is added.
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { auditLog, needsConfirm, noStore, readBody, requireOwner } from "@/lib/adminAuth";
+import { notifySignalEvent } from "@/lib/push";
 import { TRADE_FEED_KEY, closeSignal, tradeTier, type PublishedTrade } from "@/lib/tradeFeed";
 import { getRedis } from "@/lib/userStore";
 
@@ -24,6 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const closed = closeSignal(trades[index], "CANCELLED", reason, Date.now());
     await redis.lset(TRADE_FEED_KEY, index, closed);
     await auditLog(redis, owner.userId, "signal.cancel", id, { tier: tradeTier(closed) });
+    after(() => notifySignalEvent(closed, "CLOSED")); // SIGNAL-EVENTS-v1: FREE and ELITE, once, to the signal's own audience
     return NextResponse.json({ ok: true, trade: closed }, { headers: noStore });
   } catch (err) {
     console.error("admin/signals cancel failed", err);

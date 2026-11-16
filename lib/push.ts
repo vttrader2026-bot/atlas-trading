@@ -592,3 +592,53 @@ export async function notifyElitePromo(): Promise<{ sent: number; reason: string
   await releaseIfUndelivered(redis, [guardKey], st);
   return { sent: st.sent, reason: "ok" };
 }
+
+// SIGNAL-EVENTS-v1: result notifications (TP1, TP2, TP3, Stop Loss, closed/cancelled) for FREE and ELITE signals.
+//  - Sent at most once per signal and event: the claim key is taken (SET NX) before sending, so a retry or a double call
+//    cannot notify twice. If nobody could be reached the claim is released again so the event can still be delivered.
+//  - FREE signal: everyone who has signal notifications switched on (same audience as before).
+//  - ELITE signal: only active ELITE members and the owner. Free members never learn about an ELITE result by push.
+export type SignalEvent = "TP1" | "TP2" | "TP3" | "SL" | "CLOSED";
+export const SIGNAL_EVENTS: readonly SignalEvent[] = ["TP1", "TP2", "TP3", "SL", "CLOSED"];
+export const signalEventKey = (tradeId: string, event: SignalEvent) => `push:signal-event:${tradeId}:${event}`;
+
+export function signalEventPayload(trade: PublishedTrade, event: SignalEvent, lang: Lang): Payload {
+  return event === "CLOSED" ? tradeClosedPayload(trade, lang) : tpSlPayload(trade, event, lang);
+}
+
+export async function notifySignalEvent(trade: PublishedTrade, event: SignalEvent): Promise<{ sent: number; reason: "sent" | "duplicate" | "not-configured" | "nobody" | "error" }> {
+  try {
+    const redis = getRedis();
+    if (!redis || !configure()) return { sent: 0, reason: "not-configured" };
+    const claim = signalEventKey(trade.id, event);
+    const first = await redis.set(claim, "1", { nx: true, ex: 60 * 60 * 24 * 30 });
+    if (!first) return { sent: 0, reason: "duplicate" };
+    const elite = trade.tier !== undefined && trade.tier !== null && trade.tier !== "free";
+    const owner = (process.env.OWNER_CLERK_USER_ID ?? "").trim();
+    const userIds = await redis.smembers<string[]>(PUSH_USERS_KEY);
+    let attempted = 0;
+    let delivered = 0;
+    for (let i = 0; i < userIds.length; i += 20) {
+      await Promise.allSettled(
+        userIds.slice(i, i + 20).map(async (userId) => {
+          const prefs = normalizePrefs(await redis.get(`user:${userId}:prefs`));
+          if (!prefs.enabled || !prefs.tradeFeed) return;
+          if (elite && !(owner && userId === owner)) {
+            const ent = await getEntitlements(userId);
+            if (ent.plan !== "elite") return;
+          }
+          attempted++;
+          delivered += await sendToUser(userId, (lang) => signalEventPayload(trade, event, lang), TP_SL_PUSH_TTL);
+        }),
+      );
+    }
+    if (attempted > 0 && delivered === 0) {
+      await redis.del(claim).catch(() => 0);
+      return { sent: 0, reason: "nobody" };
+    }
+    return { sent: delivered, reason: "sent" };
+  } catch (err) {
+    console.error("push: notifySignalEvent failed", err);
+    return { sent: 0, reason: "error" };
+  }
+}

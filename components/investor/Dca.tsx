@@ -16,9 +16,9 @@ type Run = (m: (d: InvestorDoc) => InvestorDoc) => Promise<boolean>;
 const lab = "block text-sm font-medium mb-1";
 const hint = "mt-1 block text-[11px] leading-snug text-text-muted font-normal";
 
-function PlanForm({ prices, run, onDone }: { prices: PriceMap; run: Run; onDone: () => void }) {
+function PlanForm({ prices, run, onDone, initialAsset = "" }: { prices: PriceMap; run: Run; onDone: () => void; initialAsset?: string }) {
   const { t } = useLanguage();
-  const [f, setF] = useState({ name: "", asset: "", budget: "", initial: "0", amount: "", freq: "monthly" as Frequency, start: today(), count: "12", ref: "" });
+  const [f, setF] = useState({ name: "", asset: initialAsset, budget: "", initial: "0", amount: "", freq: "monthly" as Frequency, start: today(), count: "12", ref: "" });
   const [dips, setDips] = useState<{ pct: string; amount: string }[]>([]);
   const [err, setErr] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
@@ -92,7 +92,7 @@ function PlanForm({ prices, run, onDone }: { prices: PriceMap; run: Run; onDone:
 const signedPctStr = (n: number) => `${n > 0 ? "+" : ""}${n.toFixed(2)}%`;
 const STATUS_KEY = { done: "stDone", due: "stDue", upcoming: "stUpcoming", triggered: "stTriggered", waiting: "stWaiting" } as const;
 
-function PlanCard({ plan, doc, prices, run, onRecord, atLimit, open, onToggle }: { plan: DcaPlan; doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void; atLimit: boolean; open: boolean; onToggle: () => void }) {
+function PlanCard({ plan, doc, prices, run, onRecord, atLimit, open, onToggle, onShare }: { plan: DcaPlan; doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void; atLimit: boolean; open: boolean; onToggle: () => void; onShare?: (p: DcaPlan) => void }) {
   const { t } = useLanguage();
   const { usd, price } = useMoney(); // display currency (the form above stays in USDT)
   const livePrice = prices[plan.asset]?.price ?? null;
@@ -121,6 +121,8 @@ function PlanCard({ plan, doc, prices, run, onRecord, atLimit, open, onToggle }:
         <span className="flex-1" />
         {/* ONE-BINANCE-BUTTON-v1: a single manual "Open in Binance" link per plan (its own pair); steps only have Record. */}
         <BinanceSpotLink pair={`${plan.asset}/USDT`} className="btn-secondary" hideWhenUnavailable />
+        {/* INVEST-SIGNAL-v1: owner only (the page passes onShare to the owner alone). Opens a review dialog; the plan is not changed. */}
+        {onShare && <button type="button" data-share-to-feed className="btn-secondary" onClick={() => onShare(plan)}>{t("investSignal.shareToFeed")}</button>}
         {state === "active" && <button type="button" className="btn-secondary" onClick={() => { if (window.confirm(t("dcaLimits.closeConfirm"))) run((d) => ({ ...d, plans: d.plans.map((p) => (p.id === plan.id ? { ...p, closedAt: new Date().toISOString() } : p)) })); }}>{t("dcaLimits.close")}</button>}
         {state === "closed" && !completed && <button type="button" disabled={atLimit} className="btn-secondary disabled:opacity-50" onClick={() => run((d) => ({ ...d, plans: d.plans.map((p) => { if (p.id !== plan.id) return p; const { closedAt: _closedAt, ...rest } = p; void _closedAt; return rest; }) }))}>{t("dcaLimits.restore")}</button>}
         <button type="button" className="text-xs text-text-muted underline" onClick={() => { if (window.confirm(t("investor.deletePlanConfirm"))) run((d) => ({ ...d, plans: d.plans.filter((p) => p.id !== plan.id) })); }}>{t("investor.deletePlan")}</button>
@@ -173,9 +175,10 @@ function PlanCard({ plan, doc, prices, run, onRecord, atLimit, open, onToggle }:
   );
 }
 
-export default function Dca({ doc, prices, run, onRecord, limit = null, active = 0 }: { doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void; limit?: number | null; active?: number }) {
+export default function Dca({ doc, prices, run, onRecord, limit = null, active = 0, onShare, startAsset = null }: { doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void; limit?: number | null; active?: number; onShare?: (p: DcaPlan) => void; startAsset?: string | null }) {
   const { t } = useLanguage();
-  const [creating, setCreating] = useState(false);
+  // INVEST-SIGNAL-v1: /investor?plan=COIN opens the usual new-plan form with only the coin filled in (never when the plan limit is reached). Nothing is saved until the member presses Create.
+  const [creating, setCreating] = useState(() => !!startAsset && !(limit !== null && active >= limit));
   const [openId, setOpenId] = useState<string | null>(null); // DCA-ACCORDION-v1: every plan starts collapsed; one open at a time
   // The server enforces the limit; this only explains it and avoids a pointless click.
   const atLimit = limit !== null && active >= limit;
@@ -192,11 +195,11 @@ export default function Dca({ doc, prices, run, onRecord, limit = null, active =
       </div>
       {limit !== null && active > limit && <p className="text-xs text-text-muted">{t("dcaLimits.overLimit")}</p>}
       {atLimit && <p className="text-xs text-gold">{fill(t("dcaLimits.limitReached"), { limit: limit ?? 0 })}{limit !== null && limit < PLAN_LIMITS.elite.activeDcaPlans ? " " + fill(t("dcaLimits.limitElite"), { max: PLAN_LIMITS.elite.activeDcaPlans }) : ""}</p>}
-      {creating && <PlanForm prices={prices} run={run} onDone={() => setCreating(false)} />}
+      {creating && <PlanForm prices={prices} run={run} onDone={() => setCreating(false)} initialAsset={startAsset ?? ""} />}
       {doc.plans.length === 0 && !creating && <p className="card p-6 text-sm text-text-muted">{t("investor.noPlans")}</p>}
-      {activePlans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} atLimit={atLimit} open={openId === p.id} onToggle={toggle(p.id)} />)}
+      {activePlans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} atLimit={atLimit} open={openId === p.id} onToggle={toggle(p.id)} onShare={onShare} />)}
       {otherPlans.length > 0 && <h3 className="text-label text-text-muted pt-2">{t("dcaLimits.sectionClosed")}</h3>}
-      {otherPlans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} atLimit={atLimit} open={openId === p.id} onToggle={toggle(p.id)} />)}
+      {otherPlans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} atLimit={atLimit} open={openId === p.id} onToggle={toggle(p.id)} onShare={onShare} />)}
     </div>
   );
 }

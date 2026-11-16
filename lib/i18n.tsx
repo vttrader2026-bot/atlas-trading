@@ -6,6 +6,7 @@ import { perfEn, perfFr, perfAr } from "@/lib/i18nPerformance";
 import { pubFeedEn, pubFeedFr, pubFeedAr } from "@/lib/i18nPublishFeed";
 import { feedAdminEn, feedAdminFr, feedAdminAr } from "@/lib/i18nFeedAdmin";
 import { dcaLimitsEn, dcaLimitsFr, dcaLimitsAr } from "@/lib/i18nDcaLimits";
+import { investSignalEn, investSignalFr, investSignalAr } from "@/lib/i18nInvestSignals";
 import { investorEn, investorFr, investorAr } from "@/lib/i18nInvestor";
 import { planLimitsEn, planLimitsFr, planLimitsAr } from "@/lib/i18nPlanLimits";
 import { homeAppEn, homeAppFr, homeAppAr } from "@/lib/i18nHomeApp";
@@ -502,6 +503,7 @@ const en: Dict = {
     emptyPosition: "Enter your balance, investment amount, entry price and stop-loss to see the results.",
   },
   dcaLimits: { ...dcaLimitsEn },
+  investSignal: { ...investSignalEn },
   investor: { ...investorEn },
   planLimits: { ...planLimitsEn },
   perf: { ...perfEn },
@@ -1546,6 +1548,7 @@ const ar: Dict = {
     emptyPosition: "أدخل رصيدك ومبلغ الاستثمار وسعر الدخول ووقف الخسارة لرؤية النتائج.",
   },
   dcaLimits: { ...dcaLimitsAr },
+  investSignal: { ...investSignalAr },
   investor: { ...investorAr },
   planLimits: { ...planLimitsAr },
   perf: { ...perfAr },
@@ -2590,6 +2593,7 @@ const fr: Dict = {
     emptyPosition: "Entrez votre solde, le montant investi, le prix d'entrée et le stop-loss pour voir les résultats.",
   },
   dcaLimits: { ...dcaLimitsFr },
+  investSignal: { ...investSignalFr },
   investor: { ...investorFr },
   planLimits: { ...planLimitsFr },
   perf: { ...perfFr },
