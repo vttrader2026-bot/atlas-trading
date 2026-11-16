@@ -18,15 +18,17 @@ const ST_CLASS: Record<InvestmentStatus, string> = {
   cancelled: "border-line text-text-muted",
 };
 
-export function InvestmentSignalCard({ signal, logo, isOwner = false, onUpdated, onNotice }: {
+export function InvestmentSignalCard({ signal, logo, isOwner = false, onUpdated, onDeleted, onNotice }: {
   signal: InvestmentSignal;
   logo: ReactNode;
   isOwner?: boolean;
   onUpdated?: (s: InvestmentSignal) => void;
+  onDeleted?: (id: string) => void;
   onNotice?: (text: string) => void;
 }) {
   const { t, lang } = useLanguage();
   const [dialog, setDialog] = useState(false);
+  const [delDialog, setDelDialog] = useState(false);
   const [next, setNext] = useState<InvestmentStatus>(signal.status);
   const open = investmentIsOpen(signal);
   const targets = INVESTMENT_STATUSES.filter((s) => canMoveInvestment(signal.status, s));
@@ -75,9 +77,24 @@ export function InvestmentSignalCard({ signal, logo, isOwner = false, onUpdated,
           {isOwner && targets.length > 0 && (
             <button type="button" onClick={() => { setNext(targets[0]); setDialog(true); }} className="btn-secondary self-start">{t("investSignal.changeStatus")}</button>
           )}
+          {isOwner && (
+            <button type="button" data-investment-delete onClick={() => setDelDialog(true)} className="btn-secondary self-start text-bear">{t("investSignal.deleteBtn")}</button>
+          )}
         </footer>
       </div>
 
+      {delDialog && (
+        <ConfirmDialog title={t("investSignal.deleteTitle")} confirmLabel={t("investSignal.deleteConfirm")} danger onClose={() => setDelDialog(false)}
+          onConfirm={async () => {
+            const r = await adminApi(`/api/admin/investment-signals/${encodeURIComponent(signal.id)}`, "DELETE", { confirm: true });
+            if (!r.ok) return r.error || t("investSignal.errGeneric");
+            onDeleted?.(signal.id);
+            onNotice?.(t("investSignal.deleted"));
+            return null;
+          }}>
+          <p>{t("investSignal.deleteNote")}</p>
+        </ConfirmDialog>
+      )}
       {dialog && (
         <ConfirmDialog title={t("investSignal.statusTitle")} confirmLabel={t("investSignal.statusSave")} onClose={() => setDialog(false)}
           onConfirm={async () => {

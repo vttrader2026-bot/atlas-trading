@@ -7,6 +7,8 @@ const h = vi.hoisted(() => ({
   meta: {} as Record<string, unknown>,
   lists: {} as Record<string, unknown[]>,
   writes: [] as string[],
+  failLrem: false,
+  failAudit: false,
 }));
 vi.mock("@clerk/nextjs/server", () => ({
   auth: async () => ({ userId: h.userId }),
@@ -16,10 +18,10 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 vi.mock("@upstash/redis", () => ({
   Redis: class {
     async lrange(k: string) { return structuredClone(h.lists[k] ?? []); }
-    async lpush(k: string, v: unknown) { h.writes.push(k); (h.lists[k] ??= []).unshift(structuredClone(v)); return 1; }
+    async lpush(k: string, v: unknown) { if (h.failAudit && k === "atlas:admin-audit") throw new Error("audit down"); h.writes.push(k); (h.lists[k] ??= []).unshift(structuredClone(v)); return 1; }
     async ltrim(k: string, a: number, b: number) { h.lists[k] = (h.lists[k] ?? []).slice(a, b + 1); return "OK"; }
     async lset(k: string, i: number, v: unknown) { h.writes.push(k); (h.lists[k] ??= [])[i] = structuredClone(v); return "OK"; }
-    async lrem(k: string, _c: number, v: unknown) { const l = h.lists[k] ?? []; const i = l.findIndex((x) => same(x, v)); if (i < 0) return 0; l.splice(i, 1); return 1; }
+    async lrem(k: string, _c: number, v: unknown) { h.writes.push("lrem:" + k); if (h.failLrem) return 0; const l = h.lists[k] ?? []; const i = l.findIndex((x) => same(x, v)); if (i < 0) return 0; l.splice(i, 1); return 1; }
     async hget() { return null; }
     async hset() { return 1; }
     async get() { return null; }
@@ -30,6 +32,7 @@ vi.mock("@upstash/redis", () => ({
 import { GET as LIST } from "@/app/api/investment-signals/route";
 import { POST as PUBLISH } from "@/app/api/admin/investment-signals/route";
 import { POST as STATUS } from "@/app/api/admin/investment-signals/[id]/status/route";
+import { DELETE as REMOVE } from "@/app/api/admin/investment-signals/[id]/route";
 import { GET as SWING_FEED } from "@/app/api/trade-feed/route";
 import { dictionaries } from "@/lib/i18n";
 import { INVESTMENT_KEY, canMoveInvestment, investmentAsset, investmentsForViewer, parseInvestmentFields, planToInvestmentDraft, type InvestmentSignal } from "@/lib/investmentSignal";
@@ -48,7 +51,7 @@ const asFree = () => { h.userId = "m-2"; h.meta = {}; };
 beforeEach(() => {
   process.env.OWNER_CLERK_USER_ID = "owner-1";
   process.env.UPSTASH_REDIS_REST_URL = "https://fake"; process.env.UPSTASH_REDIS_REST_TOKEN = "fake";
-  h.userId = "owner-1"; h.meta = {}; h.lists = {}; h.writes = [];
+  h.userId = "owner-1"; h.meta = {}; h.lists = {}; h.writes = []; h.failLrem = false; h.failAudit = false;
 });
 
 describe("publishing (owner only, no trading fields)", () => {
@@ -111,6 +114,86 @@ describe("statuses", () => {
     expect((await STATUS(req({ confirm: true, status: "cancelled" }), ctx("nope"))).status).toBe(404);
     expect(stored()[0].thesis).toBe(GOOD.thesis);
     expect(canMoveInvestment("cancelled", "active")).toBe(false);
+  });
+});
+
+describe("permanent delete (owner only)", () => {
+  const del = (id: string, body: unknown = { confirm: true }) => REMOVE(new Request("http://x/api/admin/investment-signals/" + id, { method: "DELETE", body: JSON.stringify(body), headers: { host: "x" } }), ctx(id));
+  const audit = () => (h.lists["atlas:admin-audit"] ?? []) as Array<Record<string, unknown>>;
+  let freeId = "", eliteId = "";
+  beforeEach(async () => {
+    await PUBLISH(req(GOOD)); await PUBLISH(req({ ...GOOD, tier: "elite", asset: "ETH", thesis: "ELITE SECRET THESIS" }));
+    freeId = stored().find((s) => s.tier === "free")!.id; eliteId = stored().find((s) => s.tier === "elite")!.id;
+  });
+  it("a member, an ELITE member, a signed-out request and an unset owner all get 404 and nothing is deleted", async () => {
+    asElite(); expect((await del(freeId)).status).toBe(404);
+    asFree(); expect((await del(freeId)).status).toBe(404);
+    h.userId = null; expect((await del(freeId)).status).toBe(404);
+    h.userId = "owner-1"; delete process.env.OWNER_CLERK_USER_ID; expect((await del(freeId)).status).toBe(404);
+    process.env.OWNER_CLERK_USER_ID = "owner-1";
+    expect(stored()).toHaveLength(2);
+  });
+  it("needs the confirmation flag; an unknown id is 404", async () => {
+    expect((await del(freeId, {})).status).toBeGreaterThanOrEqual(400);
+    expect((await del(freeId, { confirm: false })).status).toBeGreaterThanOrEqual(400);
+    expect((await del("nope")).status).toBe(404);
+    expect(stored()).toHaveLength(2);
+  });
+  it("deletes Active, Review, Completed and Cancelled signals of either audience, and only the chosen one", async () => {
+    await STATUS(req({ confirm: true, status: "cancelled" }), ctx(freeId));
+    await STATUS(req({ confirm: true, status: "completed" }), ctx(eliteId));
+    expect(stored().map((s) => s.status).sort()).toEqual(["cancelled", "completed"]);
+    expect((await del(freeId)).status).toBe(200);
+    expect(stored().map((s) => s.id)).toEqual([eliteId]);
+    expect((await del(eliteId)).status).toBe(200);
+    expect(stored()).toHaveLength(0);
+    expect((await del(eliteId)).status).toBe(404); // already gone
+    await PUBLISH(req(GOOD));
+    expect((await del(stored()[0].id)).status).toBe(200); // an open (Active) one too
+  });
+  it("members and the owner no longer see it after deletion, including direct API access; others are unaffected", async () => {
+    expect((await del(freeId)).status).toBe(200);
+    asFree();
+    let body = await (await LIST()).json();
+    expect(body.investments).toHaveLength(0);
+    expect(body.locked.map((l: { id: string }) => l.id)).toEqual([eliteId]); // the other ELITE idea keeps its placeholder
+    asElite();
+    body = await (await LIST()).json();
+    expect(body.investments.map((i: InvestmentSignal) => i.id)).toEqual([eliteId]);
+    expect(JSON.stringify(body)).not.toContain(freeId);
+    h.userId = "owner-1"; h.meta = {};
+    expect((await del(eliteId)).status).toBe(200);
+    asFree();
+    body = await (await LIST()).json();
+    expect(body.investments).toHaveLength(0);
+    expect(body.locked).toHaveLength(0);
+  });
+  it("writes an audit entry first; if it cannot be written nothing is deleted; a failed removal is logged", async () => {
+    h.failAudit = true;
+    expect((await del(freeId)).status).toBe(500);
+    expect(stored()).toHaveLength(2);
+    h.failAudit = false; h.failLrem = true;
+    expect((await del(freeId)).status).toBe(500);
+    expect(stored()).toHaveLength(2);
+    expect(audit().map((a) => a.action)).toContain("investment.delete.failed");
+    h.failLrem = false;
+    expect((await del(freeId)).status).toBe(200);
+    expect(audit()[0]).toMatchObject({ action: "investment.delete", target: freeId, actor: "owner-1", asset: "BTC", tier: "free" });
+  });
+  it("touches only the Investment Signals list and the audit log: no Investor plans, no Spot Swing feed", async () => {
+    h.writes = [];
+    await del(freeId);
+    expect(h.writes.every((k) => k === "lrem:" + INVESTMENT_KEY || k === "atlas:admin-audit")).toBe(true);
+    expect(h.lists[TRADE_FEED_KEY]).toBeUndefined();
+    const route = src("app/api/admin/investment-signals/[id]/route.ts").replace(/^\s*\/\/.*$/gm, "");
+    expect(route).not.toMatch(/investor|plans|TRADE_FEED_KEY|trade-feed/i);
+  });
+  it("the card shows Delete to the owner only (any status) behind a confirmation dialog", () => {
+    const card = src("components/tradefeed/InvestmentSignalCard.tsx");
+    expect(card).toMatch(/\{isOwner && \(\s*<button type="button" data-investment-delete/);
+    expect(card).toContain("danger onClose={() => setDelDialog(false)}");
+    expect(card).toContain('"DELETE", { confirm: true }');
+    expect(card.indexOf("data-investment-delete")).toBeLessThan(card.indexOf("{delDialog &&"));
   });
 });
 

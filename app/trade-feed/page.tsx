@@ -343,6 +343,7 @@ export default function TradeFeedPage() {
                   logo={<CoinLogo pair={item.pair} />}
                   isOwner={isOwner}
                   onUpdated={(s) => setInvestments((prev) => prev.map((x) => (x.id === s.id ? s : x)))}
+                  onDeleted={(id) => setInvestments((prev) => prev.filter((x) => x.id !== id))}
                   onNotice={setNotice}
                 />
               ),
