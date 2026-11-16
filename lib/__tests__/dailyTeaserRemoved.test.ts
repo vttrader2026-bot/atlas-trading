@@ -51,7 +51,7 @@ describe("everything else is intact", () => {
       expect(typeof (push as Record<string, unknown>)[fn]).toBe("function");
     }
     const p = src("lib/push.ts");
-    expect((p.match(/prefs\.tradeFeed/g) ?? []).length).toBe(3); // new signal, TP/SL, trade closed
+    expect((p.match(/prefs\.tradeFeed/g) ?? []).length).toBe(4); // new signal, TP/SL, trade closed, signal result events (SIGNAL-EVENTS-v1)
     expect(src("app/api/trade-feed/route.ts")).toContain("notifyTradeSubscribers");
   });
   it("keeps the tradeFeed preference, its default and its settings toggle", () => {
