@@ -92,7 +92,7 @@ function PlanForm({ prices, run, onDone }: { prices: PriceMap; run: Run; onDone:
 const signedPctStr = (n: number) => `${n > 0 ? "+" : ""}${n.toFixed(2)}%`;
 const STATUS_KEY = { done: "stDone", due: "stDue", upcoming: "stUpcoming", triggered: "stTriggered", waiting: "stWaiting" } as const;
 
-function PlanCard({ plan, doc, prices, run, onRecord, atLimit }: { plan: DcaPlan; doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void; atLimit: boolean }) {
+function PlanCard({ plan, doc, prices, run, onRecord, atLimit, open, onToggle }: { plan: DcaPlan; doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void; atLimit: boolean; open: boolean; onToggle: () => void }) {
   const { t } = useLanguage();
   const { usd, price } = useMoney(); // display currency (the form above stays in USDT)
   const livePrice = prices[plan.asset]?.price ?? null;
@@ -100,15 +100,27 @@ function PlanCard({ plan, doc, prices, run, onRecord, atLimit }: { plan: DcaPlan
   const pctDone = pr.totalCount ? (pr.doneCount / pr.totalCount) * 100 : 0;
   const state = planState(plan, doc.purchases);
   const completed = pr.totalCount > 0 && pr.doneCount === pr.totalCount;
+  const panelId = `dca-plan-${plan.id}`;
   return (
-    <section className="card p-4 space-y-4">
-      <div className="flex items-center gap-3">
+    <section className="card" data-dca-plan={plan.id}>
+      {/* DCA-ACCORDION-v1: compact summary row; the full plan below is rendered only while this row is the open one. */}
+      <button type="button" aria-expanded={open} aria-controls={panelId} onClick={onToggle} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 p-3 sm:p-4 text-start">
         <CoinLogo base={plan.asset} size={30} />
-        <div className="flex-1 min-w-0"><div className="font-semibold truncate">{plan.name}</div><div dir="ltr" className="font-data text-xs text-text-muted text-start">{plan.asset}</div></div>
+        <span className="flex-1 min-w-[8rem]"><span className="block font-semibold truncate">{plan.name}</span><span dir="ltr" className="block font-data text-xs text-text-muted text-start">{plan.asset}</span></span>
+        <span className={`tag ${state === "completed" ? "tag-bull" : state === "active" ? "tag-gold" : ""}`}>{t(state === "active" ? "dcaLimits.stateActive" : state === "completed" ? "dcaLimits.stateCompleted" : "dcaLimits.stateClosed")}</span>
+        <span className="ms-auto flex items-center gap-3">
+          <span className="sr-only">{fill(t("investor.progress"), { done: pr.doneCount, total: pr.totalCount })}</span>
+          <span aria-hidden="true" dir="ltr" className="font-data text-xs text-text-muted">{pr.doneCount}/{pr.totalCount}</span>
+          <span className="sr-only">{t("investor.spent")}</span>
+          <span dir="ltr" className="font-data text-sm">{usd(pr.spent)}</span>
+          <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 shrink-0 text-text-muted transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8l5 5 5-5" /></svg>
+        </span>
+      </button>
+      {open && <div id={panelId} className="border-t border-line p-4 space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="flex-1" />
         {/* ONE-BINANCE-BUTTON-v1: a single manual "Open in Binance" link per plan (its own pair); steps only have Record. */}
         <BinanceSpotLink pair={`${plan.asset}/USDT`} className="btn-secondary" hideWhenUnavailable />
-        {state === "completed" && <span className="tag tag-bull">{t("dcaLimits.stateCompleted")}</span>}
-        {state === "closed" && <span className="tag">{t("dcaLimits.stateClosed")}</span>}
         {state === "active" && <button type="button" className="btn-secondary" onClick={() => { if (window.confirm(t("dcaLimits.closeConfirm"))) run((d) => ({ ...d, plans: d.plans.map((p) => (p.id === plan.id ? { ...p, closedAt: new Date().toISOString() } : p)) })); }}>{t("dcaLimits.close")}</button>}
         {state === "closed" && !completed && <button type="button" disabled={atLimit} className="btn-secondary disabled:opacity-50" onClick={() => run((d) => ({ ...d, plans: d.plans.map((p) => { if (p.id !== plan.id) return p; const { closedAt: _closedAt, ...rest } = p; void _closedAt; return rest; }) }))}>{t("dcaLimits.restore")}</button>}
         <button type="button" className="text-xs text-text-muted underline" onClick={() => { if (window.confirm(t("investor.deletePlanConfirm"))) run((d) => ({ ...d, plans: d.plans.filter((p) => p.id !== plan.id) })); }}>{t("investor.deletePlan")}</button>
@@ -156,6 +168,7 @@ function PlanCard({ plan, doc, prices, run, onRecord, atLimit }: { plan: DcaPlan
           </ul>
         </div>
       )}
+      </div>}
     </section>
   );
 }
@@ -163,11 +176,13 @@ function PlanCard({ plan, doc, prices, run, onRecord, atLimit }: { plan: DcaPlan
 export default function Dca({ doc, prices, run, onRecord, limit = null, active = 0 }: { doc: InvestorDoc; prices: PriceMap; run: Run; onRecord: (d: PurchaseDraft) => void; limit?: number | null; active?: number }) {
   const { t } = useLanguage();
   const [creating, setCreating] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null); // DCA-ACCORDION-v1: every plan starts collapsed; one open at a time
   // The server enforces the limit; this only explains it and avoids a pointless click.
   const atLimit = limit !== null && active >= limit;
   const mine = (wantActive: boolean) => doc.plans.filter((p) => (planState(p, doc.purchases) === "active") === wantActive);
   const activePlans = mine(true);
   const otherPlans = mine(false);
+  const toggle = (id: string) => () => setOpenId((cur) => (cur === id ? null : id));
   return (
     <div className="space-y-5">
       <p className="text-sm text-text-muted">{t("investor.dcaIntro")}</p>
@@ -179,9 +194,9 @@ export default function Dca({ doc, prices, run, onRecord, limit = null, active =
       {atLimit && <p className="text-xs text-gold">{fill(t("dcaLimits.limitReached"), { limit: limit ?? 0 })}{limit !== null && limit < PLAN_LIMITS.elite.activeDcaPlans ? " " + fill(t("dcaLimits.limitElite"), { max: PLAN_LIMITS.elite.activeDcaPlans }) : ""}</p>}
       {creating && <PlanForm prices={prices} run={run} onDone={() => setCreating(false)} />}
       {doc.plans.length === 0 && !creating && <p className="card p-6 text-sm text-text-muted">{t("investor.noPlans")}</p>}
-      {activePlans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} atLimit={atLimit} />)}
+      {activePlans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} atLimit={atLimit} open={openId === p.id} onToggle={toggle(p.id)} />)}
       {otherPlans.length > 0 && <h3 className="text-label text-text-muted pt-2">{t("dcaLimits.sectionClosed")}</h3>}
-      {otherPlans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} atLimit={atLimit} />)}
+      {otherPlans.map((p) => <PlanCard key={p.id} plan={p} doc={doc} prices={prices} run={run} onRecord={onRecord} atLimit={atLimit} open={openId === p.id} onToggle={toggle(p.id)} />)}
     </div>
   );
 }
