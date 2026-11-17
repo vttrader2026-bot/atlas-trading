@@ -8,7 +8,8 @@ const feed = readFileSync("app/trade-feed/page.tsx", "utf8");
 
 describe("Simplified navigation (WORKFLOW-v1)", () => {
   it("Home links to the public homepage and comes first, as a visible link on desktop and mobile", () => {
-    expect(nav).toContain('href: "/",\n    icon:');
+    // Whitespace-tolerant (LF or CRLF): homeLink = { href: "/", icon: ..., label: t("nav.home") }
+    expect(nav).toMatch(/const homeLink = \{\s*href: "\/",\s*icon:[\s\S]*?label: t\("nav\.home"\)/);
     expect(nav).toContain('t("nav.home")');
     expect(nav).toContain("const COMMAND_LINKS = [investorLink];");
     expect(nav).toContain("homeLink.href");
