@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Sora, JetBrains_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
 import JournalSync from "@/components/JournalSync";
-import TickerStrip from "@/components/TickerStrip";
 import Footer from "@/components/Footer";
 import QuickNav, { QuickNavSpacer } from "@/components/QuickNav";
 import RegisterServiceWorker from "@/components/RegisterServiceWorker";
@@ -97,7 +96,6 @@ export default function RootLayout({
           <InstallProvider>
             <Nav />
             <JournalSync />
-            <TickerStrip />
             <div className="lg:flex">
               <QuickNav />
               <div className="min-w-0 flex-1">{children}</div>

@@ -13,7 +13,6 @@ import NotificationBell from "@/components/NotificationBell";
 import AccountMenu from "@/components/AccountMenu";
 import { InstallMenuButton } from "@/components/InstallApp";
 import {
-  IconOverview,
   IconRadar,
   IconAcademy,
   IconTradeFeed,
@@ -164,14 +163,15 @@ export default function Nav() {
   const { isLoaded, isSignedIn } = useAuth();
   const [open, setOpen] = useState(false);
   const [mkOpen, setMkOpen] = useState(false); // mobile "Markets" group
+  const [trOpen, setTrOpen] = useState(false); // mobile "Trading" group
 
   // Close the mobile menu whenever the route changes.
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  // WORKFLOW-v1: simplified primary navigation. Dashboard opens the Journal (trade dashboard and performance);
-  // Markets groups Radar, Market Pulse and Watchlist. Every other route (Analyzer, Trade Plan, Trade Feed,
+  // Primary navigation: Home, Trading (Trade Feed, Trade Plan, Journal, Performance), Investor, Markets (Radar, Market Pulse,
+  // Watchlist), Academy. Every other route (Analyzer, Trade Plan, Trade Feed,
   // Risk Calculator, ...) is unchanged and reachable from the Workflow page, the footer and direct links.
   const MARKETS = [
     { href: "/radar", label: t("nav.radar") },
@@ -179,6 +179,14 @@ export default function Nav() {
     { href: "/watchlist", label: t("nav.watchlist") },
   ];
   const mkActive = MARKETS.some((i) => isOn(pathname, i.href));
+  // NAV-TRADING-v1: "Trading" replaces Dashboard. Workflow is no longer in the primary navigation (its page and links to it stay).
+  const TRADING = [
+    { href: "/trade-feed", label: t("nav.tradeFeed") },
+    { href: "/trade-plan", label: t("nav.tradePlan") },
+    { href: "/journal", label: t("nav.journal") },
+    { href: "/performance", label: t("nav.performance") },
+  ];
+  const trActive = TRADING.some((i) => isOn(pathname, i.href));
   const homeLink = {
     href: "/",
     icon: (
@@ -188,8 +196,6 @@ export default function Nav() {
     ),
     label: t("nav.home"),
   };
-  const dashLink = { href: "/journal", icon: <IconOverview className="w-[18px] h-[18px]" />, label: t("nav.dashboard") };
-  const workflowLink = { href: "/workflow", icon: <IconTradeFeed className="w-[18px] h-[18px]" />, label: t("nav.workflow") };
   // INVESTOR-NAV: long-term investing module (private; signed-out visitors are sent to sign-in and returned).
   const investorLink = {
     href: "/investor",
@@ -202,7 +208,7 @@ export default function Nav() {
     label: t("nav.investor"),
   };
   const academyLink = { href: "/academy", icon: <IconAcademy className="w-[18px] h-[18px]" />, label: t("nav.academy") };
-  const COMMAND_LINKS = [homeLink, dashLink, workflowLink, investorLink];
+  const COMMAND_LINKS = [investorLink];
 
   const eliteLabel = lang === "ar" ? "إيليت" : "Elite";
   const eliteActive = pathname === "/elite";
@@ -251,6 +257,8 @@ export default function Nav() {
           className="hidden sm:flex flex-1 min-w-0 items-center justify-end sm:justify-center"
         >
           <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-none rounded-lg border border-line/70 bg-surface/50 p-0.5 xl:p-1">
+            <CommandNavLink href={homeLink.href} icon={homeLink.icon} label={homeLink.label} active={isOn(pathname, homeLink.href)} />
+            <DropdownMenu label={t("nav.trading")} items={TRADING} pathname={pathname} icon={<IconTradeFeed className="w-[18px] h-[18px]" />} />
             {COMMAND_LINKS.map((link) => (
               <CommandNavLink key={link.href} href={link.href} icon={link.icon} label={link.label} active={isOn(pathname, link.href)} />
             ))}
@@ -293,6 +301,29 @@ export default function Nav() {
         <div className="sm:hidden absolute inset-x-0 top-full z-50 border-t border-line bg-surface shadow-lg max-h-[calc(100vh-3.5rem)] overflow-y-auto">
           <nav className="max-w-6xl mx-auto px-4 py-2">
             <div className="flex flex-col py-2">
+              <Link href={homeLink.href} className={`px-2 py-2.5 text-sm transition-colors ${isOn(pathname, homeLink.href) ? "text-text" : "text-text-muted hover:text-text"}`}>
+                {homeLink.label}
+              </Link>
+              <button
+                type="button"
+                onClick={() => setTrOpen((v) => !v)}
+                aria-expanded={trOpen || trActive}
+                className={`flex w-full items-center justify-between px-2 py-2.5 text-sm transition-colors ${trActive ? "text-text" : "text-text-muted hover:text-text"}`}
+              >
+                <span>{t("nav.trading")}</span>
+                <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" className={`transition-transform ${trOpen || trActive ? "rotate-180" : ""}`}>
+                  <path d="M2 3.5l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {(trOpen || trActive) && (
+                <div className="ms-3 flex flex-col border-s border-line ps-2">
+                  {TRADING.map((item) => (
+                    <Link key={item.href} href={item.href} className={`px-2 py-2 text-sm transition-colors ${isOn(pathname, item.href) ? "text-text" : "text-text-muted hover:text-text"}`}>
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
               {COMMAND_LINKS.map((link) => (
                 <Link key={link.href} href={link.href} className={`px-2 py-2.5 text-sm transition-colors ${isOn(pathname, link.href) ? "text-text" : "text-text-muted hover:text-text"}`}>
                   {link.label}

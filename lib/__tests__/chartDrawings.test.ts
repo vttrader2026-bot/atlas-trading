@@ -123,36 +123,24 @@ describe("add and delete", () => {
 describe("wiring", () => {
   const panel = readFileSync("components/charts/AnalysisPanel.tsx", "utf8");
   const chart = readFileSync("components/charts/AnalysisChart.tsx", "utf8");
-  const prim = readFileSync("components/charts/drawingsPrimitive.ts", "utf8");
   it("Radar and Market Intelligence both open the shared panel; the Analyzer is untouched", () => {
     for (const f of ["app/radar/page.tsx", "app/market-intelligence/page.tsx"]) {
       expect(readFileSync(f, "utf8")).toContain("<AnalysisPanel");
     }
     expect(readFileSync("app/analyzer/page.tsx", "utf8")).not.toMatch(/chartDrawings|drawingsPrimitive/);
   });
-  it("drawings live in the panel (survive chart rebuilds) and are never persisted", () => {
-    expect(panel).toContain("useState<Drawing[]>");
-    for (const src of [panel, chart, prim, readFileSync("lib/chartDrawings.ts", "utf8")]) {
-      expect(src).not.toMatch(/localStorage|sessionStorage|indexedDB|fetch\(\s*["'`]\/api\/(me|drawings)/);
+  it("WEBSITE-FIXES-v1: the Live Chart no longer offers drawing tools; chart, indicators, timeframes and analysis remain", () => {
+    for (const src of [panel, chart]) {
+      expect(src).not.toMatch(/chartDrawings|drawingsPrimitive|DrawingsPrimitive|data-tool|chart\.draw\.|setTool|createDrawing|deleteSelected/);
     }
-  });
-  it("is a primitive on the candle series (price pane only), anchored by time and price", () => {
-    expect(chart).toContain("candleSeries.attachPrimitive(prim)");
-    expect(prim).toContain("logicalToCoordinate");
-    expect(prim).toContain("priceToCoordinate");
-  });
-  it("the toolbar offers Rectangle, and the rectangle reuses the two-point gesture and selection/delete", () => {
-    expect(panel).toContain('["rect", "chart.draw.rect"');
-    expect(panel).toContain('tool === "rect" ? t("chart.draw.hintRect")');
-    expect(chart).toContain('const twoPoint = tool === "trend" || tool === "rect"');
-    expect(chart).toContain("isDegenerateRect(a, b)");
-    expect(chart).toContain("onSelect(hitTest(prim.projectAll()");
-    expect(prim).toContain("fillRect");
-    expect(prim).toContain("strokeRect");
-  });
-  it("pauses pan/zoom only while a drawing tool is active", () => {
-    expect(chart).toContain("handleScroll: !drawing, handleScale: !drawing");
-    expect(chart).toContain('tool !== "cursor"');
+    expect(panel).not.toContain('role="toolbar"');
+    expect(chart).not.toMatch(/pointerdown|handleScroll: !drawing|attachPrimitive/);
+    // untouched: indicators, timeframes, analysis and the chart itself
+    for (const needle of ["<AnalysisChart", '["ema20", "EMA 20"]', '["ema50", "EMA 50"]', '["ema200", "EMA 200"]', '["rsi", "RSI"]', '["macd", "MACD"]', "SUPPORTED_INTERVALS.map", 't("chart.analyzeWithAi")']) expect(panel).toContain(needle);
+    expect(chart).toContain("createChart");
+    expect(chart).toContain("calcEMA");
+    expect(chart).toContain("calcRSI");
+    expect(chart).toContain("calcMACD");
   });
   it("EN, FR and AR have every drawing-tool string", () => {
     const keys = ["toolbar", "cursor", "hline", "trend", "rect", "delete", "hintHline", "hintTrend", "hintRect"];

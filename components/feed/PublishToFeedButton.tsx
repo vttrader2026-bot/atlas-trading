@@ -9,7 +9,9 @@ import { validateSpotSetup, type PublishSource } from "@/lib/ownerPublish";
 
 type Tier = "free" | "elite";
 
-export default function PublishToFeedButton({ setup, source, className = "btn-secondary", disabled = false }: { setup: Record<string, unknown>; source: PublishSource; className?: string; disabled?: boolean }) {
+const checkedReason = (tpl: string, reason: string) => tpl.replace("{reason}", reason);
+
+export default function PublishToFeedButton({ setup, source, className = "btn-secondary", disabled = false, showWhenInvalid = false }: { setup: Record<string, unknown>; source: PublishSource; className?: string; disabled?: boolean; showWhenInvalid?: boolean }) {
   const { t } = useLanguage();
   const owner = useIsOwner();
   const [open, setOpen] = useState(false);
@@ -25,8 +27,18 @@ export default function PublishToFeedButton({ setup, source, className = "btn-se
     return () => window.removeEventListener("keydown", k);
   }, [open, busy]);
 
-  // Hidden for everyone but the owner, and for any setup the server would refuse.
-  if (!owner || !checked.ok) return null;
+  // Hidden for everyone but the owner. A setup the server would refuse is hidden too, unless the caller (the Trade Plan) asks
+  // to keep the button visible for the owner: then it is shown disabled with the reason, never silently removed.
+  if (!owner) return null;
+  if (!checked.ok) {
+    if (!showWhenInvalid) return null;
+    return (
+      <div className="flex flex-col gap-1">
+        <button type="button" disabled data-publish-invalid className={`${className} opacity-60 cursor-not-allowed`}>{t("tradePlan.publishToFeed")}</button>
+        <p role="status" className="max-w-xs text-xs text-text-muted">{checkedReason(t("pubFeed.errInvalid"), checked.error)}</p>
+      </div>
+    );
+  }
   const v = checked.value;
   const label = (x: Tier) => t(x === "free" ? "pubFeed.free" : "pubFeed.elite");
   const fill = (s: string, vars: Record<string, string>) => Object.entries(vars).reduce((a, [k, val]) => a.replace(`{${k}}`, val), s);

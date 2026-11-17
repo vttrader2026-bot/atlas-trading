@@ -196,6 +196,7 @@ const en: Dict = {
   nav: {
     home: "Home",
     dashboard: "Dashboard",
+    trading: "Trading",
     workflow: "Workflow",
     investor: "Investor",
     notifications: "Notifications",
@@ -1242,6 +1243,7 @@ const ar: Dict = {
   nav: {
     home: "الرئيسية",
     dashboard: "لوحة التحكم",
+    trading: "التداول",
     workflow: "مسار التداول",
     investor: "المستثمر",
     notifications: "الإشعارات",
@@ -2286,6 +2288,7 @@ const fr: Dict = {
   nav: {
     home: "Accueil",
     dashboard: "Tableau de bord",
+    trading: "Trading",
     workflow: "Workflow",
     investor: "Investisseur",
     notifications: "Notifications",

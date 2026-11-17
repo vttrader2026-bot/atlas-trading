@@ -40,14 +40,14 @@ describe("navigation", () => {
     expect(read("components/Footer.tsx")).toContain('href: "/investor"');
     expect(read("app/workflow/page.tsx")).toContain('href="/investor"');
   });
-  it("main nav has Investor between Workflow and Markets, on desktop and in the mobile menu, with every other item kept", () => {
+  it("main nav keeps Investor (between Trading and Markets), on desktop and in the mobile menu", () => {
     const nav = read("components/Nav.tsx");
     expect(nav).toContain('href: "/investor"');
     expect(nav).toContain('t("nav.investor")');
-    expect(nav).toContain("const COMMAND_LINKS = [homeLink, dashLink, workflowLink, investorLink];");
+    expect(nav).toContain("const COMMAND_LINKS = [investorLink];");
     expect(nav).toMatch(/COMMAND_LINKS\.map\(\(link\) => \(\s*<CommandNavLink/); // desktop
     expect(nav).toMatch(/COMMAND_LINKS\.map\(\(link\) => \(\s*<Link key/); // mobile menu
-    for (const k of ["nav.home", "nav.dashboard", "nav.workflow", "nav.markets", "nav.academy"]) expect(nav).toContain(`t("${k}")`);
+    for (const k of ["nav.home", "nav.trading", "nav.markets", "nav.academy"]) expect(nav).toContain(`t("${k}")`);
   });
   it("is translated in EN, FR and AR", () => {
     const i18n = read("lib/i18n.tsx");

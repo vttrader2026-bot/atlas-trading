@@ -7,17 +7,28 @@ const i18n = readFileSync("lib/i18n.tsx", "utf8");
 const feed = readFileSync("app/trade-feed/page.tsx", "utf8");
 
 describe("Simplified navigation (WORKFLOW-v1)", () => {
-  it("Home links to the public homepage and comes before Dashboard, as a visible link on desktop and mobile", () => {
+  it("Home links to the public homepage and comes first, as a visible link on desktop and mobile", () => {
     expect(nav).toContain('href: "/",\n    icon:');
     expect(nav).toContain('t("nav.home")');
-    expect(nav).toContain("const COMMAND_LINKS = [homeLink, dashLink, workflowLink, investorLink];");
-    expect(nav).toContain("{COMMAND_LINKS.map((link) => (");
+    expect(nav).toContain("const COMMAND_LINKS = [investorLink];");
+    expect(nav).toContain("homeLink.href");
     expect(i18n.match(/    home: "/g)?.length).toBeGreaterThanOrEqual(3);
   });
-  it("shows Dashboard, Workflow, Markets and Academy", () => {
-    for (const k of ["nav.dashboard", "nav.workflow", "nav.markets", "nav.academy"]) expect(nav).toContain(`t("${k}")`);
-    expect(nav).toContain('href: "/workflow"');
-    expect(nav).toContain('href: "/journal", icon');
+  it("NAV-WEBSITE-FIXES: shows Home, Trading, Investor, Markets and Academy; Dashboard and Workflow are gone from the main navigation", () => {
+    for (const k of ["nav.home", "nav.trading", "nav.investor", "nav.markets", "nav.academy"]) expect(nav).toContain(`t("${k}")`);
+    expect(nav).not.toContain('t("nav.dashboard")');
+    expect(nav).not.toContain('t("nav.workflow")');
+    expect(nav).not.toContain('href: "/workflow"');
+    expect(readFileSync("app/workflow/page.tsx", "utf8").length).toBeGreaterThan(100); // the page itself stays
+  });
+  it("Trading is a dropdown with Trade Feed, Trade Plan, Journal and Performance (desktop and mobile), in that order", () => {
+    const m = nav.match(/const TRADING = \[([\s\S]*?)\];/);
+    expect(m).not.toBeNull();
+    expect([...m![1].matchAll(/href: "([^"]+)"/g)].map((x) => x[1])).toEqual(["/trade-feed", "/trade-plan", "/journal", "/performance"]);
+    for (const k of ["nav.tradeFeed", "nav.tradePlan", "nav.journal", "nav.performance"]) expect(m![1]).toContain(`t("${k}")`);
+    expect(nav).toContain('<DropdownMenu label={t("nav.trading")} items={TRADING}');
+    expect(nav).toContain("setTrOpen");
+    expect(i18n.match(/    trading: "/g)?.length).toBe(3);
   });
   it("Markets groups Radar, Market Intelligence and Watchlist", () => {
     for (const href of ["/radar", "/market-intelligence", "/watchlist"]) expect(nav).toContain(`{ href: "${href}", label:`);
@@ -32,7 +43,7 @@ describe("Simplified navigation (WORKFLOW-v1)", () => {
     expect(nav).toContain('document.documentElement.dir === "rtl"');
   });
   it("is labelled in English, Arabic and French", () => {
-    for (const k of ["dashboard", "workflow", "markets"]) expect(i18n.match(new RegExp(`    ${k}: "`, "g"))?.length).toBeGreaterThanOrEqual(3);
+    for (const k of ["dashboard", "workflow", "markets", "trading"]) expect(i18n.match(new RegExp(`    ${k}: "`, "g"))?.length).toBeGreaterThanOrEqual(3);
     expect(i18n.match(/tradeManagement: "/g)?.length).toBe(3);
   });
 });

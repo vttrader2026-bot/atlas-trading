@@ -601,6 +601,7 @@ export default function TradePlanPage() {
         {/* OWNER-PUBLISH-v1: owner-only; the server re-checks the owner and validates the levels. */}
         <PublishToFeedButton
           source="trade-plan"
+          showWhenInvalid
           setup={{
             pair: draft.pair, direction: draft.direction, timeframe: draft.timeframe,
             entryZone: draft.entryZone || draft.entry, invalidation: draft.invalidationText || draft.invalidation,

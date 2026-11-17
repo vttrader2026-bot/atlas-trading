@@ -18,7 +18,6 @@ import type { AnalysisData } from "@/components/analyzer/types";
 import AnalysisChart, { DEFAULT_TOGGLES, type IndicatorToggles } from "@/components/charts/AnalysisChart";
 import SmartActions from "@/components/SmartActions";
 import { recordAnalysis } from "@/lib/analysisHistory";
-import { addDrawing, removeDrawing, type Drawing, type DrawingDraft, type Tool } from "@/lib/chartDrawings";
 
 type Analysis = AnalysisData;
 
@@ -49,41 +48,6 @@ export default function AnalysisPanel({
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   const requestIdRef = useRef(0);
-
-  // Basic drawing tools. Kept here (not in the chart) so drawings survive the chart
-  // being rebuilt on a timeframe change. In memory only: closing the panel clears them.
-  const [tool, setTool] = useState<Tool>("cursor");
-  const [drawings, setDrawings] = useState<Drawing[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const drawingSeq = useRef(0);
-
-  const createDrawing = useCallback((draft: DrawingDraft) => {
-    const id = `d${++drawingSeq.current}`;
-    setDrawings((prev) => addDrawing(prev, { ...draft, id }));
-    setSelectedId(id);
-    setTool("cursor");
-  }, []);
-  const deleteSelected = useCallback(() => {
-    setDrawings((prev) => removeDrawing(prev, selectedId));
-    setSelectedId(null);
-  }, [selectedId]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
-      if (e.key === "Delete" || e.key === "Backspace") {
-        if (selectedId) {
-          e.preventDefault();
-          deleteSelected();
-        }
-      } else if (e.key === "Escape") {
-        setTool("cursor");
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selectedId, deleteSelected]);
 
   // Load candles whenever the pair or timeframe changes. Stale in-flight
   // requests are ignored by id, so switching timeframes quickly never lets
@@ -230,54 +194,8 @@ export default function AnalysisPanel({
           ))}
         </div>
 
-        {/* Drawing tools — horizontally scrollable on narrow screens */}
-        <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" role="toolbar" aria-label={t("chart.draw.toolbar")}>
-          {(
-            [
-              ["cursor", "chart.draw.cursor", <path key="c" d="M5 3l14 7-6 2-2 6L5 3z" />],
-              ["hline", "chart.draw.hline", <path key="h" d="M3 12h18M3 12h0M21 12h0" />],
-              ["trend", "chart.draw.trend", <g key="t"><path d="M5 18L19 6" /><circle cx="5" cy="18" r="1.6" /><circle cx="19" cy="6" r="1.6" /></g>],
-              ["rect", "chart.draw.rect", <rect key="r" x="4" y="7" width="16" height="10" rx="1" />],
-            ] as [Tool, string, React.ReactNode][]
-          ).map(([key, label, icon]) => (
-            <button
-              key={key}
-              type="button"
-              data-tool={key}
-              aria-pressed={tool === key}
-              aria-label={t(label)}
-              title={t(label)}
-              onClick={() => setTool(key)}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] border transition-colors ${
-                tool === key ? "border-gold text-gold bg-gold/10" : "border-line text-text-muted hover:text-text"
-              }`}
-            >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icon}</svg>
-              <span className="hidden sm:inline">{t(label)}</span>
-            </button>
-          ))}
-          <button
-            type="button"
-            data-tool="delete"
-            onClick={deleteSelected}
-            disabled={!selectedId}
-            aria-label={t("chart.draw.delete")}
-            title={t("chart.draw.delete")}
-            className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] border border-line text-text-muted hover:text-bear transition-colors disabled:opacity-40 disabled:hover:text-text-muted"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3" /></svg>
-            <span className="hidden sm:inline">{t("chart.draw.delete")}</span>
-          </button>
-        </div>
-
         {/* Chart */}
         <div className="relative mt-3 rounded-lg border border-line overflow-hidden">
-          {/* Overlay (not in the flow) so choosing a tool never shifts the chart. */}
-          {tool !== "cursor" && (
-            <p role="status" className="pointer-events-none absolute start-2 top-2 z-10 max-w-[80%] rounded bg-surface/85 px-2 py-1 text-[11px] leading-snug text-gold">
-              {tool === "hline" ? t("chart.draw.hintHline") : tool === "rect" ? t("chart.draw.hintRect") : t("chart.draw.hintTrend")}
-            </p>
-          )}
           {klines.status === "loading" && (
             <div className="h-[320px] sm:h-[420px] flex items-center justify-center text-sm text-text-muted">
               {t("chart.loading")}
@@ -293,11 +211,6 @@ export default function AnalysisPanel({
               candles={klines.candles}
               toggles={toggles}
               fullscreen={fullscreen}
-              tool={tool}
-              drawings={drawings}
-              selectedId={selectedId}
-              onCreate={createDrawing}
-              onSelect={setSelectedId}
             />
           )}
         </div>

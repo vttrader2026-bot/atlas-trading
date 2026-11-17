@@ -199,7 +199,8 @@ describe("wiring", () => {
   });
   it("the button is hidden unless the owner check passes and the dialog has no preselected audience", () => {
     const s = read("components/feed/PublishToFeedButton.tsx");
-    expect(s).toContain("if (!owner || !checked.ok) return null;");
+    expect(s).toContain("if (!owner) return null;");
+    expect(s).toContain("if (!showWhenInvalid) return null;"); // the Analyzer keeps hiding invalid setups
     expect(s).toContain("useState<Tier | null>(null)");
     expect(s).toContain("disabled={!tier || busy}");
   });

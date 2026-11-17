@@ -45,7 +45,7 @@ export default function Home() {
                 {t("home.heroBody")}
               </p>
               <div className="home-rise mt-10 flex flex-wrap gap-3" style={{ animationDelay: "0.24s" }}>
-                <Link href="/radar" className="btn-primary !px-7 !py-3.5 text-base">{t("homeV2.hero.exploreCta")}</Link>
+                <Link href="/workflow" className="btn-primary !px-7 !py-3.5 text-base">{t("homeV2.hero.exploreCta")}</Link>
                 {signedIn ? (
                   <Link href="/analyzer" className="btn-secondary !px-7 !py-3.5 text-base">{t("homeV2.hero.openAnalyzerCta")}</Link>
                 ) : (
