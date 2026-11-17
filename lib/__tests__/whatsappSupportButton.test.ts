@@ -1,10 +1,23 @@
 // WHATSAPP-SUPPORT-v1
-import { execSync } from "node:child_process";
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { WHATSAPP_SUPPORT_URL, WHATSAPP_SUPPORT_NUMBER } from "@/lib/whatsappSupport";
 
 const read = (p: string) => readFileSync(p, "utf8");
+/** Cross-platform recursive list of .tsx files (forward-slash paths) that mention a name. No shell, so it works on Windows and Linux. */
+function tsxFilesMentioning(dirs: string[], needle: string): string[] {
+  const hits: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith(".tsx") && readFileSync(full, "utf8").includes(needle)) hits.push(full.split("\\").join("/"));
+    }
+  };
+  dirs.forEach(walk);
+  return hits.sort();
+}
 const layout = read("app/layout.tsx");
 const footer = read("components/Footer.tsx");
 const button = read("components/WhatsAppSupportButton.tsx");
@@ -19,7 +32,7 @@ describe("WhatsApp Support entry point", () => {
   it("the floating button is mounted exactly once, globally, and on no individual page", () => {
     expect(layout.match(/<WhatsAppSupportButton \/>/g)?.length).toBe(1);
     
-    const users = execSync("grep -rl WhatsAppSupportButton app components --include=*.tsx || true", { encoding: "utf8" }).split("\n").filter(Boolean).map((s) => s.replace(/\\/g, "/")).sort();
+    const users = tsxFilesMentioning(["app", "components"], "WhatsAppSupportButton");
     expect(users).toEqual(["app/layout.tsx", "components/WhatsAppSupportButton.tsx"]);
   });
   it("button: opens a new tab safely, has an aria-label, icon-only on phones and a label from sm up, clear of the mobile bar", () => {
