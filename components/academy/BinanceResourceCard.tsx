@@ -3,6 +3,7 @@
 import { useLanguage } from "@/lib/i18n";
 import { BINANCE_RESOURCE as R } from "@/lib/binanceResource";
 import ReferralCTA from "@/components/academy/ReferralCTA";
+import BinanceQrCode from "@/components/academy/BinanceQrCode";
 
 // ATLAS-BINANCE-CARD-v1
 // Standalone premium resource card (not a lesson). Reuses ReferralCTA for the button, code, copy and disclosure.
@@ -49,11 +50,12 @@ export default function BinanceResourceCard() {
             </div>
           </dl>
 
-          <div className="mt-auto">
+          <div className="mt-auto flex flex-col items-center gap-4 pt-4 sm:flex-row sm:items-center">
+            <BinanceQrCode />
             <ReferralCTA
               href={R.href}
               code={R.code}
-              className="mt-4 rounded-2xl border border-gold/30 bg-gold/[0.06] p-4"
+              className="w-full min-w-0 flex-1 rounded-2xl border border-gold/30 bg-gold/[0.06] p-4"
             />
           </div>
         </div>
