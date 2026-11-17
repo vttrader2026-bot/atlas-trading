@@ -4,6 +4,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import { useLanguage } from "@/lib/i18n";
 import { InstallMenuButton } from "@/components/InstallApp";
+import { WHATSAPP_SUPPORT_URL } from "@/lib/whatsappSupport";
 
 const TELEGRAM_URL = "https://t.me/atlastradingcrypto";
 const WHATSAPP_URL = "https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t";
@@ -74,6 +75,16 @@ export default function Footer() {
                 className="text-sm text-text-muted hover:text-gold transition-colors"
               >
                 {t("footer.joinWhatsapp")}
+              </a>
+            </li>
+            <li>
+              <a
+                href={WHATSAPP_SUPPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-text-muted hover:text-gold transition-colors"
+              >
+                {t("footer.whatsappSupport")}
               </a>
             </li>
           </ul>
