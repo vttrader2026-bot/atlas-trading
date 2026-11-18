@@ -27,24 +27,23 @@ export type VideoEntry = {
 };
 
 /** Add new videos here (see the template above). */
-export const VIDEOS: VideoEntry[] = [];
-
-export const CATEGORY_ORDER: VideoCategory[] = ["tutorials", "updates", "analysis", "academy"];
-export const CATEGORY_LABELS: Record<VideoCategory, Record<Lang, string>> = {
-  tutorials: { en: "Trading tutorials", ar: "دروس التداول", fr: "Tutoriels de trading" },
-  updates: { en: "Atlas Trading updates", ar: "تحديثات أطلس", fr: "Actualités Atlas Trading" },
-  analysis: { en: "Market analysis", ar: "تحليل السوق", fr: "Analyse de marché" },
-  academy: { en: "Academy lessons", ar: "دروس الأكاديمية", fr: "Leçons de l'Académie" },
-};
-
-/** What the pages receive: plain, serializable, with the YouTube ID resolved. */
-export type Video = {
-  id: string;
-  title: Localized;
-  description: Localized;
-  category: VideoCategory | null;
-  date: string | null;
-};
+export const VIDEOS: VideoEntry[] = [
+  {
+    url: "https://youtu.be/49OpWJEADlI",
+    title: {
+      en: "How to Start Investing in Cryptocurrency | ATLAS TRADING",
+      ar: "كيف تبدأ الاستثمار في العملات الرقمية من الصفر؟ 🚀 | دليلك مع Atlas Trading",
+      fr: "Comment commencer à investir dans les cryptomonnaies | ATLAS TRADING",
+    },
+    description: {
+      en: "Discover cryptocurrency investing and get started with ATLAS TRADING.",
+      ar: "اكتشف عالم الاستثمار في العملات الرقمية وتعرّف على كيفية البدء مع أطلس تريدينغ.",
+      fr: "Découvrez l'investissement dans les cryptomonnaies et apprenez à débuter avec ATLAS TRADING.",
+    },
+    category: "tutorials",
+    date: "2026-11-18",
+  },
+];
 
 const ID_RE = /^[A-Za-z0-9_-]{11}$/;
 
