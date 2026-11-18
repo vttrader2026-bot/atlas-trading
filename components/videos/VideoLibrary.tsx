@@ -61,7 +61,7 @@ export default function VideoLibrary({ videos }: { videos: Video[] }) {
                   {featured.category ? ` · ${CATEGORY_LABELS[featured.category][lang]}` : ""}
                 </div>
                 <h2 className="mt-2 text-xl font-semibold leading-snug sm:text-2xl">{pick(featured.title, lang)}</h2>
-                <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-text-muted">{pick(featured.description, lang)}</p>
+                {pick(featured.description, lang) && <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-text-muted">{pick(featured.description, lang)}</p>}
                 {featured.date && <div className="mt-3 text-xs text-text-muted">{formatVideoDate(featured.date, lang)}</div>}
               </div>
             </Link>

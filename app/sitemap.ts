@@ -1,12 +1,15 @@
 import type { MetadataRoute } from "next";
-import { getVideos, videoPagePath } from "@/lib/videos";
+import { videoPagePath } from "@/lib/videos";
+import { loadPublished } from "@/lib/videoStore";
 
 const BASE = "https://www.atlastrading.app";
 const ROUTES = ["", "/workflow", "/radar", "/analyzer", "/trade-plan", "/journal", "/risk", "/ticker", "/videos"];
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  // VIDEOS-v1: every video in lib/videos.ts gets its own sitemap entry.
-  const routes = [...ROUTES, ...getVideos().map((v) => videoPagePath(v.id))];
+// Read from Redis on each request: only PUBLISHED videos are listed, drafts never are.
+export const dynamic = "force-dynamic";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const routes = [...ROUTES, ...(await loadPublished()).map((v) => videoPagePath(v.id))];
   return routes.map((route) => ({
     url: `${BASE}${route}`,
     lastModified: new Date(),

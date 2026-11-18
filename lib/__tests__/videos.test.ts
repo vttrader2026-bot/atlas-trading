@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import {
-  VIDEOS, buildVideos, getVideos, getVideo, relatedVideos, usedCategories, parseYouTubeId, pick,
+  SEED_VIDEOS, buildVideos, getVideo, relatedVideos, usedCategories, parseYouTubeId, pick,
   youtubeEmbedUrl, youtubeWatchUrl, thumbHigh, thumbMedium, type VideoEntry,
 } from "@/lib/videos";
 
@@ -57,15 +57,16 @@ describe("buildVideos", () => {
   });
 });
 
-describe("the shipped library", () => {
-  it("every entry in VIDEOS has a valid YouTube link, a title and a description (so a typo is caught before deploy)", () => {
-    VIDEOS.forEach((v, i) => {
-      expect(parseYouTubeId(v.url), `VIDEOS[${i}].url`).not.toBeNull();
-      expect(pick(typeof v.title === "string" ? { en: v.title } : v.title, "en").length, `VIDEOS[${i}].title`).toBeGreaterThan(0);
-      expect(pick(typeof v.description === "string" ? { en: v.description } : v.description, "en").length, `VIDEOS[${i}].description`).toBeGreaterThan(0);
-      if (v.date) expect(v.date, `VIDEOS[${i}].date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+describe("the migration seed", () => {
+  it("every entry in SEED_VIDEOS has a valid YouTube link, a title and a description (so a typo is caught before deploy)", () => {
+    SEED_VIDEOS.forEach((v, i) => {
+      expect(parseYouTubeId(v.url), `SEED_VIDEOS[${i}].url`).not.toBeNull();
+      expect(pick(typeof v.title === "string" ? { en: v.title } : v.title, "en").length, `SEED_VIDEOS[${i}].title`).toBeGreaterThan(0);
+      expect(pick(typeof v.description === "string" ? { en: v.description } : v.description, "en").length, `SEED_VIDEOS[${i}].description`).toBeGreaterThan(0);
+      if (v.date) expect(v.date, `SEED_VIDEOS[${i}].date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
-    expect(getVideos()).toHaveLength(new Set(VIDEOS.map((v) => parseYouTubeId(v.url))).size);
+    expect(buildVideos(SEED_VIDEOS)).toHaveLength(new Set(SEED_VIDEOS.map((v) => parseYouTubeId(v.url))).size);
+    expect(buildVideos(SEED_VIDEOS).map((v) => v.id)).toContain("49OpWJEADlI"); // the existing video is preserved by the migration
   });
 });
 
@@ -104,10 +105,12 @@ describe("pages and wiring", () => {
     expect(w).toContain("navigator.share");
     expect(w).toContain("related.length > 0");
   });
-  it("routes exist and the dynamic page pre-renders, escapes its JSON-LD and 404s unknown IDs", () => {
+  it("routes exist; the video page reads the live (published-only) library, escapes its JSON-LD and 404s unknown IDs", () => {
     expect(existsSync("app/videos/page.tsx")).toBe(true);
     const r = read("app/videos/[id]/page.tsx");
-    expect(r).toContain("generateStaticParams");
+    expect(r).toContain("loadPublished");
+    expect(r).toContain('export const dynamic = "force-dynamic"');
+    expect(r).not.toContain("generateStaticParams");
     expect(r).toContain("generateMetadata");
     expect(r).toContain("notFound()");
     expect(r).toContain('"@type": "VideoObject"');
@@ -117,11 +120,13 @@ describe("pages and wiring", () => {
     expect(read("components/academy/AcademyIndex.tsx")).toContain('href="/videos"');
     expect(read("components/Footer.tsx")).toContain('href: "/videos"');
     expect(read("app/sitemap.ts")).toContain('"/videos"');
-    expect(read("app/sitemap.ts")).toContain("getVideos()");
+    expect(read("app/sitemap.ts")).toContain("loadPublished()");
     expect(read("lib/i18n.tsx").match(/\n    videos: "/g)?.length).toBe(3);
   });
-  it("no database, API route or upload/OAuth code was added", () => {
-    expect(existsSync("app/api/videos")).toBe(false);
-    for (const f of ["lib/videos.ts", "components/videos/VideoWatch.tsx", "app/videos/page.tsx"]) expect(read(f)).not.toMatch(/googleapis|oauth|redis|fetch\(/i);
+  it("lib/videos.ts is shared helpers plus the one-time seed only; the public components have no storage, upload or OAuth code", () => {
+    expect(read("lib/videos.ts")).not.toMatch(/from "@upstash|from "@\/lib\/redis|fetch\(|googleapis|oauth/i);
+    expect(read("lib/videos.ts")).not.toContain("export const VIDEOS");
+    for (const f of ["components/videos/VideoWatch.tsx", "components/videos/VideoLibrary.tsx", "components/videos/VideoCard.tsx"]) expect(read(f)).not.toMatch(/googleapis|oauth|redis|fetch\(/i);
+    expect(existsSync("app/api/videos")).toBe(false); // no PUBLIC write API; writes live under the owner-only /api/admin/videos
   });
 });

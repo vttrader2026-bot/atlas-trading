@@ -90,7 +90,7 @@ export default function VideoWatch({ video, related }: { video: Video; related: 
             <span role="status" aria-live="polite" className="sr-only">{copied ? CHROME.linkCopied[lang] : ""}</span>
           </div>
 
-          <p className="mt-5 max-w-2xl whitespace-pre-line text-base leading-relaxed text-text-muted">{pick(video.description, lang)}</p>
+          {pick(video.description, lang) && <p className="mt-5 max-w-2xl whitespace-pre-line text-base leading-relaxed text-text-muted">{pick(video.description, lang)}</p>}
           <p className="mt-6 text-xs text-text-muted">{CHROME.disclaimer[lang]}</p>
         </article>
 

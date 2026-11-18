@@ -22,7 +22,7 @@ export default function VideoCard({ video, compact = false }: { video: Video; co
       <div className={compact ? "min-w-0 py-0.5" : "p-4"}>
         {video.category && <div className="text-label text-gold">{CATEGORY_LABELS[video.category][lang]}</div>}
         <h3 className={`font-medium leading-snug ${compact ? "mt-0.5 line-clamp-3 text-sm" : "mt-1 line-clamp-2"}`}>{title}</h3>
-        {!compact && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-text-muted">{pick(video.description, lang)}</p>}
+        {!compact && pick(video.description, lang) && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-text-muted">{pick(video.description, lang)}</p>}
         {video.date && <div className="mt-2 text-xs text-text-muted">{formatVideoDate(video.date, lang)}</div>}
       </div>
     </Link>

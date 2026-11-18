@@ -6,12 +6,14 @@ import { useState } from "react";
 import { SignalsPanel } from "@/components/admin/SignalsPanel";
 import { MembersPanel } from "@/components/admin/MembersPanel";
 import { PaymentsPanel } from "@/components/admin/PaymentsPanel";
+import { VideosPanel } from "@/components/admin/VideosPanel";
 
-type Tab = "signals" | "members" | "payments";
+type Tab = "signals" | "members" | "payments" | "videos";
 const TABS: { id: Tab; label: string }[] = [
   { id: "signals", label: "Signals" },
   { id: "members", label: "Members" },
   { id: "payments", label: "Payments" },
+  { id: "videos", label: "Videos" },
 ];
 
 export function AdminDashboard({ initialTab }: { initialTab: Tab }) {
@@ -32,6 +34,7 @@ export function AdminDashboard({ initialTab }: { initialTab: Tab }) {
         {tab === "signals" && <SignalsPanel />}
         {tab === "members" && <MembersPanel />}
         {tab === "payments" && <PaymentsPanel />}
+        {tab === "videos" && <VideosPanel />}
       </div>
     </main>
   );

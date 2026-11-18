@@ -1,18 +1,8 @@
-// VIDEOS-v1 — the ATLAS video library. THIS IS THE ONLY FILE YOU EDIT TO ADD A VIDEO.
+// VIDEOS — shared types and helpers for the ATLAS video library.
 //
-// Videos live on YouTube (upload them to your channel as usual); the website only embeds them.
-// To add one, copy a block inside VIDEOS, paste the YouTube link, and fill in title + description:
-//
-//   {
-//     url: "https://youtu.be/XXXXXXXXXXX",        // any YouTube link (watch, youtu.be, shorts, embed) or just the 11-character ID
-//     title: "How to read a candlestick chart",    // plain text, or { en: "...", ar: "...", fr: "..." }
-//     description: "A 5-minute introduction.",     // plain text, or { en: "...", ar: "...", fr: "..." }
-//     category: "tutorials",                       // optional: "tutorials" | "updates" | "analysis" | "academy"
-//     date: "2026-11-18",                          // optional: YYYY-MM-DD (newest first; undated videos go last)
-//   },
-//
-// A plain string is shown in every language; use { en, ar, fr } to translate (missing languages fall back to English).
-// Thumbnails come from YouTube automatically. A video with an unrecognised link is skipped (a test catches it).
+// The library is MANAGED IN THE BROWSER at /admin/videos (owner only) and stored in Redis (see lib/videoStore.ts).
+// You no longer edit this file to add videos. SEED_VIDEOS below is only the one-time starting content that is copied
+// into Redis the first time the library is read; after that, changes made in the admin page are the source of truth.
 
 export type Lang = "en" | "ar" | "fr";
 export type Localized = { en: string; ar?: string; fr?: string };
@@ -26,8 +16,8 @@ export type VideoEntry = {
   date?: string;
 };
 
-/** Add new videos here (see the template above). */
-export const VIDEOS: VideoEntry[] = [
+/** One-time migration seed (do not add new videos here: use /admin/videos). */
+export const SEED_VIDEOS: VideoEntry[] = [
   {
     url: "https://youtu.be/49OpWJEADlI",
     title: {
@@ -62,7 +52,11 @@ export type Video = {
   date: string | null;
 };
 
-const ID_RE = /^[A-Za-z0-9_-]{11}$/;
+/** A video as stored in Redis: the public fields plus what only the admin needs. */
+export type VideoStatus = "published" | "draft";
+export type StoredVideo = Video & { status: VideoStatus; position: number; createdAt: number; updatedAt: number };
+
+export const ID_RE = /^[A-Za-z0-9_-]{11}$/;
 
 /** Accepts a YouTube watch / youtu.be / shorts / embed / live link, or a bare 11-character ID. Returns the ID or null. */
 export function parseYouTubeId(input: string): string | null {
@@ -113,11 +107,10 @@ export function buildVideos(entries: VideoEntry[]): Video[] {
     .map((x) => x.v);
 }
 
-export const getVideos = (): Video[] => buildVideos(VIDEOS);
-export const getVideo = (id: string, list: Video[] = getVideos()): Video | undefined => list.find((v) => v.id === id);
+export const getVideo = (id: string, list: Video[]): Video | undefined => list.find((v) => v.id === id);
 
 /** Up to `limit` other videos: same category first, then the rest (already newest first). */
-export function relatedVideos(current: Video, list: Video[] = getVideos(), limit = 4): Video[] {
+export function relatedVideos(current: Video, list: Video[], limit = 4): Video[] {
   const others = list.filter((v) => v.id !== current.id);
   const same = others.filter((v) => current.category && v.category === current.category);
   return [...same, ...others.filter((v) => !same.includes(v))].slice(0, limit);
