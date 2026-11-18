@@ -4,8 +4,8 @@
 // To add one, copy a block inside VIDEOS, paste the YouTube link, and fill in title + description:
 //
 //   {
-//     url: "https://youtu.be/XXXXXXXXXXX",        // any YouTube link (watch, youtu.be, shorts, embed) or just the 11-character ID
-//     title: "How to read a candlestick chart",    // plain text, or { en: "...", ar: "...", fr: "..." }
+//     url: "https://youtu.be/49OpWJEADlI",        // any YouTube link (watch, youtu.be, shorts, embed) or just the 11-character ID
+//     title: "كيف تبدأ الاستثمار في العملات الرقمية من الصفر؟ 🚀 | دليلك مع Atlas Trading",    // plain text, or { en: "...", ar: "...", fr: "..." }
 //     description: "A 5-minute introduction.",     // plain text, or { en: "...", ar: "...", fr: "..." }
 //     category: "tutorials",                       // optional: "tutorials" | "updates" | "analysis" | "academy"
 //     date: "2026-11-18",                          // optional: YYYY-MM-DD (newest first; undated videos go last)
