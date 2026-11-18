@@ -1,10 +1,13 @@
 import type { MetadataRoute } from "next";
+import { getVideos, videoPagePath } from "@/lib/videos";
 
 const BASE = "https://www.atlastrading.app";
-const ROUTES = ["", "/workflow", "/radar", "/analyzer", "/trade-plan", "/journal", "/risk", "/ticker"];
+const ROUTES = ["", "/workflow", "/radar", "/analyzer", "/trade-plan", "/journal", "/risk", "/ticker", "/videos"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return ROUTES.map((route) => ({
+  // VIDEOS-v1: every video in lib/videos.ts gets its own sitemap entry.
+  const routes = [...ROUTES, ...getVideos().map((v) => videoPagePath(v.id))];
+  return routes.map((route) => ({
     url: `${BASE}${route}`,
     lastModified: new Date(),
     changeFrequency: "daily" as const,

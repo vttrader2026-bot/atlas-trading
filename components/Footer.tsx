@@ -21,6 +21,7 @@ export default function Footer() {
     { href: "/journal", label: t("nav.journal") },
     { href: "/investor", label: t("investor.footerLink") },
     { href: "/academy", label: t("nav.academy") },
+    { href: "/videos", label: t("footer.videos") },
   ];
 
   return (

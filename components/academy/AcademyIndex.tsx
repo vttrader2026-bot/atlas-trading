@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
 import OneOnOnePlan from "@/components/academy/OneOnOnePlan";
 import BinanceResourceCard from "@/components/academy/BinanceResourceCard";
+import { CHROME as VIDEO_CHROME } from "@/components/videos/chrome";
 import { SECTION_ORDER, SECTION_LABELS, lessonsBySection } from "@/lib/academy-content";
 
 // Page-level chrome strings live here (not in lib/i18n.tsx) so the Academy
@@ -96,6 +97,17 @@ export default function AcademyIndex() {
     <main className="max-w-5xl mx-auto px-6 py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{CHROME.title[lang]}</h1>
       <p className="text-text-muted text-sm mt-1 max-w-xl">{CHROME.subtitle[lang]}</p>
+
+      {/* VIDEOS-v1 */}
+      <div className="mt-8 card card-accent p-6">
+        <div className="text-label text-gold">YouTube</div>
+        <h2 className="mt-1 text-lg font-semibold">{VIDEO_CHROME.academyCardTitle[lang]}</h2>
+        <p className="mt-1 max-w-xl text-sm text-text-muted">{VIDEO_CHROME.academyCardBody[lang]}</p>
+        <Link href="/videos" className="btn-primary mt-4 inline-flex items-center gap-1.5">
+          {VIDEO_CHROME.academyCardCta[lang]}
+          <span aria-hidden>{lang === "ar" ? "←" : "→"}</span>
+        </Link>
+      </div>
 
       <BinanceResourceCard />
 
