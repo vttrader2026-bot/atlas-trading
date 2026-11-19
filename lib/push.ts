@@ -26,7 +26,7 @@ export type StoredSub = {
 
 // `lang` and `dir` are Notification options: Arabic notifications are marked right-to-left so the text and the
 // Latin pair names inside it are laid out correctly. sendToUser fills them in from the subscription's language.
-type Payload = { title: string; body: string; url: string; tag?: string; lang?: string; dir?: "rtl" | "ltr" };
+export type Payload = { title: string; body: string; url: string; tag?: string; lang?: string; dir?: "rtl" | "ltr"; actions?: { action: string; title: string }[] };
 
 export const PUSH_USERS_KEY = "push:users";
 export const subsKey = (userId: string) => `user:${userId}:push`;

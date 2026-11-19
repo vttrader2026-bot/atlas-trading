@@ -35,6 +35,7 @@ self.addEventListener("push", (event) => {
       tag: data.tag,
       lang: data.lang,
       dir: data.dir || "auto",
+      actions: Array.isArray(data.actions) ? data.actions.slice(0, 2) : undefined,
       data: { url: data.url || "/" },
     })
   );
@@ -43,6 +44,14 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = (event.notification.data && event.notification.data.url) || "/";
+  // A link to another site (e.g. a YouTube video from Video Alerts) opens in its own tab: an open app window cannot be
+  // navigated across origins.
+  let external = false;
+  try { external = new URL(url, self.location.origin).origin !== self.location.origin; } catch (e) { external = false; }
+  if (external) {
+    event.waitUntil(self.clients.openWindow(url));
+    return;
+  }
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       for (const client of list) {

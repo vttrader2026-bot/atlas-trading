@@ -7,13 +7,15 @@ import { SignalsPanel } from "@/components/admin/SignalsPanel";
 import { MembersPanel } from "@/components/admin/MembersPanel";
 import { PaymentsPanel } from "@/components/admin/PaymentsPanel";
 import { VideosPanel } from "@/components/admin/VideosPanel";
+import { VideoAlertsPanel } from "@/components/admin/VideoAlertsPanel";
 
-type Tab = "signals" | "members" | "payments" | "videos";
+type Tab = "signals" | "members" | "payments" | "videos" | "alerts";
 const TABS: { id: Tab; label: string }[] = [
   { id: "signals", label: "Signals" },
   { id: "members", label: "Members" },
   { id: "payments", label: "Payments" },
   { id: "videos", label: "Videos" },
+  { id: "alerts", label: "Video Alerts" },
 ];
 
 export function AdminDashboard({ initialTab }: { initialTab: Tab }) {
@@ -35,6 +37,7 @@ export function AdminDashboard({ initialTab }: { initialTab: Tab }) {
         {tab === "members" && <MembersPanel />}
         {tab === "payments" && <PaymentsPanel />}
         {tab === "videos" && <VideosPanel />}
+        {tab === "alerts" && <VideoAlertsPanel />}
       </div>
     </main>
   );

@@ -12,6 +12,7 @@ import type { SavedPlan } from "@/lib/savedPlans";
 import { isActivePlan } from "@/lib/tradePlansAtomic";
 import { PLAN_LIMITS } from "@/lib/entitlementConfig";
 import OwnerStudioLink from "@/components/account/OwnerStudioLink";
+import VideoAlerts from "@/components/account/VideoAlerts";
 
 function Toggle({
   label,
@@ -100,6 +101,13 @@ export default function AccountPage() {
   useEffect(() => {
     if (!isSignedIn || window.location.hash !== "#notifications") return;
     const id = window.setTimeout(() => document.getElementById("notifications")?.scrollIntoView({ block: "start" }), 150);
+    return () => window.clearTimeout(id);
+  }, [isSignedIn]);
+
+  // Deep link to the Video Alerts section (/account#video-alerts).
+  useEffect(() => {
+    if (!isSignedIn || window.location.hash !== "#video-alerts") return;
+    const id = window.setTimeout(() => document.getElementById("video-alerts")?.scrollIntoView({ block: "start" }), 400);
     return () => window.clearTimeout(id);
   }, [isSignedIn]);
 
@@ -309,6 +317,7 @@ export default function AccountPage() {
             )}
             {prefsMsg && <p className="mt-3 text-xs text-text-muted">{prefsMsg}</p>}
           </section>
+          <VideoAlerts />
 
           <section>
             <h2 className="text-lg font-semibold">{t("account.plansTitle")}</h2>
