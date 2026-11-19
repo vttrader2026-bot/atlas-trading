@@ -50,7 +50,14 @@ export type Video = {
   description: Localized;
   category: VideoCategory | null;
   date: string | null;
+  /** When it went live (ms). Drives the NEW label and the bell indicator. Absent on the built-in seed list. */
+  publishedAt?: number;
 };
+
+/** A video counts as NEW for this long after it was published. */
+export const NEW_VIDEO_DAYS = 7;
+export const isNewVideo = (v: { publishedAt?: number }, now: number = Date.now()): boolean =>
+  typeof v.publishedAt === "number" && v.publishedAt > 0 && now - v.publishedAt < NEW_VIDEO_DAYS * 86_400_000;
 
 /** A video as stored in Redis: the public fields plus what only the admin needs. */
 export type VideoStatus = "published" | "draft";

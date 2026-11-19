@@ -5,7 +5,6 @@ import { journalEn, journalFr, journalAr, planEn, planFr, planAr } from "@/lib/i
 import { perfEn, perfFr, perfAr } from "@/lib/i18nPerformance";
 import { pubFeedEn, pubFeedFr, pubFeedAr } from "@/lib/i18nPublishFeed";
 import { feedAdminEn, feedAdminFr, feedAdminAr } from "@/lib/i18nFeedAdmin";
-import { videoAlertsEn, videoAlertsFr, videoAlertsAr } from "@/lib/i18nVideoAlerts";
 import { dcaLimitsEn, dcaLimitsFr, dcaLimitsAr } from "@/lib/i18nDcaLimits";
 import { investSignalEn, investSignalFr, investSignalAr } from "@/lib/i18nInvestSignals";
 import { investorEn, investorFr, investorAr } from "@/lib/i18nInvestor";
@@ -515,7 +514,6 @@ const en: Dict = {
   perf: { ...perfEn },
   pubFeed: { ...pubFeedEn },
   feedAdmin: { ...feedAdminEn },
-  videoAlerts: { ...videoAlertsEn },
   homeApp: { ...homeAppEn },
   journal: {
     title: "Journal",
@@ -1566,7 +1564,6 @@ const ar: Dict = {
   perf: { ...perfAr },
   pubFeed: { ...pubFeedAr },
   feedAdmin: { ...feedAdminAr },
-  videoAlerts: { ...videoAlertsAr },
   homeApp: { ...homeAppAr },
   journal: {
     title: "السجل",
@@ -2617,7 +2614,6 @@ const fr: Dict = {
   perf: { ...perfFr },
   pubFeed: { ...pubFeedFr },
   feedAdmin: { ...feedAdminFr },
-  videoAlerts: { ...videoAlertsFr },
   homeApp: { ...homeAppFr },
   journal: {
     title: "Journal",

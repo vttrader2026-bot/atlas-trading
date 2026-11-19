@@ -36,17 +36,18 @@ describe("language selector", () => {
 
 describe("notification bell", () => {
   it("opens the existing Notification Settings and sits in the desktop and mobile header for signed-in users", () => {
-    expect(src("components/NotificationBell.tsx")).toContain('href="/account#notifications"');
+    expect(src("components/NotificationBell.tsx")).toContain('const SETTINGS_HREF = "/account#notifications"'); // the target when nothing is new
     const nav = src("components/Nav.tsx");
     expect((nav.match(/<NotificationBell \/>/g) ?? []).length).toBe(2);
     expect(nav).toContain("{isLoaded && isSignedIn && <NotificationBell />}");
   });
-  it("is a prominent gold bell: 44px target, theme-token gold on a gold tint, no unread dot (no reliable unread status exists)", () => {
+  it("is a prominent gold bell: 44px target, theme-token gold on a gold tint; its only indicator is the new-video count (NEW-VIDEOS-v1)", () => {
     const b = src("components/NotificationBell.tsx");
     expect(b).toContain("h-11 w-11");
     expect(b).toContain("bg-gold/15");
     expect(b).toContain("text-gold");
-    expect(b).not.toMatch(/unread|badge|rounded-full bg-/i);
+    expect(b).toContain("/api/me/new-videos"); // the one real unread status: published videos since the member last opened /videos
+    expect(b).not.toMatch(/video-alerts|Notification\(|pushManager/); // no video push, no notification code in the bell
   });
   it("the settings section has the anchor and scrolls to it", () => {
     const acc = src("app/account/page.tsx");

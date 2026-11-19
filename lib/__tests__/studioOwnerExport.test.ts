@@ -12,7 +12,7 @@ vi.mock("@clerk/nextjs/server", () => ({
 const redirectMock = vi.hoisted(() => vi.fn((to: string) => { throw Object.assign(new Error("REDIRECT:" + to), { digest: "REDIRECT" }); }));
 const notFoundMock = vi.hoisted(() => vi.fn(() => { throw Object.assign(new Error("NOT_FOUND"), { digest: "NOT_FOUND" }); }));
 vi.mock("next/navigation", () => ({ redirect: redirectMock, notFound: notFoundMock }));
-vi.mock("next/font/google", () => ({ Noto_Sans_Arabic: () => ({ variable: "--font-arabic" }) }));
+vi.mock("next/font/local", () => ({ default: () => ({ variable: "--font-arabic" }) }));
 
 const OWNER = "user_owner123";
 const run = async (path: string, userId: string | null) => {

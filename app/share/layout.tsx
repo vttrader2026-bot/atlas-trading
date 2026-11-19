@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { Noto_Sans_Arabic } from "next/font/google";
+import localFont from "next/font/local";
 
 import { isOwnerId } from "@/lib/adminAuth";
 import { signInRedirectPath } from "@/lib/privateRoutes";
@@ -9,11 +9,14 @@ import { signInRedirectPath } from "@/lib/privateRoutes";
 // Arabic font for the Social Media Studio images. The rest of the site has no Arabic web
 // font, so it is loaded here - on the Share route only - so exported Arabic
 // images look the same on every device instead of depending on system fonts.
-const notoArabic = Noto_Sans_Arabic({
-  variable: "--font-arabic",
-  subsets: ["arabic"],
-  weight: ["500", "600", "700", "800"],
+// Noto Sans Arabic, self-hosted (app/fonts): variable file, arabic subset, weights 500-800 as before.
+const notoArabic = localFont({
+  src: "../fonts/noto-sans-arabic-arabic-wght-normal.woff2",
+  weight: "500 800",
+  style: "normal",
   display: "swap",
+  adjustFontFallback: false,
+  variable: "--font-arabic",
 });
 
 export const dynamic = "force-dynamic";

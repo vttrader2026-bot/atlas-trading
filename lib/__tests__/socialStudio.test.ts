@@ -105,7 +105,7 @@ describe("old card system is gone and the Studio is wired", () => {
     expect(page).toContain("position: \"fixed\", left: -100000"); expect(read("lib/studioExport.ts")).toContain("pixelRatio: 1");
     expect(canvas).toContain('from "@/components/home/HeroPhone"'); expect(canvas).toContain('from "@/components/home/InvestorPhone"');
     expect(canvas).toContain("LanguageOverride"); expect(canvas).toContain('dir={rtl ? "rtl" : "ltr"}');
-    expect(read("app/share/layout.tsx")).toContain("Noto_Sans_Arabic");
+    expect(read("app/share/layout.tsx")).toContain("noto-sans-arabic-arabic-wght-normal.woff2"); // Noto Sans Arabic, now self-hosted
   });
   it("does not modify the homepage or Investor phone components", () => {
     expect(read("components/home/HeroPhone.tsx")).toContain("PHONE-v1");

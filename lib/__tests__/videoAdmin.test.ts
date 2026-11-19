@@ -234,7 +234,7 @@ describe("public visibility and persistence", () => {
     await add({ url: `https://youtu.be/${B}` });
     const pub = await loadPublished();
     expect(pub.map((v) => v.id)).toEqual([B, SEED]);
-    for (const v of pub) expect(Object.keys(v).sort()).toEqual(["category", "date", "description", "id", "title"]);
+    for (const v of pub) expect(Object.keys(v).sort()).toEqual(["category", "date", "description", "id", "publishedAt", "title"]);
     expect((await sitemap()).map((e) => e.url).filter((u) => u.includes("/videos/"))).toEqual([`${HOST}/videos/${B}`, `${HOST}/videos/${SEED}`]);
   });
   it("a corrupted or draft-like record is never shown", async () => {

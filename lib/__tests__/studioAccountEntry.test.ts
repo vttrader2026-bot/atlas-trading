@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
   redirect: (to: string) => { throw Object.assign(new Error("REDIRECT:" + to), { digest: "REDIRECT" }); },
   notFound: () => { throw Object.assign(new Error("NOT_FOUND"), { digest: "NOT_FOUND" }); },
 }));
-vi.mock("next/font/google", () => ({ Noto_Sans_Arabic: () => ({ variable: "--font-arabic" }) }));
+vi.mock("next/font/local", () => ({ default: () => ({ variable: "--font-arabic" }) }));
 vi.mock("@/lib/useIsOwner", () => ({ useIsOwner: () => h.owner }));
 vi.mock("@/lib/i18n", () => ({ useLanguage: () => ({ lang: h.lang, t: (k: string) => k }) }));
 

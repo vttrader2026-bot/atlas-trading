@@ -19,6 +19,15 @@ export default function VideoThumb({ id, high = false, className = "" }: { id: s
   );
 }
 
+/** The NEW label for recently published videos. Sits on the corner of a thumbnail (start side, so it works in RTL). */
+export function NewBadge({ label, floating = true }: { label: string; floating?: boolean }) {
+  return (
+    <span data-new-badge className={`${floating ? "absolute start-2 top-2 z-10 " : "inline-block "}rounded-full bg-gold px-2 py-0.5 text-[11px] font-bold uppercase leading-4 tracking-wide text-[#0b0e11] shadow`}>
+      {label}
+    </span>
+  );
+}
+
 export function PlayBadge({ large = false }: { large?: boolean }) {
   return (
     <span

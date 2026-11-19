@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
-import { CATEGORY_LABELS, pick, videoPagePath, youtubeWatchUrl, type Video } from "@/lib/videos";
+import { CATEGORY_LABELS, isNewVideo, pick, videoPagePath, youtubeWatchUrl, type Video } from "@/lib/videos";
 import { CHROME, formatVideoDate } from "@/components/videos/chrome";
 import VideoPlayer from "@/components/videos/VideoPlayer";
 import VideoCard from "@/components/videos/VideoCard";
+import { NewBadge } from "@/components/videos/VideoThumb";
 
 async function copyText(text: string): Promise<boolean> {
   try {
@@ -66,7 +67,12 @@ export default function VideoWatch({ video, related }: { video: Video; related: 
       <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <article className="min-w-0">
           <VideoPlayer id={video.id} title={title} />
-          {video.category && <div className="text-label mt-5 text-gold">{CATEGORY_LABELS[video.category][lang]}</div>}
+          {(video.category || isNewVideo(video)) && (
+            <div className="mt-5 flex items-center gap-2">
+              {isNewVideo(video) && <NewBadge label={CHROME.isNew[lang]} floating={false} />}
+              {video.category && <span className="text-label text-gold">{CATEGORY_LABELS[video.category][lang]}</span>}
+            </div>
+          )}
           <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight sm:text-3xl">{title}</h1>
           {video.date && <div className="mt-1 text-sm text-text-muted">{formatVideoDate(video.date, lang)}</div>}
 

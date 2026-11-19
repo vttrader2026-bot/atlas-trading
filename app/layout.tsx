@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Sora, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import Nav from "@/components/Nav";
 import JournalSync from "@/components/JournalSync";
 import Footer from "@/components/Footer";
@@ -11,19 +11,33 @@ import { LanguageProvider } from "@/lib/i18n";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
-const inter = Inter({
+// Self-hosted (app/fonts, see README there): the build must not depend on Google Fonts being reachable. Same families, variable
+// weight ranges, subsets and CSS variable names as the former Google Fonts setup.
+const inter = localFont({
+  src: "./fonts/inter-latin-wght-normal.woff2",
+  weight: "100 900",
+  style: "normal",
+  display: "swap",
+  adjustFontFallback: "Arial",
   variable: "--font-sans",
-  subsets: ["latin"],
 });
 
-const sora = Sora({
+const sora = localFont({
+  src: "./fonts/sora-latin-wght-normal.woff2",
+  weight: "100 800",
+  style: "normal",
+  display: "swap",
+  adjustFontFallback: "Arial",
   variable: "--font-heading-family",
-  subsets: ["latin"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: "./fonts/jetbrains-mono-latin-wght-normal.woff2",
+  weight: "100 800",
+  style: "normal",
+  display: "swap",
+  adjustFontFallback: "Arial",
   variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
 });
 
 const SITE_URL = "https://www.atlastrading.app";

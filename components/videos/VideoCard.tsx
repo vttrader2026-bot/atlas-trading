@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useLanguage } from "@/lib/i18n";
-import { CATEGORY_LABELS, pick, videoPagePath, type Video } from "@/lib/videos";
-import { formatVideoDate } from "@/components/videos/chrome";
-import VideoThumb, { PlayBadge } from "@/components/videos/VideoThumb";
+import { CATEGORY_LABELS, isNewVideo, pick, videoPagePath, type Video } from "@/lib/videos";
+import { CHROME, formatVideoDate } from "@/components/videos/chrome";
+import VideoThumb, { NewBadge, PlayBadge } from "@/components/videos/VideoThumb";
 
 // VIDEOS-v1: one library card (thumbnail, category, title, short description, date). Only a thumbnail is loaded: no player.
 export default function VideoCard({ video, compact = false }: { video: Video; compact?: boolean }) {
@@ -18,6 +18,7 @@ export default function VideoCard({ video, compact = false }: { video: Video; co
       <div className={`relative aspect-video overflow-hidden bg-surface-raised ${compact ? "w-36 shrink-0 rounded-lg sm:w-40" : ""}`}>
         <VideoThumb id={video.id} />
         <PlayBadge />
+        {isNewVideo(video) && <NewBadge label={CHROME.isNew[lang]} />}
       </div>
       <div className={compact ? "min-w-0 py-0.5" : "p-4"}>
         {video.category && <div className="text-label text-gold">{CATEGORY_LABELS[video.category][lang]}</div>}

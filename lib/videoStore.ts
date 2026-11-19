@@ -122,6 +122,8 @@ export function normalizeRecord(raw: unknown, idHint?: string): StoredVideo | nu
     position: typeof o.position === "number" && Number.isFinite(o.position) ? o.position : 0,
     createdAt: typeof o.createdAt === "number" ? o.createdAt : 0,
     updatedAt: typeof o.updatedAt === "number" ? o.updatedAt : 0,
+    // Records from before publishedAt existed count from the day they were created.
+    publishedAt: typeof o.publishedAt === "number" && Number.isFinite(o.publishedAt) ? o.publishedAt : typeof o.createdAt === "number" ? o.createdAt : 0,
   };
 }
 
@@ -133,6 +135,7 @@ export async function seedIfNeeded(redis: VideoRedis, now = Date.now()): Promise
   const seeds = buildVideos(SEED_VIDEOS);
   for (const [i, v] of seeds.entries()) {
     const rec: StoredVideo = { ...v, status: "published", position: i, createdAt: v.date ? Date.parse(`${v.date}T00:00:00Z`) || now : now, updatedAt: now };
+    rec.publishedAt = rec.createdAt;
     await redis.hsetnx(VIDEOS_KEY, v.id, rec);
   }
   await redis.set(VIDEOS_SEEDED_KEY, "1");
@@ -149,7 +152,7 @@ export async function readAll(redis: VideoRedis): Promise<StoredVideo[]> {
 }
 
 /** What the public may see: published only, with admin-only fields stripped. */
-export const toPublic = (v: StoredVideo): Video => ({ id: v.id, title: v.title, description: v.description, category: v.category, date: v.date });
+export const toPublic = (v: StoredVideo): Video => ({ id: v.id, title: v.title, description: v.description, category: v.category, date: v.date, publishedAt: v.publishedAt });
 export const publishedOnly = (all: StoredVideo[]): Video[] => all.filter((v) => v.status === "published").map(toPublic);
 
 // ---------- writing ----------
@@ -160,7 +163,7 @@ export async function createVideo(redis: VideoRedis, id: string, fields: VideoFi
   const all = await readAll(redis); // also runs the one-time migration before the first manual add
   if (all.some((v) => v.id === id)) return { ok: false, reason: "duplicate" };
   const position = all.length ? Math.min(...all.map((v) => v.position)) - 1 : 0; // new videos go first; the owner can move them
-  const video: StoredVideo = { id, ...fields, position, createdAt: now, updatedAt: now };
+  const video: StoredVideo = { id, ...fields, position, createdAt: now, updatedAt: now, publishedAt: now };
   const added = await redis.hsetnx(VIDEOS_KEY, id, video); // atomic: loses the race rather than overwriting
   if (added === 0 || added === false) return { ok: false, reason: "duplicate" };
   return { ok: true, video };
@@ -170,6 +173,8 @@ export async function updateVideo(redis: VideoRedis, id: string, patch: Partial<
   const cur = normalizeRecord(await redis.hget(VIDEOS_KEY, id), id);
   if (!cur) return null;
   const next: StoredVideo = { ...cur, ...patch, id, updatedAt: now }; // the YouTube ID never changes
+  // Going live (new, or a draft being published) starts the NEW period; editing a live video does not.
+  if (patch.status === "published" && cur.status !== "published") next.publishedAt = now;
   await redis.hset(VIDEOS_KEY, { [id]: next });
   return next;
 }
