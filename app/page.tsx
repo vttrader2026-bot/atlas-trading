@@ -12,6 +12,7 @@ import ToolsSection from "@/components/home/ToolsSection";
 import CommunitySection from "@/components/home/CommunitySection";
 import InvestorSection from "@/components/home/InvestorSection";
 import HomeSection from "@/components/home/HomeSection";
+import HomeVideos from "@/components/home/HomeVideos";
 
 export default function Home() {
   const { t } = useLanguage();
@@ -87,6 +88,9 @@ export default function Home() {
       <HomeSection eyebrow={t("homeV2.community.eyebrow")} heading={t("homeV2.community.heading")} subtitle={t("homeV2.community.subtitle")}>
         <CommunitySection />
       </HomeSection>
+
+      {/* HOME-VIDEOS-v1: latest published videos from the video library */}
+      <HomeVideos />
 
       {/* MEMBERSHIP (unchanged content) */}
       {/* {t("eliteSection.eyebrow")} */}
