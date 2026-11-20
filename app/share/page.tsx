@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/lib/i18n";
 import { StudioExportError, describeExportError, renderStudioPng } from "@/lib/studioExport";
+import EndScreenCreator from "@/components/studio/EndScreenCreator";
 import StudioCanvas, { type Background, type CanvasSpec } from "@/components/studio/StudioCanvas";
 import {
   DESC_MAX, FEATURES, FORMATS, FORMAT_IDS, HEADLINE_MAX, PRESETS, SCREEN_IDS, defaultPhones, featureOf, screenName, studioFileName,
@@ -23,6 +24,7 @@ const UI = {
   phone: L("Phone", "الهاتف", "Téléphone"), screen: L("Screen", "الشاشة", "Écran"), size: L("Size", "الحجم", "Taille"), x: L("Horizontal", "أفقي", "Horizontal"), y: L("Vertical", "عمودي", "Vertical"), rot: L("Rotation", "الدوران", "Rotation"),
   resetPhones: L("Reset phones", "إعادة الهواتف", "Réinitialiser"), preview: L("Preview", "معاينة", "Aperçu"),
   download: L("Download PNG", "تنزيل PNG", "Télécharger PNG"), share: L("Share", "مشاركة", "Partager"), all: L("Download all formats", "تنزيل كل الصيغ", "Tout télécharger"),
+  tabPhones: L("Phone Studio", "استوديو الهواتف", "Studio téléphones"), tabEnd: L("End Screen", "الشاشة الختامية", "Écran de fin"),
   working: L("Working…", "جارٍ…", "En cours…"), error: L("Could not create the image. Please try again.", "تعذر إنشاء الصورة. حاول مرة أخرى.", "Impossible de créer l'image. Réessayez."),
   note: L("PNG files are exported at the exact pixel size shown.", "تُصدَّر ملفات PNG بالحجم الدقيق بالبكسل المعروض.", "Les PNG sont exportés à la taille exacte en pixels indiquée."),
 };
@@ -75,6 +77,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export default function SharePage() {
   const { lang: siteLang } = useLanguage();
   const tr = (k: Exclude<keyof typeof UI, "bgKinds" | "presets">) => UI[k][siteLang];
+  const [mode, setMode] = useState<"phones" | "end">("phones");
 
   const [template, setTemplate] = useState<FeatureId>("overview");
   const [format, setFormat] = useState<FormatId>("story");
@@ -188,8 +191,10 @@ export default function SharePage() {
     <main className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{tr("title")}</h1>
       <p className="mt-1 max-w-2xl text-sm text-text-muted">{tr("subtitle")}</p>
+      <div className="mt-5"><Seg label={tr("title")} value={mode} onChange={setMode} options={[{ value: "phones", label: tr("tabPhones") }, { value: "end", label: tr("tabEnd") }]} /></div>
 
-      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      {mode === "end" && <div className="mt-6"><EndScreenCreator /></div>}
+      <div className={mode === "end" ? "hidden" : "mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"}>
         {/* PREVIEW first on mobile, sticky on desktop */}
         <div className="lg:order-2 lg:sticky lg:top-20">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
