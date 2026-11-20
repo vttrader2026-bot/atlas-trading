@@ -1,4 +1,4 @@
-// ATLAS MARKET PULSE — persistent historical snapshots.
+// ATLAS INSTITUTIONAL RADAR — persistent historical snapshots.
 // Stored in the same Upstash Redis instance already used across the app
 // (lib/userStore.ts's getRedis()). A daily cron (api/cron/market-intel-snapshot)
 // writes one snapshot per day; the first-ever snapshot becomes the baseline.

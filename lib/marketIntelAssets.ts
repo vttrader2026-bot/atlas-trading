@@ -1,4 +1,4 @@
-// ATLAS MARKET PULSE — curated asset registry
+// ATLAS INSTITUTIONAL RADAR — curated asset registry
 //
 // Verification methodology (as of 2026-10-17): every asset below was checked
 // for an active Binance Spot USDT pair with status "TRADING" via Binance's

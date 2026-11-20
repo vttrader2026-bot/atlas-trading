@@ -55,11 +55,11 @@ describe("workflow page and navigation wiring", () => {
     expect(discover).toMatch(/\n      href: "\/radar",/);
     expect((page.match(/key: "(discover|analyze|plan|execute|manage|review)"/g) ?? []).length).toBe(6);
   });
-  it("Discover descriptions mention Market Pulse in EN, FR and AR (renamed from Market Intelligence)", () => {
+  it("Discover descriptions mention Institutional Radar in EN, FR and AR (renamed from Market Pulse)", () => {
     const d = (l: "en" | "fr" | "ar") => (dictionaries[l].workflow as { steps: { discover: { desc: string; cta: string } } }).steps.discover;
-    expect(d("en").desc).toContain("Market Pulse");
-    expect(d("fr").desc).toContain("Market Pulse");
-    expect(d("ar").desc).toContain("نبض السوق");
+    expect(d("en").desc).toContain("Institutional Radar");
+    expect(d("fr").desc).toContain("Institutional Radar");
+    expect(d("ar").desc).toContain("Institutional Radar");
     expect(d("en").cta).toBe("Open Radar");
     expect(d("fr").cta).toBe("Ouvrir le Radar");
     expect(d("ar").cta).toBe("افتح الرادار");

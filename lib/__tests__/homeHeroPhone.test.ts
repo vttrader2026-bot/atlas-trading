@@ -70,7 +70,7 @@ describe("hero placement", () => {
 
 describe("the screen features the whole ecosystem, labeled as demo", () => {
   it("has BTC/ETH, Market Intelligence, Radar, Trade Feed, Analyzer and Investor", () => {
-    for (const s of ["DEMO_MARKET.btc", "DEMO_MARKET.eth", "nav.marketIntel", "nav.radar", "nav.tradeFeed", "nav.analyzer", "nav.investor", "DEMO_PORTFOLIO"]) expect(hero, s).toContain(s);
+    for (const s of ["DEMO_MARKET.btc", "DEMO_MARKET.eth", "pulseSection.eyebrow", "nav.radar", "nav.tradeFeed", "nav.analyzer", "nav.investor", "DEMO_PORTFOLIO"]) expect(hero, s).toContain(s);
   });
   it("is labeled DEMO on the phone and in the caption, in all three languages", () => {
     expect(hero).toContain("homeApp.demoBadge");

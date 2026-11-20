@@ -104,7 +104,7 @@ export default function HeroPhone() {
                   </section>
 
                   {/* Market Pulse */}
-                  <Panel title={t("nav.marketIntel")} delay={160}>
+                  <Panel title={t("pulseSection.eyebrow")} delay={160}>
                     <div className="flex items-center gap-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline justify-between text-[12px]">

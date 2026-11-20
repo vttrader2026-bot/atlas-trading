@@ -61,9 +61,9 @@ const T: Record<Intent, Record<Lang, string>> = {
     fr: `ATLAS ELITE : ${price} $ (${mru} MRU) pour ${days} jours.\nInclut les signaux spot privés, les mises à jour Elite exclusives, les mises à jour TP1/TP2/TP3 et stop-loss, la gestion complète des trades, jusqu'à ${e.analyzerPerDay} analyses IA par jour, une watchlist de ${e.watchlistItems} cryptos, un groupe Telegram privé et des alertes Atlas Bot exclusives.\nRejoindre : ${SITE}/elite\nEnvoyez 3 pour savoir comment payer.`,
   },
   free: {
-    en: `A free account needs no card and has no trial period. It includes the Radar, Market Pulse, the Academy and its course, the risk calculator, the Trade Feed and ${f.analyzerPerDay} AI chart analyses a day.\nSign up: ${SITE}/sign-up`,
-    ar: `الحساب المجاني بلا بطاقة وبلا فترة تجريبية. يشمل الرادار وMarket Pulse والأكاديمية ودورتها وحاسبة المخاطر وTrade Feed و${f.analyzerPerDay} تحليلات للشارت بالذكاء الاصطناعي يومياً.\nالتسجيل: ${SITE}/sign-up`,
-    fr: `Un compte gratuit ne demande aucune carte et n'a pas de période d'essai. Il inclut le Radar, Market Pulse, l'Académie et son cours, le calculateur de risque, le Trade Feed et ${f.analyzerPerDay} analyses IA de graphique par jour.\nInscription : ${SITE}/sign-up`,
+    en: `A free account needs no card and has no trial period. It includes the Radar, Institutional Radar, the Academy and its course, the risk calculator, the Trade Feed and ${f.analyzerPerDay} AI chart analyses a day.\nSign up: ${SITE}/sign-up`,
+    ar: `الحساب المجاني بلا بطاقة وبلا فترة تجريبية. يشمل الرادار وInstitutional Radar والأكاديمية ودورتها وحاسبة المخاطر وTrade Feed و${f.analyzerPerDay} تحليلات للشارت بالذكاء الاصطناعي يومياً.\nالتسجيل: ${SITE}/sign-up`,
+    fr: `Un compte gratuit ne demande aucune carte et n'a pas de période d'essai. Il inclut le Radar, Institutional Radar, l'Académie et son cours, le calculateur de risque, le Trade Feed et ${f.analyzerPerDay} analyses IA de graphique par jour.\nInscription : ${SITE}/sign-up`,
   },
   payment: {
     en: `To join ATLAS ELITE ($${price} / ${mru} MRU, ${days} days): open ${SITE}/elite, choose a payment method (USDT, Bankily, Masrivi or Sedad), pay, then upload your payment screenshot with your Telegram username. Atlas reviews it and activates your membership.`,

@@ -50,11 +50,11 @@ describe("Academy 1-on-1 plan", () => {
   });
 });
 
-describe("Market Pulse rename and homepage text", () => {
+describe("Institutional Radar rename and homepage text", () => {
   const i18n = read("lib/i18n.tsx");
-  it("the feature is named Market Pulse in the navigation in every language", () => {
-    expect((i18n.match(/marketIntel: "Market Pulse"/g) || []).length).toBe(2);
-    expect(i18n).toContain('marketIntel: "نبض السوق"');
+  it("the feature is named Institutional Radar (untranslated) in the navigation in every language", () => {
+    expect((i18n.match(/marketIntel: "Institutional Radar"/g) || []).length).toBe(3);
+    expect(i18n).not.toMatch(/marketIntel: "Market Pulse"|marketIntel: "نبض السوق"/);
     expect(i18n).not.toMatch(/marketIntel: "Market Intelligence"/);
   });
   it("the homepage paragraph is the exact requested text", () => {

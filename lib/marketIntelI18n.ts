@@ -1,4 +1,4 @@
-// ATLAS MARKET PULSE — self-contained translations for this page.
+// ATLAS INSTITUTIONAL RADAR — self-contained translations for this page.
 // Kept separate from lib/i18n.tsx so this feature never needs to touch that
 // file. Usage: const tr = (key: string) => miT(lang, key);
 
@@ -17,9 +17,9 @@ function flatten(dict: Dict, prefix = ""): Record<string, string> {
 }
 
 const en: Dict = {
-  title: "ATLAS MARKET PULSE",
+  title: "Institutional Radar",
   subtitle:
-    "A curated market-research view of crypto assets tied to major institutional portfolios, indices, and public narratives. This is a research tool for discovery and comparison — not a signal generator.",
+    "Institutional Radar is a curated crypto research tool that helps users discover and compare digital assets connected to major institutional portfolios, indices and public market narratives. It is designed for research and discovery, not as a guarantee of investment performance.",
   disclaimer:
     "Descriptive market analysis only. Nothing on this page is a prediction, a trading signal, or a guarantee of future performance.",
   filterAll: "All categories",
@@ -97,16 +97,16 @@ const en: Dict = {
   },
   authGate: {
     title: "Join Atlas Trading for free",
-    body: "Sign in to view Atlas Market Pulse — strength rankings, historical performance, and more.",
+    body: "Sign in to view Institutional Radar — strength rankings, historical performance, and more.",
     signIn: "Sign In",
     signUp: "Create your free account →",
   },
 };
 
 const ar: Dict = {
-  title: "أطلس ماركت إنتليجنس",
+  title: "Institutional Radar",
   subtitle:
-    "أداة بحث سوقي مختارة لأصول العملات المشفرة المرتبطة بمحافظ مؤسساتية ومؤشرات وسرديات رئيسية. هذه أداة بحث للاكتشاف والمقارنة — وليست مولد إشارات تداول.",
+    "Institutional Radar هي أداة بحث متخصصة في سوق العملات الرقمية، تساعد المستخدمين على اكتشاف ومقارنة الأصول الرقمية المرتبطة بالمحافظ المؤسسية الكبرى والمؤشرات والسرديات المتداولة في الأسواق.",
   disclaimer:
     "تحليل سوقي وصفي فقط. لا شيء في هذه الصفحة يعد تنبؤًا أو إشارة تداول أو ضمانًا لأداء مستقبلي.",
   filterAll: "جميع الفئات",
@@ -184,16 +184,16 @@ const ar: Dict = {
   },
   authGate: {
     title: "انضم إلى Atlas Trading مجانًا",
-    body: "سجّل الدخول لعرض نبض السوق أطلس — تصنيف القوة، الأداء التاريخي، والمزيد.",
+    body: "سجّل الدخول لعرض Institutional Radar — تصنيف القوة، الأداء التاريخي، والمزيد.",
     signIn: "تسجيل الدخول",
     signUp: "أنشئ حسابك المجاني ←",
   },
 };
 
 const fr: Dict = {
-  title: "ATLAS MARKET PULSE",
+  title: "Institutional Radar",
   subtitle:
-    "Un outil de recherche de marché pour suivre une sélection d'actifs crypto liés à des portefeuilles institutionnels, indices et narratifs publics majeurs. Un outil de recherche, pas un générateur de signaux.",
+    "Institutional Radar est un outil de recherche dédié aux cryptomonnaies qui permet de découvrir et de comparer des actifs numériques liés aux grands portefeuilles institutionnels, aux indices et aux tendances narratives du marché.",
   disclaimer:
     "Analyse de marché descriptive uniquement. Rien sur cette page n'est une prédiction, un signal de trading, ou une garantie de performance future.",
   filterAll: "Toutes les catégories",
@@ -271,7 +271,7 @@ const fr: Dict = {
   },
   authGate: {
     title: "Rejoignez Atlas Trading gratuitement",
-    body: "Connectez-vous pour voir Atlas Market Pulse — classement de force, performance historique, et plus.",
+    body: "Connectez-vous pour voir Institutional Radar — classement de force, performance historique, et plus.",
     signIn: "Se connecter",
     signUp: "Créez votre compte gratuit →",
   },
