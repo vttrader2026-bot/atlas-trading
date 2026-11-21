@@ -65,10 +65,10 @@ describe("WelcomeView", () => {
   const html = (o: Partial<Parameters<typeof WelcomeView>[0]> = {}) => renderToStaticMarkup(createElement(WelcomeView, { lang: "en", t: (k) => `«${k}»`, selected: null, step: "choose", onChoose() {}, onLater() {}, onDone() {}, ...o }));
   it("shows the title, four options and Maybe later in EN/AR/FR", () => {
     const en = html();
-    for (const s of ["What brings you to Atlas?", "Spot Trading", "Analyze markets and manage your trades.", "Long-term Investment", "Research and track your investments.", "Learning", "Learn cryptocurrency and technical analysis.", "Explore Everything", "Discover all Atlas features.", "Maybe later"]) expect(en).toContain(s);
+    for (const s of ["Welcome to Atlas Trading", "Welcome! Let&#x27;s personalize your Atlas experience. What brings you here today?", "Spot Trading", "Analyze markets and manage your trades.", "Long-term Investment", "Research and track your investments.", "Learning", "Learn cryptocurrency and technical analysis.", "Explore Everything", "Discover all Atlas features.", "Maybe later"]) expect(en).toContain(s);
     expect(en).toContain('role="dialog"'); expect(en).toContain('dir="ltr"');
-    const ar = html({ lang: "ar" }); expect(ar).toContain('dir="rtl"'); expect(ar).toContain("ما الذي يجذبك إلى أطلس؟"); expect(ar).toContain("ربما لاحقاً");
-    expect(html({ lang: "fr" })).toContain("Qu&#x27;est-ce qui vous amène sur Atlas ?");
+    const ar = html({ lang: "ar" }); expect(ar).toContain('dir="rtl"'); expect(ar).toContain("مرحباً بك في أطلس ترايدينغ"); expect(ar).toContain("ما الذي يجذبك إلى هنا اليوم؟"); expect(ar).toContain("ربما لاحقاً");
+    const fr = html({ lang: "fr" }); expect(fr).toContain("Bienvenue sur Atlas Trading"); expect(fr).toContain("Qu&#x27;est-ce qui vous amène aujourd&#x27;hui ?");
   });
   it("has an EN / FR / AR selector that marks the current language and switches through the site language setting", () => {
     const out = html({ lang: "fr", onLang() {} });

@@ -12,8 +12,8 @@ import type { L3 } from "@/lib/studio";
 
 const L = (en: string, ar: string, fr: string): L3 => ({ en, ar, fr });
 const UI = {
-  title: L("What brings you to Atlas?", "ما الذي يجذبك إلى أطلس؟", "Qu'est-ce qui vous amène sur Atlas ?"),
-  sub: L("Pick one and we'll point you to the most useful tools. Everything stays open to you.", "اختر واحداً وسنرشدك إلى الأدوات الأنسب. كل شيء يبقى متاحاً لك.", "Choisissez-en un et nous vous orienterons vers les outils les plus utiles. Tout reste accessible."),
+  title: L("Welcome to Atlas Trading", "مرحباً بك في أطلس ترايدينغ", "Bienvenue sur Atlas Trading"),
+  sub: L("Welcome! Let's personalize your Atlas experience. What brings you here today?", "أهلاً بك! لنخصّص تجربتك في أطلس. ما الذي يجذبك إلى هنا اليوم؟", "Bienvenue ! Personnalisons votre expérience Atlas. Qu'est-ce qui vous amène aujourd'hui ?"),
   later: L("Maybe later", "ربما لاحقاً", "Plus tard"), close: L("Close", "إغلاق", "Fermer"),
   recTitle: L("Good places to start", "أماكن مناسبة للبدء", "Bons points de départ"), exploreDone: L("You'll see the full Atlas experience. You can change this any time from the footer.", "ستحصل على تجربة أطلس الكاملة. يمكنك التغيير في أي وقت من أسفل الصفحة.", "Vous verrez l'expérience Atlas complète. Vous pouvez modifier cela à tout moment depuis le pied de page."),
   recNote: L("You can change this any time from the footer.", "يمكنك التغيير في أي وقت من أسفل الصفحة.", "Vous pouvez modifier cela à tout moment depuis le pied de page."),
