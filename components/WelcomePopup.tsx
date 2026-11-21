@@ -35,9 +35,9 @@ async function saveRemote(body: { interest?: Interest; dismissed?: true }): Prom
   }
 }
 
-export function WelcomeView({ lang, t, selected, step, onChoose, onLater, onDone, firstRef }: {
+export function WelcomeView({ lang, t, selected, step, onChoose, onLater, onDone, onLang, firstRef }: {
   lang: "en" | "ar" | "fr"; t: (k: string) => string; selected: Interest | null; step: "choose" | "done";
-  onChoose: (i: Interest) => void; onLater: () => void; onDone: () => void; firstRef?: React.Ref<HTMLButtonElement>;
+  onChoose: (i: Interest) => void; onLater: () => void; onDone: () => void; onLang?: (l: "en" | "fr" | "ar") => void; firstRef?: React.Ref<HTMLButtonElement>;
 }) {
   const recs = selected ? RECOMMENDED[selected] : [];
   return (
@@ -45,6 +45,14 @@ export function WelcomeView({ lang, t, selected, step, onChoose, onLater, onDone
       className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={(e) => { if (e.target === e.currentTarget) onLater(); }}>
       <div className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-line bg-surface p-5 shadow-2xl sm:max-w-lg sm:rounded-2xl sm:p-7">
         <button type="button" onClick={onLater} aria-label={UI.close[lang]} className="absolute end-3 top-3 rounded-md p-2 text-text-muted hover:text-text">✕</button>
+        {onLang && (
+          <div role="group" aria-label="Language" dir="ltr" data-welcome-lang className="mb-4 inline-flex gap-1 rounded-lg border border-line p-0.5">
+            {(["en", "fr", "ar"] as const).map((l) => (
+              <button key={l} type="button" aria-pressed={lang === l} onClick={() => onLang(l)}
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${lang === l ? "bg-gold/15 text-gold" : "text-text-muted hover:text-text"}`}>{l.toUpperCase()}</button>
+            ))}
+          </div>
+        )}
         {step === "choose" ? (
           <>
             <h2 id="welcome-title" className="pe-8 text-xl font-bold tracking-tight sm:text-2xl">{UI.title[lang]}</h2>
@@ -83,7 +91,7 @@ export function WelcomeView({ lang, t, selected, step, onChoose, onLater, onDone
 }
 
 export default function WelcomePopup() {
-  const { lang, t } = useLanguage();
+  const { lang, t, setLang } = useLanguage();
   const { isLoaded, isSignedIn } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -142,5 +150,5 @@ export default function WelcomePopup() {
 
   if (!open) return null;
   const choose = (i: Interest) => { setSelected(i); writeLocalInterest({ interest: i, dismissed: false }); if (isSignedIn) void saveRemote({ interest: i }); setStep("done"); };
-  return <WelcomeView lang={lang} t={t} selected={selected} step={step} onChoose={choose} onLater={later} onDone={() => setOpen(false)} firstRef={firstRef} />;
+  return <WelcomeView lang={lang} t={t} selected={selected} step={step} onChoose={choose} onLater={later} onDone={() => setOpen(false)} onLang={setLang} firstRef={firstRef} />;
 }

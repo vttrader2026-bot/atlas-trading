@@ -70,6 +70,15 @@ describe("WelcomeView", () => {
     const ar = html({ lang: "ar" }); expect(ar).toContain('dir="rtl"'); expect(ar).toContain("ما الذي يجذبك إلى أطلس؟"); expect(ar).toContain("ربما لاحقاً");
     expect(html({ lang: "fr" })).toContain("Qu&#x27;est-ce qui vous amène sur Atlas ?");
   });
+  it("has an EN / FR / AR selector that marks the current language and switches through the site language setting", () => {
+    const out = html({ lang: "fr", onLang() {} });
+    for (const l of ["EN", "FR", "AR"]) expect(out).toContain(`>${l}</button>`);
+    expect(out).toMatch(/aria-pressed="true"[^>]*>FR</);
+    expect(html({ lang: "ar", onLang() {} })).toMatch(/aria-pressed="true"[^>]*>AR</);
+    expect(html()).not.toContain("data-welcome-lang");
+    const c = read("components/WelcomePopup.tsx");
+    expect(c).toContain("setLang"); expect(c).toContain("onLang={setLang}");
+  });
   it("recommends the right existing features after a choice, and nothing for Explore", () => {
     const spot = html({ step: "done", selected: "spot" });
     for (const href of ["/analyzer", "/radar", "/trade-plan"]) expect(spot).toContain(`href="${href}"`);
