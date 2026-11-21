@@ -64,7 +64,7 @@ describe("wiring", () => {
   it("is a tab in the owner-only Studio, exports PNG and JPEG through the Studio pipeline, with no external services", () => {
     expect(isOwnerPath("/share")).toBe(true);
     const page = read("app/share/page.tsx");
-    expect(page).toContain("<EndScreenCreator />"); expect(page).toContain("<StudioCanvas");
+    expect(page).toContain("<EndScreenCreator"); expect(page).toContain("<StudioCanvas");
     const c = read("components/studio/EndScreenCreator.tsx");
     expect(c).toContain("renderStudioPng"); expect(c).toContain("image/jpeg"); expect(c).not.toMatch(/fetch\(|https?:\/\/(?!www\.w3)/);
   });

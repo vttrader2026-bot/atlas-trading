@@ -2,11 +2,12 @@
 // YT-THUMB-v1: YouTube Thumbnail Creator inside the Social Media Studio: 1280x720 live preview, editable text, uploaded background
 // image with zoom/position, gradient + overlay, text font/size/color/alignment/outline/shadow, templates, PNG/JPEG export at exact size.
 // Uploaded images are read in the browser only (never uploaded anywhere). Uses the Studio's export pipeline (renderStudioPng).
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useLanguage } from "@/lib/i18n";
 import { describeExportError, renderStudioPng } from "@/lib/studioExport";
 import YtThumbCanvas from "@/components/studio/YtThumbCanvas";
-import { pngToJpeg, saveBlob } from "@/components/studio/exportImage";
+import { pngToJpeg, saveBlob, type StudioToolHandle } from "@/components/studio/exportImage";
+import { initialThumbSpec, restoreThumb } from "@/lib/studioRestore";
 import { FONTS, FONT_IDS, THUMB_H, THUMB_TEMPLATES, THUMB_W, clampNum, isAllowedImage, templateOf, thumbFileName, type Align, type FontId, type ImgFmt, type ThumbSpec, type ThumbTemplateId } from "@/lib/ytThumb";
 import type { L3, Lang } from "@/lib/studio";
 
@@ -55,19 +56,12 @@ const Range = ({ label, value, min, max, onChange, unit = "" }: { label: string;
   </label>
 );
 
-function initial(id: ThumbTemplateId, lang: Lang): ThumbSpec {
-  const t = templateOf(id);
-  return {
-    lang, headline: t.headline[lang], subtitle: t.subtitle[lang], tag: t.tag[lang], ...t.style, align: "start",
-    image: null, imgZoom: 100, imgX: 50, imgY: 50, showLogo: true, showUrl: true, url: "atlastrading.app",
-  };
-}
-
-export default function YtThumbCreator() {
+const YtThumbCreator = forwardRef<StudioToolHandle, { initial?: unknown }>(function YtThumbCreator({ initial }, handleRef) {
+  const [init] = useState(() => restoreThumb(initial)); // a reopened project, or the defaults
   const { lang: siteLang } = useLanguage();
   const tr = (k: keyof typeof UI) => UI[k][siteLang];
-  const [tpl, setTpl] = useState<ThumbTemplateId>("analysis");
-  const [spec, setSpec] = useState<ThumbSpec>(() => initial("analysis", "en"));
+  const [tpl, setTpl] = useState<ThumbTemplateId>(init.tpl);
+  const [spec, setSpec] = useState<ThumbSpec>(init.spec);
   const [imgError, setImgError] = useState(false);
   const [busy, setBusy] = useState<ImgFmt | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +73,7 @@ export default function YtThumbCreator() {
   // A template restyles and refills the text but keeps the uploaded image and branding switches.
   const pickTemplate = (id: ThumbTemplateId) => {
     setTpl(id);
-    setSpec((s) => ({ ...initial(id, s.lang), image: s.image, imgZoom: s.imgZoom, imgX: s.imgX, imgY: s.imgY, showLogo: s.showLogo, showUrl: s.showUrl, url: s.url }));
+    setSpec((s) => ({ ...initialThumbSpec(id, s.lang), image: s.image, imgZoom: s.imgZoom, imgX: s.imgX, imgY: s.imgY, showLogo: s.showLogo, showUrl: s.showUrl, url: s.url }));
   };
   const pickLang = (lang: Lang) => {
     const t = templateOf(tpl);
@@ -104,6 +98,19 @@ export default function YtThumbCreator() {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  useImperativeHandle(handleRef, () => ({
+    getData: () => ({ tpl, spec }),
+    makeThumb: async () => {
+      setExporting(true);
+      try {
+        await sleep(600);
+        return await renderStudioPng(exportRef.current, THUMB_W, THUMB_H);
+      } finally {
+        setExporting(false);
+      }
+    },
+  }));
 
   async function exportAs(fmt: ImgFmt) {
     if (busy) return;
@@ -223,4 +230,5 @@ export default function YtThumbCreator() {
       {exporting && <div aria-hidden="true" style={{ position: "fixed", left: -100000, top: 0, pointerEvents: "none" }}><YtThumbCanvas ref={exportRef} spec={spec} /></div>}
     </div>
   );
-}
+});
+export default YtThumbCreator;

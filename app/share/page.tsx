@@ -6,6 +6,10 @@ import { useLanguage } from "@/lib/i18n";
 import { StudioExportError, describeExportError, renderStudioPng } from "@/lib/studioExport";
 import EndScreenCreator from "@/components/studio/EndScreenCreator";
 import YtThumbCreator from "@/components/studio/YtThumbCreator";
+import StudioProjects, { type CurrentProject } from "@/components/studio/StudioProjects";
+import type { StudioToolHandle } from "@/components/studio/exportImage";
+import { phoneStateOf, restorePhone } from "@/lib/studioRestore";
+import type { ProjectType } from "@/lib/studioProjects";
 import StudioCanvas, { type Background, type CanvasSpec } from "@/components/studio/StudioCanvas";
 import {
   DESC_MAX, FEATURES, FORMATS, FORMAT_IDS, HEADLINE_MAX, PRESETS, SCREEN_IDS, defaultPhones, featureOf, screenName, studioFileName,
@@ -79,6 +83,12 @@ export default function SharePage() {
   const { lang: siteLang } = useLanguage();
   const tr = (k: Exclude<keyof typeof UI, "bgKinds" | "presets">) => UI[k][siteLang];
   const [mode, setMode] = useState<"phones" | "end" | "thumb">("phones");
+  // PROJECTS-v1: the saved project being edited, and the data a reopened End Screen / Thumbnail project starts from.
+  const [current, setCurrent] = useState<CurrentProject | null>(null);
+  const [opened, setOpened] = useState<{ key: number; initial?: unknown }>({ key: 0 });
+  const toolRef = useRef<StudioToolHandle>(null);
+  const projectType: ProjectType = mode === "phones" ? "phone" : mode;
+  const changeMode = (m: "phones" | "end" | "thumb") => { setMode(m); setCurrent(null); setOpened((o) => ({ key: o.key + 1 })); };
 
   const [template, setTemplate] = useState<FeatureId>("overview");
   const [format, setFormat] = useState<FormatId>("story");
@@ -117,6 +127,22 @@ export default function SharePage() {
     });
   }
   const patchPhone = (i: number, patch: Partial<PhoneAdj>) => setPhones((cur) => cur.map((p, j) => (j === i ? { ...p, ...patch } : p)));
+
+  const applyPhone = (data: unknown) => {
+    const r = restorePhone(data);
+    setTemplate(r.template); setFormat(r.format); setLang(r.lang); setTheme(r.theme); setBg(r.bg); setPreset(r.preset); setPhones(r.phones); setEdits(r.edits);
+  };
+  const phoneHandle: StudioToolHandle = { getData: () => phoneStateOf({ template, format, lang, theme, bg, preset, phones, edits }), makeThumb: () => makeBlob(format) };
+  function openProject(type: ProjectType, data: Record<string, unknown>, meta: CurrentProject) {
+    if (type === "phone") { setMode("phones"); applyPhone(data); setOpened((o) => ({ key: o.key + 1 })); }
+    else { setMode(type); setOpened((o) => ({ key: o.key + 1, initial: data })); }
+    setCurrent(meta);
+  }
+  function newDesign() {
+    setCurrent(null);
+    if (mode === "phones") applyPhone(undefined);
+    setOpened((o) => ({ key: o.key + 1 }));
+  }
 
   async function makeBlob(f: FormatId): Promise<Blob> {
     setExportFmt(f);
@@ -192,10 +218,12 @@ export default function SharePage() {
     <main className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{tr("title")}</h1>
       <p className="mt-1 max-w-2xl text-sm text-text-muted">{tr("subtitle")}</p>
-      <div className="mt-5"><Seg label={tr("title")} value={mode} onChange={setMode} options={[{ value: "phones", label: tr("tabPhones") }, { value: "end", label: tr("tabEnd") }, { value: "thumb", label: tr("tabThumb") }]} /></div>
+      <div className="mt-5"><Seg label={tr("title")} value={mode} onChange={changeMode} options={[{ value: "phones", label: tr("tabPhones") }, { value: "end", label: tr("tabEnd") }, { value: "thumb", label: tr("tabThumb") }]} /></div>
 
-      {mode === "end" && <div className="mt-6"><EndScreenCreator /></div>}
-      {mode === "thumb" && <div className="mt-6"><YtThumbCreator /></div>}
+      <StudioProjects type={projectType} tool={() => (mode === "phones" ? phoneHandle : toolRef.current)} current={current} onCurrent={setCurrent} onOpen={openProject} onNew={newDesign} version={opened.key} />
+
+      {mode === "end" && <div className="mt-6"><EndScreenCreator key={opened.key} ref={toolRef} initial={opened.initial} /></div>}
+      {mode === "thumb" && <div className="mt-6"><YtThumbCreator key={opened.key} ref={toolRef} initial={opened.initial} /></div>}
       <div className={mode !== "phones" ? "hidden" : "mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"}>
         {/* PREVIEW first on mobile, sticky on desktop */}
         <div className="lg:order-2 lg:sticky lg:top-20">

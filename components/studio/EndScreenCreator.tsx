@@ -2,10 +2,12 @@
 // END-SCREEN-v1: simple End Screen Creator inside the Social Media Studio. Static promo images for the end of TikTok videos and other
 // content: size presets + custom, live preview, editable text, logo + URL, colors, sizes, alignment, templates, PNG/JPEG export at
 // the exact resolution. Uses the Studio's own export pipeline (renderStudioPng); nothing leaves the browser.
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useLanguage } from "@/lib/i18n";
 import { describeExportError, renderStudioPng } from "@/lib/studioExport";
 import EndScreenCanvas from "@/components/studio/EndScreenCanvas";
+import type { StudioToolHandle } from "@/components/studio/exportImage";
+import { restoreEnd } from "@/lib/studioRestore";
 import { END_SIZES, END_TEMPLATES, SIZE_IDS, clampDim, clampScale, endFileName, sizeOf, templateOf, type Align, type EndSpec, type EndTemplateId, type ImgFmt, type SizeId } from "@/lib/endScreen";
 import type { L3, Lang } from "@/lib/studio";
 
@@ -49,20 +51,21 @@ const Range = ({ label, value, onChange }: { label: string; value: number; onCha
   </label>
 );
 
-export default function EndScreenCreator() {
+const EndScreenCreator = forwardRef<StudioToolHandle, { initial?: unknown }>(function EndScreenCreator({ initial }, handleRef) {
+  const [init] = useState(() => restoreEnd(initial)); // a reopened project, or the defaults
   const { lang: siteLang } = useLanguage();
   const tr = (k: keyof typeof UI) => UI[k][siteLang];
-  const [tpl, setTpl] = useState<EndTemplateId>("watch");
-  const [lang, setLang] = useState<Lang>("en");
-  const [size, setSize] = useState<SizeId>("story");
-  const [custom, setCustom] = useState({ w: "1080", h: "1080" });
-  const [edits, setEdits] = useState<Record<string, { h?: string; s?: string; c?: string }>>({});
-  const [colors, setColors] = useState(templateOf("watch").colors);
-  const [align, setAlign] = useState<Align>("center");
-  const [scales, setScales] = useState({ head: 100, sub: 100, cta: 100 });
-  const [showLogo, setShowLogo] = useState(true);
-  const [showUrl, setShowUrl] = useState(true);
-  const [url, setUrl] = useState("atlastrading.app");
+  const [tpl, setTpl] = useState<EndTemplateId>(init.tpl);
+  const [lang, setLang] = useState<Lang>(init.lang);
+  const [size, setSize] = useState<SizeId>(init.size);
+  const [custom, setCustom] = useState(init.custom);
+  const [edits, setEdits] = useState<Record<string, { h?: string; s?: string; c?: string }>>(init.edits);
+  const [colors, setColors] = useState(init.colors);
+  const [align, setAlign] = useState<Align>(init.align);
+  const [scales, setScales] = useState(init.scales);
+  const [showLogo, setShowLogo] = useState(init.showLogo);
+  const [showUrl, setShowUrl] = useState(init.showUrl);
+  const [url, setUrl] = useState(init.url);
   const [busy, setBusy] = useState<ImgFmt | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -89,6 +92,19 @@ export default function EndScreenCreator() {
   }, [w]);
   const ratio = w / h;
   const maxW = ratio < 0.7 ? 340 : ratio > 1.3 ? 640 : 460;
+
+  useImperativeHandle(handleRef, () => ({
+    getData: () => ({ tpl, lang, size, custom, edits, colors, align, scales, showLogo, showUrl, url }),
+    makeThumb: async () => {
+      setExporting(true);
+      try {
+        await sleep(600);
+        return await renderStudioPng(exportRef.current, w, h);
+      } finally {
+        setExporting(false);
+      }
+    },
+  }));
 
   async function exportAs(fmt: ImgFmt) {
     if (busy) return;
@@ -206,4 +222,5 @@ export default function EndScreenCreator() {
       )}
     </div>
   );
-}
+});
+export default EndScreenCreator;

@@ -62,7 +62,7 @@ describe("YtThumbCanvas", () => {
 describe("wiring", () => {
   it("is a Studio tab, exports PNG and JPEG via the Studio pipeline, reads images locally, no external services", () => {
     const page = read("app/share/page.tsx");
-    expect(page).toContain("<YtThumbCreator />"); expect(page).toContain("<EndScreenCreator />"); expect(page).toContain("<StudioCanvas");
+    expect(page).toContain("<YtThumbCreator"); expect(page).toContain("<EndScreenCreator"); expect(page).toContain("<StudioCanvas");
     const c = read("components/studio/YtThumbCreator.tsx");
     expect(c).toContain("renderStudioPng"); expect(c).toContain("pngToJpeg"); expect(c).toContain("FileReader"); expect(c).not.toMatch(/fetch\(|https?:\/\/(?!www\.w3)/);
     expect(read("components/studio/exportImage.ts")).toContain("image/jpeg");
