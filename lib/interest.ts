@@ -5,10 +5,10 @@ export const INTERESTS: Interest[] = ["spot", "invest", "learn", "explore"];
 export const isInterest = (v: unknown): v is Interest => typeof v === "string" && (INTERESTS as string[]).includes(v);
 
 /** Suggested existing features per interest (labels come from the site's own nav strings). "explore" suggests nothing: normal experience. */
-export const RECOMMENDED: Record<Interest, { href: string; label: string }[]> = {
+export const RECOMMENDED: Record<Interest, { href: string; label: string; primary?: boolean }[]> = {
   spot: [{ href: "/analyzer", label: "nav.analyzer" }, { href: "/radar", label: "nav.radar" }, { href: "/trade-plan", label: "nav.tradePlan" }],
   invest: [{ href: "/market-intelligence", label: "nav.marketIntel" }, { href: "/investor", label: "investor.footerLink" }],
-  learn: [{ href: "/academy", label: "nav.academy" }, { href: "/analyzer", label: "nav.analyzer" }, { href: "/risk", label: "nav.risk" }],
+  learn: [{ href: "/academy", label: "welcome.academy", primary: true }, { href: "/videos", label: "welcome.videos" }], // "welcome.*" labels are defined by the popup itself
   explore: [],
 };
 

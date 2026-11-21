@@ -17,6 +17,10 @@ const UI = {
   later: L("Maybe later", "ربما لاحقاً", "Plus tard"), close: L("Close", "إغلاق", "Fermer"),
   recTitle: L("Good places to start", "أماكن مناسبة للبدء", "Bons points de départ"), exploreDone: L("You'll see the full Atlas experience. You can change this any time from the footer.", "ستحصل على تجربة أطلس الكاملة. يمكنك التغيير في أي وقت من أسفل الصفحة.", "Vous verrez l'expérience Atlas complète. Vous pouvez modifier cela à tout moment depuis le pied de page."),
   recNote: L("You can change this any time from the footer.", "يمكنك التغيير في أي وقت من أسفل الصفحة.", "Vous pouvez modifier cela à tout moment depuis le pied de page."),
+  academy: L("Atlas Academy", "أكاديمية أطلس", "Atlas Academy"),
+  academyBody: L("Learn cryptocurrency and technical analysis step by step.", "تعلّم العملات الرقمية والتحليل الفني خطوة بخطوة.", "Apprenez la crypto et l'analyse technique pas à pas."),
+  academyCta: L("Start learning", "ابدأ التعلّم", "Commencer à apprendre"),
+  videos: L("Watch Atlas Videos", "شاهد فيديوهات أطلس", "Regardez les vidéos Atlas"),
   done: L("Done", "تم", "Terminé"), back: L("Back", "رجوع", "Retour"),
   opts: {
     spot: { t: L("Spot Trading", "التداول الفوري", "Trading spot"), d: L("Analyze markets and manage your trades.", "حلّل الأسواق وأدر صفقاتك.", "Analysez les marchés et gérez vos trades.") },
@@ -40,6 +44,7 @@ export function WelcomeView({ lang, t, selected, step, onChoose, onLater, onDone
   onChoose: (i: Interest) => void; onLater: () => void; onDone: () => void; onLang?: (l: "en" | "fr" | "ar") => void; onBack?: () => void; firstRef?: React.Ref<HTMLButtonElement>;
 }) {
   const recs = selected ? RECOMMENDED[selected] : [];
+  const label = (k: string) => (k === "welcome.academy" ? UI.academy[lang] : k === "welcome.videos" ? UI.videos[lang] : t(k));
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="welcome-title" dir={lang === "ar" ? "rtl" : "ltr"} data-welcome
       className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={(e) => { if (e.target === e.currentTarget) onLater(); }}>
@@ -79,9 +84,16 @@ export function WelcomeView({ lang, t, selected, step, onChoose, onLater, onDone
             {recs.length > 0 ? (
               <>
                 <p className="mt-2 text-sm text-text-muted">{UI.recTitle[lang]}</p>
-                <ul className="mt-4 space-y-2">
-                  {recs.map((r) => (
-                    <li key={r.href}><Link href={r.href} onClick={onDone} className="flex items-center justify-between rounded-xl border border-line bg-surface-raised px-4 py-3 text-sm font-medium transition-colors hover:border-gold/60"><span>{t(r.label)}</span><span aria-hidden className="text-gold rtl:rotate-180">→</span></Link></li>
+                {recs.filter((r) => r.primary).map((r) => (
+                  <div key={r.href} data-welcome-primary className="mt-4 rounded-xl border border-gold/60 bg-gold/10 p-4">
+                    <div className="text-base font-semibold">{label(r.label)}</div>
+                    <p className="mt-1 text-sm text-text-muted">{UI.academyBody[lang]}</p>
+                    <Link href={r.href} onClick={onDone} className="btn-primary mt-3 flex w-full items-center justify-center gap-2 text-sm">{UI.academyCta[lang]}<span aria-hidden className="rtl:rotate-180">→</span></Link>
+                  </div>
+                ))}
+                <ul className="mt-3 space-y-2">
+                  {recs.filter((r) => !r.primary).map((r) => (
+                    <li key={r.href}><Link href={r.href} onClick={onDone} className="flex items-center justify-between rounded-xl border border-line bg-surface-raised px-4 py-3 text-sm font-medium transition-colors hover:border-gold/60"><span>{label(r.label)}</span><span aria-hidden className="text-gold rtl:rotate-180">→</span></Link></li>
                   ))}
                 </ul>
                 <p className="mt-4 text-xs text-text-muted">{UI.recNote[lang]}</p>

@@ -27,7 +27,8 @@ describe("interest rules", () => {
     expect(INTERESTS).toEqual(["spot", "invest", "learn", "explore"]);
     expect(RECOMMENDED.spot.map((r) => r.href)).toEqual(["/analyzer", "/radar", "/trade-plan"]);
     expect(RECOMMENDED.invest.map((r) => r.href)).toEqual(["/market-intelligence", "/investor"]);
-    expect(RECOMMENDED.learn.map((r) => r.href)).toEqual(["/academy", "/analyzer", "/risk"]);
+    expect(RECOMMENDED.learn.map((r) => r.href)).toEqual(["/academy", "/videos"]);
+    expect(RECOMMENDED.learn[0].primary).toBe(true);
     expect(RECOMMENDED.explore).toEqual([]);
     for (const p of Object.values(RECOMMENDED).flat()) expect(p.href.startsWith("/")).toBe(true);
     expect(WELCOME_PATHS).toEqual(["/", "/workflow"]);
@@ -95,7 +96,14 @@ describe("WelcomeView", () => {
     for (const href of ["/analyzer", "/radar", "/trade-plan"]) expect(spot).toContain(`href="${href}"`);
     expect(spot).toContain("«nav.analyzer»");
     expect(html({ step: "done", selected: "invest" })).toContain('href="/market-intelligence"');
-    expect(html({ step: "done", selected: "learn" })).toContain('href="/academy"');
+    const learn = html({ step: "done", selected: "learn" });
+    expect(learn).toContain('href="/academy"'); expect(learn).toContain('href="/videos"'); expect(learn).toContain("data-welcome-primary");
+    expect(learn).toContain("Atlas Academy"); expect(learn).toContain("Start learning"); expect(learn).toContain("Watch Atlas Videos");
+    expect(learn).not.toContain('href="/analyzer"'); expect(learn).not.toContain('href="/risk"');
+    expect(learn.indexOf("/academy")).toBeLessThan(learn.indexOf("/videos"));
+    expect(html({ lang: "ar", step: "done", selected: "learn" })).toContain("شاهد فيديوهات أطلس");
+    expect(html({ lang: "fr", step: "done", selected: "learn" })).toContain("Regardez les vidéos Atlas");
+    expect(html({ step: "done", selected: "spot" })).not.toContain("data-welcome-primary");
     expect(html({ step: "done", selected: "explore" })).not.toContain("href=");
     expect(html({ selected: "learn" })).toContain('aria-pressed="true"');
   });
