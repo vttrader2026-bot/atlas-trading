@@ -70,6 +70,17 @@ describe("WelcomeView", () => {
     const ar = html({ lang: "ar" }); expect(ar).toContain('dir="rtl"'); expect(ar).toContain("مرحباً بك في أطلس ترايدينغ"); expect(ar).toContain("ما الذي يجذبك إلى هنا اليوم؟"); expect(ar).toContain("ربما لاحقاً");
     const fr = html({ lang: "fr" }); expect(fr).toContain("Bienvenue sur Atlas Trading"); expect(fr).toContain("Qu&#x27;est-ce qui vous amène aujourd&#x27;hui ?");
   });
+  it("shows a Back button on the recommendations view (not on the choices), in EN/AR/FR, keeping the saved choice", () => {
+    const done = (lang: "en" | "ar" | "fr") => html({ lang, step: "done", selected: "spot", onBack() {} });
+    expect(done("en")).toContain("data-welcome-back"); expect(done("en")).toContain("Back");
+    expect(done("ar")).toContain("رجوع"); expect(done("fr")).toContain("Retour");
+    expect(html({ onBack() {} })).not.toContain("data-welcome-back");
+    expect(html({ step: "done", selected: "explore", onBack() {} })).toContain("data-welcome-back");
+    expect(html({ selected: "spot" })).toContain('aria-pressed="true"');
+    const c = read("components/WelcomePopup.tsx");
+    expect(c).toContain('onBack={() => setStep("choose")}');
+    expect(c.slice(c.indexOf("const choose ="))).toContain("writeLocalInterest({ interest: i"); // choosing again re-saves the new interest
+  });
   it("has an EN / FR / AR selector that marks the current language and switches through the site language setting", () => {
     const out = html({ lang: "fr", onLang() {} });
     for (const l of ["EN", "FR", "AR"]) expect(out).toContain(`>${l}</button>`);

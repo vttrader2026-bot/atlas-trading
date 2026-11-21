@@ -17,7 +17,7 @@ const UI = {
   later: L("Maybe later", "ربما لاحقاً", "Plus tard"), close: L("Close", "إغلاق", "Fermer"),
   recTitle: L("Good places to start", "أماكن مناسبة للبدء", "Bons points de départ"), exploreDone: L("You'll see the full Atlas experience. You can change this any time from the footer.", "ستحصل على تجربة أطلس الكاملة. يمكنك التغيير في أي وقت من أسفل الصفحة.", "Vous verrez l'expérience Atlas complète. Vous pouvez modifier cela à tout moment depuis le pied de page."),
   recNote: L("You can change this any time from the footer.", "يمكنك التغيير في أي وقت من أسفل الصفحة.", "Vous pouvez modifier cela à tout moment depuis le pied de page."),
-  done: L("Done", "تم", "Terminé"),
+  done: L("Done", "تم", "Terminé"), back: L("Back", "رجوع", "Retour"),
   opts: {
     spot: { t: L("Spot Trading", "التداول الفوري", "Trading spot"), d: L("Analyze markets and manage your trades.", "حلّل الأسواق وأدر صفقاتك.", "Analysez les marchés et gérez vos trades.") },
     invest: { t: L("Long-term Investment", "الاستثمار طويل الأجل", "Investissement long terme"), d: L("Research and track your investments.", "ابحث وتابع استثماراتك.", "Recherchez et suivez vos investissements.") },
@@ -35,9 +35,9 @@ async function saveRemote(body: { interest?: Interest; dismissed?: true }): Prom
   }
 }
 
-export function WelcomeView({ lang, t, selected, step, onChoose, onLater, onDone, onLang, firstRef }: {
+export function WelcomeView({ lang, t, selected, step, onChoose, onLater, onDone, onLang, onBack, firstRef }: {
   lang: "en" | "ar" | "fr"; t: (k: string) => string; selected: Interest | null; step: "choose" | "done";
-  onChoose: (i: Interest) => void; onLater: () => void; onDone: () => void; onLang?: (l: "en" | "fr" | "ar") => void; firstRef?: React.Ref<HTMLButtonElement>;
+  onChoose: (i: Interest) => void; onLater: () => void; onDone: () => void; onLang?: (l: "en" | "fr" | "ar") => void; onBack?: () => void; firstRef?: React.Ref<HTMLButtonElement>;
 }) {
   const recs = selected ? RECOMMENDED[selected] : [];
   return (
@@ -70,6 +70,11 @@ export function WelcomeView({ lang, t, selected, step, onChoose, onLater, onDone
           </>
         ) : (
           <>
+            {onBack && (
+              <button type="button" onClick={onBack} data-welcome-back className="mb-3 flex items-center gap-1.5 rounded-md py-1 text-sm text-text-muted transition-colors hover:text-text">
+                <span aria-hidden className="rtl:rotate-180">←</span>{UI.back[lang]}
+              </button>
+            )}
             <h2 id="welcome-title" className="pe-8 text-xl font-bold tracking-tight sm:text-2xl">{selected ? UI.opts[selected].t[lang] : UI.title[lang]}</h2>
             {recs.length > 0 ? (
               <>
@@ -150,5 +155,5 @@ export default function WelcomePopup() {
 
   if (!open) return null;
   const choose = (i: Interest) => { setSelected(i); writeLocalInterest({ interest: i, dismissed: false }); if (isSignedIn) void saveRemote({ interest: i }); setStep("done"); };
-  return <WelcomeView lang={lang} t={t} selected={selected} step={step} onChoose={choose} onLater={later} onDone={() => setOpen(false)} onLang={setLang} firstRef={firstRef} />;
+  return <WelcomeView lang={lang} t={t} selected={selected} step={step} onChoose={choose} onLater={later} onDone={() => setOpen(false)} onLang={setLang} onBack={() => setStep("choose")} firstRef={firstRef} />;
 }
