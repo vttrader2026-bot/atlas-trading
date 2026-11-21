@@ -5,6 +5,7 @@ import JournalSync from "@/components/JournalSync";
 import Footer from "@/components/Footer";
 import QuickNav, { QuickNavSpacer } from "@/components/QuickNav";
 import WhatsAppSupportButton from "@/components/WhatsAppSupportButton";
+import WelcomePopup from "@/components/WelcomePopup";
 import RegisterServiceWorker from "@/components/RegisterServiceWorker";
 import { InstallProvider } from "@/components/InstallApp";
 import { LanguageProvider } from "@/lib/i18n";
@@ -118,6 +119,7 @@ export default function RootLayout({
             <Footer />
             <QuickNavSpacer />
             <WhatsAppSupportButton />
+            <WelcomePopup />
           </InstallProvider>
         </LanguageProvider>
       </ClerkProvider>

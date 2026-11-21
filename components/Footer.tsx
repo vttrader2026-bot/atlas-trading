@@ -5,12 +5,13 @@ import Logo from "@/components/Logo";
 import { useLanguage } from "@/lib/i18n";
 import { InstallMenuButton } from "@/components/InstallApp";
 import { WHATSAPP_SUPPORT_URL } from "@/lib/whatsappSupport";
+import { INTEREST_EVENT } from "@/lib/interest";
 
 const TELEGRAM_URL = "https://t.me/atlastradingcrypto";
 const WHATSAPP_URL = "https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t";
 
 export default function Footer() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const exploreLinks = [
     { href: "/radar", label: t("nav.radar") },
@@ -50,6 +51,11 @@ export default function Footer() {
                 </Link>
               </li>
             ))}
+            <li>
+              <button type="button" onClick={() => window.dispatchEvent(new Event(INTEREST_EVENT))} className="text-sm text-text-muted hover:text-gold transition-colors">
+                {{ en: "Personalize Atlas", ar: "خصّص أطلس", fr: "Personnaliser Atlas" }[lang]}
+              </button>
+            </li>
             <InstallMenuButton asListItem className="text-sm text-text-muted hover:text-gold transition-colors" />
           </ul>
         </div>
