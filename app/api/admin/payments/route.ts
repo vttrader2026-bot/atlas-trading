@@ -19,7 +19,7 @@ export async function GET(req: Request) {
       if (ids.length) {
         const client = await clerkClient();
         const res = await client.users.getUserList({ userId: ids, limit: 100 });
-        for (const u of res.data) names.set(u.id, u.emailAddresses?.[0]?.emailAddress ?? [u.firstName, u.lastName].filter(Boolean).join(" "));
+        for (const u of res.data) names.set(u.id, u.emailAddresses?.[0]?.emailAddress || [u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || "");
       }
     } catch (err) {
       console.error("admin/payments: could not resolve member names", err);

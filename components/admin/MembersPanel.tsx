@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { adminApi, fmtDate, fmtDateTime } from "@/components/admin/adminApi";
 import type { MemberAction } from "@/lib/membership";
+import { memberLabel } from "@/lib/accountEmail";
 
-type Member = { id: string; name: string; email: string; createdAt: number; storedPlan: string; effectivePlan: string; state: string; eliteUntil: number | null; suspended: boolean };
+type Member = { id: string; name: string; username?: string; email: string; createdAt: number; storedPlan: string; effectivePlan: string; state: string; eliteUntil: number | null; suspended: boolean };
 type Pay = { id: string; plan?: string; amount: string; method: string; status: string; createdAt: number; grantedUntil?: number };
 
 const STATE_LABEL: Record<string, string> = { free: "FREE", active: "ELITE · active", unlimited: "ELITE · no expiry", expired: "ELITE · expired", suspended: "Suspended" };
@@ -68,7 +69,7 @@ export function MembersPanel() {
     <section>
       <h2 className="text-lg font-semibold">Member management</h2>
       <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); setOffset(0); void load(q, 0); }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by email, name or user id" aria-label="Search members" className="input flex-1" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by email, username, name or user id" aria-label="Search members" className="input flex-1" />
         <button type="submit" className="btn-secondary">Search</button>
       </form>
       {error && <p role="alert" className="mt-3 text-sm text-bear">{error}</p>}
@@ -78,8 +79,8 @@ export function MembersPanel() {
             <div key={m.id} className="card p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{m.email || m.name || m.id}</div>
-                  {m.name && m.email && <div className="text-xs text-text-muted">{m.name}</div>}
+                  <div className="font-medium truncate">{memberLabel(m)}</div>
+                  {m.email && (m.name || m.username) && <div className="text-xs text-text-muted">{m.name || m.username}</div>}
                   <div className="text-xs text-text-muted font-data mt-0.5 break-all">{m.id}</div>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                     <span className={`rounded-full border px-2 py-0.5 font-semibold ${STATE_CLASS[m.state] ?? "text-text-muted border-line"}`}>{STATE_LABEL[m.state] ?? m.state}</span>
@@ -125,7 +126,7 @@ export function MembersPanel() {
           onConfirm={run}
           onClose={() => setAct(null)}
         >
-          <p className="font-data text-text break-all">{act.m.email || act.m.id}</p>
+          <p className="font-data text-text break-all">{memberLabel(act.m)}</p>
           {(act.action === "activate" || act.action === "renew") && (
             <>
               <p>{act.action === "renew" ? "Extends from the current end date while the membership is active, otherwise from today." : "Starts today."}</p>

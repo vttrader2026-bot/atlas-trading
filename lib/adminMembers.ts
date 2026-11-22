@@ -20,6 +20,7 @@ export function memberView(u: ClerkUserLike, now: number) {
   return {
     id: u.id,
     name,
+    username: u.username ?? "",
     email,
     createdAt: u.createdAt ?? 0,
     storedPlan: meta.plan === "elite" ? "elite" : "free",
