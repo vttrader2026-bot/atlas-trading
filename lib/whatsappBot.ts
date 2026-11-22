@@ -24,9 +24,10 @@ export function detectLang(text: string): Lang {
 
 const norm = (s: string) => s.toLowerCase().replace(/[ً-ٟـ]/g, "").replace(/[إأآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").trim();
 
-// Order matters: first match wins. A bare digit answers the numbered menu.
+// Order matters: first match wins. An explicit request for the owner comes first, then the specific topics, then generic "help"
+// words (which only show the menu). A bare digit answers the numbered menu: 6 = the owner, 8 = Academy.
 const RULES: Array<[Intent, RegExp]> = [
-  ["human", /\b(human|agent|person|support|help me|someone|speak|talk to)\b|humain|conseiller|parler|assistance|مساعده|دعم|موظف|شخص|اتكلم|التحدث|كلم/],
+  ["human", /\b(human|agent|owner|admin|real person|(speak|talk) (to|with) (a |the |an )?(person|someone|somebody))\b|humain|conseiller|propriétaire|proprietaire|parler (à|a|avec) (quelqu|une personne|un humain|le )|موظف|المالك|صاحب|شخص|اتكلم|التحدث|كلم|بشري/],
   ["payment", /\b(pay|payment|usdt|bankily|masrivi|sedad|bank|transfer|how to join)\b|paiement|payer|virement|دفع|ادفع|بنكيلي|مصرفي|سداد|تحويل/],
   ["elite", /\b(elite|price|cost|how much|subscribe|subscription|vip|premium|upgrade|plan)\b|prix|tarif|abonnement|combien|سعر|اشتراك|كم|النخبه|ايليت|عضويه|ترقيه/],
   ["analyzer", /\b(analy[sz]er|analysis|analyses|chart|ai|limit)\b|analyse|graphique|تحليل|شارت|الذكاء/],
@@ -34,9 +35,9 @@ const RULES: Array<[Intent, RegExp]> = [
   ["academy", /\b(academy|course|learn|lesson|education)\b|académie|academie|cours|apprendre|اكاديميه|دوره|تعلم|تعليم/],
   ["community", /\b(telegram|community|group|whatsapp group)\b|communauté|communaute|groupe|تيليجرام|تلجرام|مجتمع|مجموعه|قروب/],
   ["free", /\b(free|sign ?up|register|account|join)\b|gratuit|inscription|compte|مجاني|مجانا|تسجيل|حساب|انضم/],
-  ["menu", /^(hi|hello|hey|start|menu|help|salam|salut|bonjour|bonsoir|مرحبا|اهلا|سلام|السلام عليكم|هلا|قائمه)\b|^[?؟!.]*$/],
+  ["menu", /^(hi|hello|hey|start|menu|help|salam|salut|bonjour|bonsoir|مرحبا|اهلا|سلام|السلام عليكم|هلا|قائمه)\b|\b(help me|support|assistance)\b|aide|مساعده|دعم|^[?؟!.]*$/],
 ];
-const DIGITS: Record<string, Intent> = { "1": "elite", "2": "free", "3": "payment", "4": "analyzer", "5": "feed", "6": "academy", "7": "community", "8": "human" };
+const DIGITS: Record<string, Intent> = { "1": "elite", "2": "free", "3": "payment", "4": "analyzer", "5": "feed", "6": "human", "7": "community", "8": "academy" };
 
 export function matchIntent(text: string): Intent | null {
   const t = norm(text);
@@ -51,9 +52,9 @@ const price = ELITE_PRICE.usdLabel, mru = ELITE_PRICE.mru, days = ELITE_PERIOD_D
 
 const T: Record<Intent, Record<Lang, string>> = {
   menu: {
-    en: `Welcome to ATLAS TRADING 👋\nReply with a number:\n1 - ATLAS ELITE (price & benefits)\n2 - Free account\n3 - How to pay\n4 - AI chart analysis\n5 - Trade Feed & signals\n6 - Academy\n7 - Community\n8 - Talk to a person\n\n${SITE}`,
-    ar: `أهلاً بك في ATLAS TRADING 👋\nأرسل رقماً:\n1 - ATLAS ELITE (السعر والمزايا)\n2 - الحساب المجاني\n3 - طريقة الدفع\n4 - تحليل الشارت بالذكاء الاصطناعي\n5 - Trade Feed والإشارات\n6 - الأكاديمية\n7 - المجتمع\n8 - التحدث مع شخص\n\n${SITE}`,
-    fr: `Bienvenue sur ATLAS TRADING 👋\nRépondez par un numéro :\n1 - ATLAS ELITE (prix et avantages)\n2 - Compte gratuit\n3 - Comment payer\n4 - Analyse IA de graphique\n5 - Trade Feed et signaux\n6 - Académie\n7 - Communauté\n8 - Parler à une personne\n\n${SITE}`,
+    en: `Welcome to ATLAS TRADING 👋\nReply with a number:\n1 - ATLAS ELITE (price & benefits)\n2 - Free account\n3 - How to pay\n4 - AI chart analysis\n5 - Trade Feed & signals\n6 - Talk to the owner\n7 - Community\n8 - Academy\n\n${SITE}`,
+    ar: `أهلاً بك في ATLAS TRADING 👋\nأرسل رقماً:\n1 - ATLAS ELITE (السعر والمزايا)\n2 - الحساب المجاني\n3 - طريقة الدفع\n4 - تحليل الشارت بالذكاء الاصطناعي\n5 - Trade Feed والإشارات\n6 - التحدث مع المالك\n7 - المجتمع\n8 - الأكاديمية\n\n${SITE}`,
+    fr: `Bienvenue sur ATLAS TRADING 👋\nRépondez par un numéro :\n1 - ATLAS ELITE (prix et avantages)\n2 - Compte gratuit\n3 - Comment payer\n4 - Analyse IA de graphique\n5 - Trade Feed et signaux\n6 - Parler au propriétaire\n7 - Communauté\n8 - Académie\n\n${SITE}`,
   },
   elite: {
     en: `ATLAS ELITE: $${price} (${mru} MRU) for ${days} days.\nIncludes private spot signals, exclusive Elite market updates, TP1/TP2/TP3 and stop-loss updates, full trade management, up to ${e.analyzerPerDay} AI analyses a day, a watchlist of up to ${e.watchlistItems} coins, a private Telegram group and exclusive Atlas Bot alerts.\nJoin: ${SITE}/elite\nSend 3 to see how to pay.`,
@@ -91,9 +92,9 @@ const T: Record<Intent, Record<Lang, string>> = {
     fr: `Nos communautés gratuites sur Telegram et WhatsApp partagent actualités du marché, apprentissage et discussions en direct, avec une session vidéo éducative chaque dimanche. Les liens se trouvent dans la section communauté de ${SITE}`,
   },
   human: {
-    en: "Thanks! A member of the Atlas team will reply here as soon as possible. The automatic replies are paused for this chat.",
-    ar: "شكراً! سيردّ عليك أحد أعضاء فريق Atlas هنا في أقرب وقت. تم إيقاف الردود الآلية لهذه المحادثة.",
-    fr: "Merci ! Un membre de l'équipe Atlas vous répondra ici dès que possible. Les réponses automatiques sont suspendues pour cette conversation.",
+    en: "Thanks! The owner will reply to you here personally as soon as possible.",
+    ar: "شكراً! سيردّ عليك المالك شخصياً هنا في أقرب وقت.",
+    fr: "Merci ! Le propriétaire vous répondra personnellement ici dès que possible.",
   },
 };
 
@@ -101,27 +102,84 @@ export function replyFor(intent: Intent, lang: Lang): string {
   return T[intent][lang];
 }
 
-/** What to send for an incoming text, and whether the bot should then go quiet so a person can take over. */
-export function decide(text: string): { reply: string; handoff: boolean } {
-  const lang = detectLang(text);
-  const intent = matchIntent(text) ?? "human";
+/** Lets a digit-only message ("1", "6") keep the language the customer used before. */
+export function langFor(text: string, pref?: Lang | null): Lang {
+  const l = detectLang(text);
+  return l === "en" && pref && !/[a-z]/i.test(text) ? pref : l;
+}
+
+/** What to send for an incoming text. Text that matches nothing shows the main menu; only an explicit request for the owner is a handoff. */
+export function decide(text: string, pref?: Lang | null): { reply: string; handoff: boolean } {
+  const lang = langFor(text, pref);
+  const intent = matchIntent(text) ?? "menu";
   return { reply: replyFor(intent, lang), handoff: intent === "human" };
 }
 
-type Rec = { phone_number_id?: unknown; conversation?: { phone_number_id?: unknown }; message?: { id?: unknown; from?: unknown; from_user_id?: unknown; type?: unknown; text?: { body?: unknown }; kapso?: { direction?: unknown } } };
-export type Incoming = { messageId: string; to: { phone: string } | { bsuid: string }; senderKey: string; text: string | null; phoneNumberId: string | null };
+/** Sent after a photo, voice note, video or document. Exact English wording first, then Arabic and French. */
+export const MEDIA_PROMPT = {
+  en: "I received your attachment, but I currently handle text messages only.\nPlease choose:\n1 - Return to the main menu\n2 - Talk to the owner personally",
+  ar: "استلمت مرفقك، لكنني أتعامل حالياً مع الرسائل النصية فقط.\nاختر من فضلك:\n1 - العودة إلى القائمة الرئيسية\n2 - التحدث مع المالك شخصياً",
+  fr: "J'ai bien reçu votre pièce jointe, mais je ne traite actuellement que les messages texte.\nChoisissez :\n1 - Retour au menu principal\n2 - Parler personnellement au propriétaire",
+};
+export const mediaPromptText = (): string => `${MEDIA_PROMPT.en}\n\n${MEDIA_PROMPT.ar}\n\n${MEDIA_PROMPT.fr}`;
 
-/** Pulls the fields we need from one whatsapp.message.received payload. Returns null for anything that is not a customer message. */
+/** The customer's answer to the media prompt: 1 = menu, 2 = the owner. Anything else is handled as a normal message. */
+export function answerToMediaPrompt(text: string): "menu" | "human" | null {
+  const t = norm(text);
+  return t === "1" ? "menu" : t === "2" ? "human" : null;
+}
+
+/** The owner types this from Kapso to hand a chat back to the bot. */
+export function isResumeCommand(text: string | null): boolean {
+  return typeof text === "string" && /^\/bot$/i.test(text.trim());
+}
+
+type Rec = {
+  phone_number_id?: unknown;
+  conversation?: { phone_number_id?: unknown; phone_number?: unknown; business_scoped_user_id?: unknown };
+  message?: { id?: unknown; from?: unknown; to?: unknown; from_user_id?: unknown; type?: unknown; text?: { body?: unknown }; kapso?: { direction?: unknown; origin?: unknown } };
+};
+export type Kind = "text" | "media" | "other";
+export type Incoming = { messageId: string; to: { phone: string } | { bsuid: string }; senderKey: string; keys: string[]; text: string | null; kind: Kind; phoneNumberId: string | null };
+
+const MEDIA_TYPES = new Set(["image", "audio", "voice", "video", "document", "sticker"]);
+const idKey = (v: unknown): string | null => {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  if (!t) return null;
+  return /^\+?[\d\s-]+$/.test(t) ? t.replace(/\D/g, "") : t;
+};
+const uniq = (a: Array<string | null>): string[] => [...new Set(a.filter((x): x is string => !!x))];
+
+/** Pulls the fields we need from one whatsapp.message.received payload. Returns null for anything that is not a customer message (and for reactions). */
 export function parseIncoming(p: unknown): Incoming | null {
   const o = p as Rec | null;
   const m = o?.message;
   if (!m || typeof m.id !== "string") return null;
   const id: string = m.id;
   if (m.kapso?.direction && m.kapso.direction !== "inbound") return null;
+  if (m.type === "reaction") return null;
   const phone = typeof m.from === "string" && m.from ? m.from : null;
   const bsuid = typeof m.from_user_id === "string" && m.from_user_id ? m.from_user_id : null;
   if (!phone && !bsuid) return null;
-  const text = m.type === "text" && typeof m.text?.body === "string" ? m.text.body : null;
+  const isText = m.type === "text" && typeof m.text?.body === "string";
+  const kind: Kind = isText ? "text" : typeof m.type === "string" && MEDIA_TYPES.has(m.type) ? "media" : "other";
+  const text = isText ? (m.text!.body as string) : null;
   const pn = o?.phone_number_id ?? o?.conversation?.phone_number_id;
-  return { messageId: id, to: phone ? { phone } : { bsuid: bsuid! }, senderKey: phone ?? bsuid!, text, phoneNumberId: typeof pn === "string" ? pn : null };
+  const keys = uniq([idKey(phone), idKey(bsuid), idKey(o?.conversation?.phone_number), idKey(o?.conversation?.business_scoped_user_id)]);
+  return { messageId: id, to: phone ? { phone } : { bsuid: bsuid! }, senderKey: phone ?? bsuid!, keys, text, kind, phoneNumberId: typeof pn === "string" ? pn : null };
+}
+
+export type Outgoing = { messageId: string; keys: string[]; text: string | null; origin: string | null };
+
+/** Pulls one whatsapp.message.sent payload (a message that left our number). Returns null for anything that is not outbound. */
+export function parseOutbound(p: unknown): Outgoing | null {
+  const o = p as Rec | null;
+  const m = o?.message;
+  if (!m || typeof m.id !== "string") return null;
+  if (m.kapso?.direction !== "outbound") return null;
+  const keys = uniq([idKey(m.to), idKey(o?.conversation?.phone_number), idKey(o?.conversation?.business_scoped_user_id)]);
+  if (!keys.length) return null;
+  const text = m.type === "text" && typeof m.text?.body === "string" ? m.text.body : null;
+  return { messageId: m.id, keys, text, origin: typeof m.kapso?.origin === "string" ? m.kapso.origin : null };
 }
