@@ -111,7 +111,8 @@ describe("WelcomeView", () => {
 
 describe("wiring", () => {
   it("is mounted site-wide, never blocks features, reuses account storage, and the footer can reopen it", () => {
-    expect(read("app/layout.tsx")).toContain("<WelcomePopup />");
+    expect(read("app/layout.tsx")).toContain("<LazyGlobals />");
+    expect(read("components/LazyGlobals.tsx")).toContain("<WelcomePopup />");
     const c = read("components/WelcomePopup.tsx");
     for (const s of ["/api/me/interest", "readLocalInterest", "writeLocalInterest", "INTEREST_EVENT", "Escape", "WELCOME_PATHS"]) expect(c).toContain(s);
     expect(c).not.toMatch(/router\.(push|replace)|redirect\(/);

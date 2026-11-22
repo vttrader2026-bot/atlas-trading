@@ -17,9 +17,33 @@ type Analysis = AnalysisData;
 
 const TIMEFRAMES = ["auto", "15M", "1H", "4H", "1D", "1W"];
 
+// PERF-1: the "Join Atlas Trading" banner appears only after Clerk has loaded. Until then this empty block holds the same height
+// (measured per breakpoint) so the content below, and the footer, do not jump down when the banner appears.
+const BANNER_SPACE = "mt-6 min-h-[210px] min-[430px]:min-h-[186px] sm:min-h-[193px] md:min-h-[120px]";
+
+function AnalyzerHeader() {
+  const { t } = useLanguage();
+  return (
+    <>
+      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("analyzer.title")}</h1>
+      <p className="text-text-muted text-sm mt-1 max-w-xl">{t("analyzer.subtitle")}</p>
+      <span className="mt-3 inline-block px-2.5 py-1 rounded-full border border-gold/30 text-gold text-xs font-semibold">
+        {t("analyzer.valueProp")}
+      </span>
+    </>
+  );
+}
+
 export default function AnalyzerPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <main className="max-w-4xl mx-auto px-6 py-12 sm:py-14">
+          <AnalyzerHeader />
+          <div aria-hidden className={BANNER_SPACE} />
+        </main>
+      }
+    >
       <AnalyzerPageInner />
     </Suspense>
   );
@@ -143,12 +167,9 @@ function AnalyzerPageInner() {
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-12 sm:py-14">
-      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{t("analyzer.title")}</h1>
-      <p className="text-text-muted text-sm mt-1 max-w-xl">{t("analyzer.subtitle")}</p>
-      <span className="mt-3 inline-block px-2.5 py-1 rounded-full border border-gold/30 text-gold text-xs font-semibold">
-        {t("analyzer.valueProp")}
-      </span>
+      <AnalyzerHeader />
 
+      {!isLoaded && <div aria-hidden className={BANNER_SPACE} />}
       {isLoaded && !isSignedIn && (
         <div className="mt-6 rounded-2xl border border-line bg-surface p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

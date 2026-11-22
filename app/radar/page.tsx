@@ -6,13 +6,15 @@ import { formatPrice, formatCompact, getSpotTradingSymbols } from "@/lib/binance
 import { useLiveTickers } from "@/lib/useLiveTickers";
 import { buildRadarRows, RadarRow, RadarTag, MarketCondition } from "@/lib/radar";
 import { useLanguage } from "@/lib/i18n";
-import AnalysisPanel from "@/components/charts/AnalysisPanel";
+import dynamic from "next/dynamic";
 import { ChangePill, CoinLogo, RangeBar } from "@/components/market/MarketBits";
 import StarButton from "@/components/watchlist/StarButton";
 import ActiveSignalBadge from "@/components/tradefeed/ActiveSignalBadge";
 import { useActiveSignals } from "@/lib/useActiveSignals";
 import { searchRows } from "@/lib/radarSearch";
 import { DEFAULT_SORT, SORT_KEYS, defaultDir, sortRows, type SortDir, type SortKey } from "@/lib/radarSort";
+
+const AnalysisPanel = dynamic(() => import("@/components/charts/AnalysisPanel"), { ssr: false }); // PERF-1: chart code loads only when a chart is opened
 
 const FILTERS: { key: RadarTag | "all"; labelKey: string }[] = [
   { key: "all", labelKey: "radar.filterAll" },

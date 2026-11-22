@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cdnCache } from "@/lib/publicCache";
 import { getAllTickers24h, getKlines, type Kline, type Ticker24h } from "@/lib/binance";
 import { ASSET_CATEGORY_MAP, BASELINE_DATE, CATEGORY_META, TRACKED_SYMBOLS } from "@/lib/marketIntelAssets";
 import { computeAssetMetrics, rankAssets, type RankedAsset } from "@/lib/marketIntelCompute";
@@ -92,7 +93,7 @@ export async function GET() {
     if (redis) {
       const cached = await redis.get<Dataset>(CACHE_KEY);
       if (cached && Date.now() - new Date(cached.generatedAt).getTime() < CACHE_TTL_SEC * 1000) {
-        return NextResponse.json({ ...cached, cached: true });
+        return NextResponse.json({ ...cached, cached: true }, { headers: cdnCache(60, 120) });
       }
     }
 
@@ -100,7 +101,7 @@ export async function GET() {
     if (redis) {
       await redis.set(CACHE_KEY, data, { ex: CACHE_KEEP_SEC });
     }
-    return NextResponse.json({ ...data, cached: false });
+    return NextResponse.json({ ...data, cached: false }, { headers: cdnCache(60, 120) });
   } catch (err) {
     console.error("market-intel data route failed", err);
     if (redis) {

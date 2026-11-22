@@ -31,6 +31,7 @@ const sora = localFont({
   display: "swap",
   adjustFontFallback: "Arial",
   variable: "--font-heading-family",
+  preload: false,
 });
 
 const jetbrainsMono = localFont({
@@ -40,6 +41,7 @@ const jetbrainsMono = localFont({
   display: "swap",
   adjustFontFallback: "Arial",
   variable: "--font-jetbrains-mono",
+  preload: false,
 });
 
 const SITE_URL = "https://www.atlastrading.app";

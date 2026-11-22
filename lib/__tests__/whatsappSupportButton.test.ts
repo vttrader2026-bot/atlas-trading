@@ -30,10 +30,11 @@ describe("WhatsApp Support entry point", () => {
     expect(WHATSAPP_SUPPORT_URL).not.toContain("chat.whatsapp.com");
   });
   it("the floating button is mounted exactly once, globally, and on no individual page", () => {
-    expect(layout.match(/<WhatsAppSupportButton \/>/g)?.length).toBe(1);
+    expect(layout.match(/<LazyGlobals \/>/g)?.length).toBe(1);
+    expect(read("components/LazyGlobals.tsx").match(/<WhatsAppSupportButton \/>/g)?.length).toBe(1);
     
     const users = tsxFilesMentioning(["app", "components"], "WhatsAppSupportButton");
-    expect(users).toEqual(["app/layout.tsx", "components/WhatsAppSupportButton.tsx"]);
+    expect(users).toEqual(["components/LazyGlobals.tsx", "components/WhatsAppSupportButton.tsx"]);
   });
   it("button: opens a new tab safely, has an aria-label, icon-only on phones and a label from sm up, clear of the mobile bar", () => {
     expect(button).toContain("WHATSAPP_SUPPORT_URL");

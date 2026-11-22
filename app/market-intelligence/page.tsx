@@ -9,7 +9,7 @@ import { miT, type MiLang } from "@/lib/marketIntelI18n";
 import { CATEGORY_META, type AssetCategory } from "@/lib/marketIntelAssets";
 import { GROUP_STYLE } from "@/lib/marketGroups";
 import { ChangePill, CoinLogo } from "@/components/market/MarketBits";
-import AnalysisPanel from "@/components/charts/AnalysisPanel";
+import dynamic from "next/dynamic";
 import StarButton from "@/components/watchlist/StarButton";
 import ActiveSignalBadge from "@/components/tradefeed/ActiveSignalBadge";
 import { useActiveSignals } from "@/lib/useActiveSignals";
@@ -45,6 +45,8 @@ type ApiResponse = {
   stale?: boolean;
   error?: string;
 };
+
+const AnalysisPanel = dynamic(() => import("@/components/charts/AnalysisPanel"), { ssr: false }); // PERF-1: chart code loads only when a chart is opened
 
 const CATEGORY_FILTERS: Array<AssetCategory | "all"> = ["all", "grayscale", "coinbase50", "madeInUsa", "worldLiberty"];
 

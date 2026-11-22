@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cdnCache } from "@/lib/publicCache";
 import { getCandles, isSupportedInterval, MarketDataError, SUPPORTED_INTERVALS } from "@/lib/marketData";
 
 export const maxDuration = 15;
@@ -71,12 +72,16 @@ export async function GET(req: NextRequest) {
 
   try {
     const result = await getCandles(symbol, interval, { limit, quoteAsset: quote });
-    return NextResponse.json({
-      pair: result.pair,
-      interval,
-      candles: result.candles,
-      stale: result.stale,
-    });
+    return NextResponse.json(
+      {
+        pair: result.pair,
+        interval,
+        candles: result.candles,
+        stale: result.stale,
+      },
+      // Public market data, identical for everyone. Short window so live candles stay accurate; stale fallbacks are never cached.
+      { headers: result.stale ? { "Cache-Control": "no-store" } : cdnCache(10, 10) },
+    );
   } catch (err) {
     if (err instanceof MarketDataError) {
       return NextResponse.json({ error: err.code, message: err.message }, { status: statusForCode(err.code) });

@@ -72,6 +72,10 @@ function CoinLogo({ pair }: { pair: string }) {
     <img
       src={`https://assets.coincap.io/assets/icons/${base.toLowerCase()}@2x.png`}
       alt={base}
+      width={32}
+      height={32}
+      loading="lazy"
+      decoding="async"
       className="w-8 h-8 rounded-full shrink-0 bg-white object-contain p-0.5"
       onError={() => setImgFailed(true)}
     />

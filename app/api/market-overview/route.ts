@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cdnCache } from "@/lib/publicCache";
 import { getFearGreed, getAltcoinSeason, getGlobalMetrics } from "@/lib/coinmarketcap";
 import type { FearGreed, AltcoinSeason, GlobalMetrics } from "@/lib/coinmarketcap";
 import { getRedis } from "@/lib/userStore";
@@ -65,7 +66,7 @@ export async function GET() {
     if (redis) {
       const cached = await redis.get<Dataset>(CACHE_KEY);
       if (cached && Date.now() - new Date(cached.generatedAt).getTime() < CACHE_TTL_SEC * 1000) {
-        return NextResponse.json({ ...cached, cached: true });
+        return NextResponse.json({ ...cached, cached: true }, { headers: cdnCache(60, 120) });
       }
     }
 
@@ -73,7 +74,7 @@ export async function GET() {
     if (redis) {
       await redis.set(CACHE_KEY, data, { ex: CACHE_KEEP_SEC });
     }
-    return NextResponse.json({ ...data, cached: false });
+    return NextResponse.json({ ...data, cached: false }, { headers: cdnCache(60, 120) });
   } catch (err) {
     console.error("market-overview route failed", err);
     if (redis) {

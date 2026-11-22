@@ -14,6 +14,7 @@ import {
 import { ChangePill, CoinLogo } from "@/components/market/MarketBits";
 import AnalysisPanel from "@/components/charts/AnalysisPanel";
 import StarButton from "@/components/watchlist/StarButton";
+import UpdatedAgo from "@/components/watchlist/UpdatedAgo";
 import ActiveSignalBadge from "@/components/tradefeed/ActiveSignalBadge";
 import { useActiveSignals, useActiveSignalCoins } from "@/lib/useActiveSignals";
 
@@ -50,17 +51,7 @@ export default function WatchlistPage() {
   const [searchMsg, setSearchMsg] = useState<string | null>(null);
   const [limitMsg, setLimitMsg] = useState<number | null>(null);
 
-  // "Updated Xs ago" ticks once a second, only while the page is visible.
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    let id: ReturnType<typeof setInterval> | null = null;
-    const start = () => { if (!id) id = setInterval(() => setNow(Date.now()), 1000); };
-    const stop = () => { if (id) { clearInterval(id); id = null; } };
-    const onVis = () => { if (document.visibilityState === "visible") { setNow(Date.now()); start(); } else stop(); };
-    if (document.visibilityState === "visible") start();
-    document.addEventListener("visibilitychange", onVis);
-    return () => { stop(); document.removeEventListener("visibilitychange", onVis); };
-  }, []);
+  // "Updated Xs ago" ticks inside <UpdatedAgo />, so this page does not re-render every second.
 
   const statusLabel = (k: StatusKey) => (k === "outside" || k === "delisted" ? t(`watchlist.status.${k}`) : t(`radar.setup.${k}`));
 
@@ -153,11 +144,7 @@ export default function WatchlistPage() {
     tryAdd(pick.s);
   }
 
-  const secondsAgo = updatedAt ? Math.max(0, Math.round((now - updatedAt) / 1000)) : null;
-  const updatedText =
-    secondsAgo === null ? "" : secondsAgo < 60
-      ? t("watchlist.updatedAgo").replace("{n}", String(secondsAgo))
-      : t("watchlist.updatedMinAgo").replace("{n}", String(Math.floor(secondsAgo / 60)));
+  // The "Updated ... ago" text is built inside <UpdatedAgo /> from updatedAt.
 
   const limitText = (n: number) => (
     <>
@@ -280,7 +267,7 @@ export default function WatchlistPage() {
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
             <div className="text-sm text-text-muted">
               <span className="font-data">{t("watchlist.count").replace("{n}", String(wl.items.length)).replace("{max}", String(wl.limit))}</span>
-              {updatedText && <span> · {updatedText}</span>}
+              {updatedAt ? <span> · <UpdatedAgo updatedAt={updatedAt} t={t} /></span> : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <label className="sr-only" htmlFor="watch-sort-key">{t("watchlist.sortBy")}</label>

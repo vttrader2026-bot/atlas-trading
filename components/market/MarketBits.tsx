@@ -64,6 +64,10 @@ export function CoinLogo({ base, size = 36 }: { base: string; size?: number }) {
       src={`https://assets.coincap.io/assets/icons/${base.toLowerCase()}@2x.png`}
       alt=""
       style={style}
+      width={size}
+      height={size}
+      loading="lazy"
+      decoding="async"
       className="rounded-full shrink-0 bg-white object-contain p-0.5"
       onError={() => setFailed(true)}
     />
