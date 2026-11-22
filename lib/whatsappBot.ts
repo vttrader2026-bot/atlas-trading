@@ -27,9 +27,9 @@ const norm = (s: string) => s.toLowerCase().replace(/[ً-ٟـ]/g, "").replace(/[
 // Order matters: first match wins. An explicit request for the owner comes first, then the specific topics, then generic "help"
 // words (which only show the menu). A bare digit answers the numbered menu: 6 = the owner, 8 = Academy.
 const RULES: Array<[Intent, RegExp]> = [
-  ["human", /\b(human|agent|owner|admin|real person|(speak|talk) (to|with) (a |the |an )?(person|someone|somebody))\b|humain|conseiller|propriétaire|proprietaire|parler (à|a|avec) (quelqu|une personne|un humain|le )|موظف|المالك|صاحب|شخص|اتكلم|التحدث|كلم|بشري/],
+  ["human", /\b(human|agent|owner|admin|real person|(speak|talk) (to|with) (a |the |an )?(person|someone|somebody))\b|humain|conseiller|propriétaire|proprietaire|parler (à|a|avec) (quelqu|une personne|un humain|le )|موظف|اتكلم|التحدث|بشري|(?<![؀-ۿ])(?:ال)?(?:مالك|صاحب|شخص)(?![؀-ۿ])|(?<![؀-ۿ])[وف]?كلم(?:ني|ون)?(?![؀-ۿ])/],
   ["payment", /\b(pay|payment|usdt|bankily|masrivi|sedad|bank|transfer|how to join)\b|paiement|payer|virement|دفع|ادفع|بنكيلي|مصرفي|سداد|تحويل/],
-  ["elite", /\b(elite|price|cost|how much|subscribe|subscription|vip|premium|upgrade|plan)\b|prix|tarif|abonnement|combien|سعر|اشتراك|كم|النخبه|ايليت|عضويه|ترقيه/],
+  ["elite", /\b(elite|price|cost|how much|subscribe|subscription|vip|premium|upgrade|plan)\b|prix|tarif|abonnement|combien|سعر|اشتراك|(?<![؀-ۿ])[وبف]?كم(?![؀-ۿ])|النخبه|ايليت|عضويه|ترقيه/],
   ["analyzer", /\b(analy[sz]er|analysis|analyses|chart|ai|limit)\b|analyse|graphique|تحليل|شارت|الذكاء/],
   ["feed", /\b(signal|signals|trade feed|feed|tp1|tp2|tp3|stop.?loss|spot)\b|signaux|إشارات|اشارات|اشاره|توصيات|توصيه|صفقات/],
   ["academy", /\b(academy|course|learn|lesson|education)\b|académie|academie|cours|apprendre|اكاديميه|دوره|تعلم|تعليم/],
@@ -39,10 +39,15 @@ const RULES: Array<[Intent, RegExp]> = [
 ];
 const DIGITS: Record<string, Intent> = { "1": "elite", "2": "free", "3": "payment", "4": "analyzer", "5": "feed", "6": "human", "7": "community", "8": "academy" };
 
+// A message made only of greeting words ("السلام عليكم", "مرحبا بكم", "bonjour", "good morning") is a first hello: it shows the menu.
+// Checked before the topic rules because Arabic greetings contain "كم" ("عليكم", "بكم"), which also means "how much".
+const GREETING = /^(?:(?:hi|hello|hey|salam|salut|bonjour|bonsoir|coucou|slm|good|morning|evening|afternoon|welcome|مرحبا|مرحبتين|اهلا|اهلين|سلام|السلام|عليكم|بكم|وسهلا|سهلا|ورحمه|الله|والله|وبركاته|صباح|مساء|الخير|النور|هلا|حياك|حياكم|يا|اخي|اخوي|استاذ|غالي)(?=[\s!.,،؟?]|$)[\s!.,،؟?]*)+$/;
+
 export function matchIntent(text: string): Intent | null {
   const t = norm(text);
   if (!t) return null;
   if (DIGITS[t]) return DIGITS[t];
+  if (GREETING.test(t)) return "menu";
   for (const [intent, re] of RULES) if (re.test(t)) return intent;
   return null;
 }

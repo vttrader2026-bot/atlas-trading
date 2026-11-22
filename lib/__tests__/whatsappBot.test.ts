@@ -74,6 +74,45 @@ describe("fixed-answer logic", () => {
     expect(decide("6").handoff).toBe(true);
     expect(decide("price").handoff).toBe(false);
   });
+  it("the English menu is exactly the agreed reference", () => {
+    expect(replyFor("menu", "en")).toBe("Welcome to ATLAS TRADING 👋\nReply with a number:\n1 - ATLAS ELITE (price & benefits)\n2 - Free account\n3 - How to pay\n4 - AI chart analysis\n5 - Trade Feed & signals\n6 - Talk to the owner\n7 - Community\n8 - Academy\n\nhttps://www.atlastrading.app");
+  });
+  it("Arabic and French menus have the same structure and numbering as English", () => {
+    const shape = (m: string) => m.split("\n").map((l) => (l.match(/^(\d) - /)?.[1] ?? (l.startsWith("http") ? "url" : l === "" ? "blank" : "text")));
+    expect(shape(replyFor("menu", "ar"))).toEqual(shape(replyFor("menu", "en")));
+    expect(shape(replyFor("menu", "fr"))).toEqual(shape(replyFor("menu", "en")));
+  });
+  it("Arabic greetings and general messages show the menu, never the Elite pricing", () => {
+    const menuAr = replyFor("menu", "ar");
+    for (const t of ["السلام عليكم", "السلام عليكم ورحمة الله وبركاته", "مرحبا", "مرحبا بكم", "اهلا وسهلا", "أهلاً بكم", "صباح الخير", "مساء الخير", "هلا والله", "اريد معلومات", "عندي سؤال", "السلام عليكم عندي سؤال"]) {
+      expect(matchIntent(t), t).toBe(t === "اريد معلومات" || t.endsWith("سؤال") ? null : "menu");
+      const r = decide(t).reply;
+      expect(r, t).toBe(menuAr);
+      expect(r).not.toContain("14.99");
+    }
+  });
+  it("French and English greetings show the menu too", () => {
+    expect(decide("Bonjour").reply).toBe(replyFor("menu", "fr"));
+    expect(decide("bonsoir !").reply).toBe(replyFor("menu", "fr"));
+    expect(decide("Hello").reply).toBe(replyFor("menu", "en"));
+    expect(decide("good morning").reply).toBe(replyFor("menu", "en"));
+  });
+  it("a greeting followed by a real question still gets the right answer", () => {
+    expect(matchIntent("السلام عليكم كم سعر الاشتراك")).toBe("elite");
+    expect(matchIntent("السلام عليكم هل توجد اشارات")).toBe("feed");
+    expect(matchIntent("السلام عليكم اريد الدفع")).toBe("payment");
+    expect(matchIntent("بكم الاشتراك")).toBe("elite");
+    expect(matchIntent("كم")).toBe("elite");
+    expect(matchIntent("كلمة")).toBeNull();
+    expect(matchIntent("اريد التحدث مع المالك")).toBe("human");
+    expect(matchIntent("كلمني")).toBe("human");
+  });
+  it("option 1 shows the Elite information in every language", () => {
+    expect(decide("1").reply).toContain("14.99");
+    expect(decide("1", "ar").reply).toBe(replyFor("elite", "ar"));
+    expect(decide("1", "fr").reply).toBe(replyFor("elite", "fr"));
+    expect(replyFor("elite", "ar")).toContain("14.99");
+  });
   it("no reply mentions a team or paused automation", () => {
     const all = (["menu", "human", "elite", "free", "payment", "analyzer", "feed", "academy", "community"] as const)
       .flatMap((i) => (["en", "ar", "fr"] as const).map((l) => replyFor(i, l))).join("\n") + mediaPromptText();
@@ -157,6 +196,12 @@ describe("webhook route", () => {
     expect(sent[4].body.text.body).toBe(replyFor("human", "en"));
     expect(notify).toHaveBeenCalledTimes(1);
     expect(notify.mock.calls[0][0]).toContain("sent an attachment");
+  });
+  it("first Arabic message gets the Arabic menu; only option 1 then sends the Elite details", async () => {
+    await call(payload("ar1", "السلام عليكم"));
+    expect(sent[0].body.text.body).toBe(replyFor("menu", "ar"));
+    await call(payload("ar2", "1"));
+    expect(sent[1].body.text.body).toBe(replyFor("elite", "ar"));
   });
   it("outside the media prompt, 2 is still the free account", async () => {
     await call(payload("n1", "2"));
