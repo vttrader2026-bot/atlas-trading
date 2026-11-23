@@ -1,5 +1,6 @@
 // PHASE-3B: Trade Plan limits through the real route and the real addPlan/setPlanStatus. Only Redis and the Clerk-backed
 // entitlements are fakes; the fake Redis eval() is a JS twin of the two Lua scripts (the real Lua runs in tradePlanLua.test.ts).
+import { i18nSource } from "./helpers/i18nSource";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 
@@ -229,7 +230,7 @@ describe("local drafts, UI and translations", () => {
       expect(ph(planLimitsFr[k]), k).toBe(ph(planLimitsEn[k]));
       expect(ph(planLimitsAr[k]), k).toBe(ph(planLimitsEn[k]));
     }
-    const i18n = read("lib/i18n.tsx");
+    const i18n = i18nSource();
     for (const L of ["En", "Fr", "Ar"]) expect(i18n).toContain(`planLimits: { ...planLimits${L} }`);
   });
 });

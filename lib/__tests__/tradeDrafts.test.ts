@@ -1,3 +1,4 @@
+import { i18nSource } from "./helpers/i18nSource";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { emptyDraft, type TradePlanDraft } from "@/lib/tradePlan";
@@ -220,7 +221,7 @@ describe("Trade Plan page wiring", () => {
     for (const s of ["confirmEntry", "revertDraft", "sendToJournal", "planToTrade(", "confirmPlanIfElite", "saveToAccount", "PublishToFeedButton"]) expect(page).toContain(s);
   });
   it("every language has the draft strings", () => {
-    const i18n = readFileSync("lib/i18n.tsx", "utf8");
+    const i18n = i18nSource();
     expect((i18n.match(/errLimit:/g) ?? []).length).toBe(3);
     expect((i18n.match(/confirmDelete: "[^"]*(draft|مسودة|brouillon)/gi) ?? []).length).toBe(3);
   });

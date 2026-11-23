@@ -1,4 +1,5 @@
 // VIDEOS-v1
+import { i18nSource } from "./helpers/i18nSource";
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import {
@@ -121,7 +122,7 @@ describe("pages and wiring", () => {
     expect(read("components/Footer.tsx")).toContain('href: "/videos"');
     expect(read("app/sitemap.ts")).toContain('"/videos"');
     expect(read("app/sitemap.ts")).toContain("loadPublished()");
-    expect(read("lib/i18n.tsx").match(/\n    videos: "/g)?.length).toBe(3);
+    expect(i18nSource().match(/\n    videos: "/g)?.length).toBe(3);
   });
   it("lib/videos.ts is shared helpers plus the one-time seed only; the public components have no storage, upload or OAuth code", () => {
     expect(read("lib/videos.ts")).not.toMatch(/from "@upstash|from "@\/lib\/redis|fetch\(|googleapis|oauth/i);

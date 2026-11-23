@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 
 const TELEGRAM = "https://t.me/atlastradingcrypto";
 const WHATSAPP = "https://chat.whatsapp.com/Br0OH7mHCHv6MpTmIas2Je?mode=gi_t";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 import { REASON_TEXT } from "@/lib/analyzerEngineApply";
 
 type Dict = { [k: string]: string | Dict };

@@ -1,3 +1,4 @@
+import { i18nPartSource } from "./helpers/i18nSource";
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import type { DcaPlan, Purchase } from "@/lib/investor/model";
@@ -72,7 +73,7 @@ describe("Binance manual handoff stays manual", () => {
     expect(dca).not.toMatch(/api\.binance|\/api\/v3\/order|apiKey|withdraw|transfer/i);
   });
   it("tells the user Binance is manual and opening it records nothing (EN/FR/AR)", () => {
-    const i18n = readFileSync("lib/i18nInvestor.ts", "utf8");
+    const i18n = i18nPartSource("investor");
     expect((i18n.match(/dcaBinanceNote:/g) || []).length).toBe(3);
     expect(i18n).toMatch(/Opening Binance does not record anything/);
   });

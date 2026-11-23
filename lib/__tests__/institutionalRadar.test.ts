@@ -1,8 +1,9 @@
 // INSTITUTIONAL-RADAR-v1: the feature is named "Institutional Radar" (never translated) everywhere; the route and the
 // functionality are unchanged. The homepage live-market section that is also called "Market Pulse" is a different thing.
+import { i18nSource } from "./helpers/i18nSource";
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 import { miT } from "@/lib/marketIntelI18n";
 
 const read = (f: string) => readFileSync(f, "utf8");
@@ -36,14 +37,14 @@ describe("official name, identical in English, Arabic and French", () => {
     for (const l of langs) {
       expect(get(l, "workflow.steps.discover.desc"), l).toContain(NAME);
     }
-    const i18n = read("lib/i18n.tsx");
+    const i18n = i18nSource();
     expect(i18n.match(/Institutional Radar/g)?.length).toBeGreaterThanOrEqual(24); // nav x3, home section x6, plans, FAQs, Discover step
     const bot = read("lib/whatsappBot.ts");
     expect(bot.match(/Institutional Radar/g)?.length).toBe(3);
     expect(bot).not.toMatch(/Market Pulse|وMarket/);
   });
   it("no old feature name is left in the three dictionaries or the page's own translations (except the unrelated live-market section)", () => {
-    const i18n = read("lib/i18n.tsx");
+    const i18n = i18nSource();
     const left = (i18n.match(/.*(Market Pulse|MARKET PULSE|نبض السوق|Market Intelligence).*/g) ?? []).filter((l) => !/all-in-one crypto trading ecosystem|عنوان|منظومة/.test(l));
     expect(left.map((l) => l.trim())).toEqual(['eyebrow: "MARKET PULSE",', 'eyebrow: "نبض السوق",']); // pulseSection = the homepage Live Markets snapshot
     expect(read("lib/marketIntelI18n.ts")).not.toMatch(/Market Pulse|MARKET PULSE|نبض السوق|ماركت إنتليجنس/);

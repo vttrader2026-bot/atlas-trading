@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 import { INVESTOR_ASSETS } from "@/lib/investor/assets";
 import { investorEligible, smartActions, smartBase } from "@/lib/smartActions";
 

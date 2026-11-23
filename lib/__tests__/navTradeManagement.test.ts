@@ -1,9 +1,10 @@
 // NAV-TRADE-MGMT-v1: structure of the main navigation and the new links (source-level checks; no browser here).
+import { i18nSource } from "./helpers/i18nSource";
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
 const nav = readFileSync("components/Nav.tsx", "utf8");
-const i18n = readFileSync("lib/i18n.tsx", "utf8");
+const i18n = i18nSource();
 const feed = readFileSync("app/trade-feed/page.tsx", "utf8");
 
 describe("Simplified navigation (WORKFLOW-v1)", () => {

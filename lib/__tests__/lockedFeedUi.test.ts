@@ -1,4 +1,5 @@
 // ELITE-LOCKED-v1: wiring of the Trade Feed UI (source-level; no browser here).
+import { i18nPartSource } from "./helpers/i18nSource";
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { feedForViewer, type PublishedTrade } from "@/lib/tradeFeed";
@@ -7,7 +8,7 @@ const read = (p: string) => readFileSync(p, "utf8");
 const actions = read("components/tradefeed/SignalActions.tsx");
 const locked = read("components/tradefeed/LockedSignalCard.tsx");
 const page = read("app/trade-feed/page.tsx");
-const sigs = read("lib/i18nSignals.ts");
+const sigs = i18nPartSource("signals");
 
 describe("same buttons on FREE and ELITE cards", () => {
   it("Create Trade Plan and Confirm Trade are not tier-specific; the old local 'I Took This Trade' path is gone", () => {

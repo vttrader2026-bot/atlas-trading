@@ -1,3 +1,4 @@
+import { i18nPartSource } from "./helpers/i18nSource";
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { price, signedUsd, usd } from "@/components/investor/fmt";
@@ -245,7 +246,7 @@ describe("Investor screens", () => {
     expect(bar).toContain("https://www.exchangerate-api.com");
     expect(bar).toContain("investor.rateLine");
     expect(bar).toContain("sourceUpdatedAt");
-    const i18n = read("lib/i18nInvestor.ts");
+    const i18n = i18nPartSource("investor");
     expect((i18n.match(/attribution: "Rates By Exchange Rate API"/g) ?? []).length).toBe(3);
     expect(i18n).toMatch(/not a Binance P2P/);
   });

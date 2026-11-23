@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { computePlan, type PlanInputs } from "@/lib/planCalc";
 import { planToTrade } from "@/lib/planBridge";
 import { TIMEFRAMES, emptyDraft, missingTargets, normalizeDraft, normalizeTimeframe, requiredTargets, type TradePlanDraft } from "@/lib/tradePlan";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 
 const inp = (o: Partial<PlanInputs> = {}): PlanInputs => ({ balance: "1000", riskPct: "1", entry: "100", invalidation: "95", tp1: "110", tp2: "120", tp3: "130", ...o });
 const val = (i: PlanInputs) => {

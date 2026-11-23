@@ -1,4 +1,5 @@
 // INSTALL-APP-v1: platform detection, install modes, automatic-popup rules, dismissal memory and wiring.
+import { i18nSource } from "./helpers/i18nSource";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
@@ -138,7 +139,7 @@ describe("wiring and honesty", () => {
       expect(ph(homeAppFr[k]), k).toBe(ph(homeAppEn[k]));
       expect(ph(homeAppAr[k]), k).toBe(ph(homeAppEn[k]));
     }
-    const i18n = src("lib/i18n.tsx");
+    const i18n = i18nSource();
     for (const v of ["homeAppEn", "homeAppFr", "homeAppAr"]) expect(i18n).toContain(`homeApp: { ...${v} }`);
   });
   it("every homeApp key the UI uses exists", () => {

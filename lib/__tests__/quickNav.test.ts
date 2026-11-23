@@ -1,3 +1,4 @@
+import { i18nSource } from "./helpers/i18nSource";
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { QUICK_ITEMS, activeKey, showQuickNav, visibleItems } from "@/lib/quickNav";
@@ -11,7 +12,7 @@ describe("Quick navigation routes", () => {
     for (const i of QUICK_ITEMS) expect(existsSync(`app${i.href.split("#")[0]}/page.tsx`), i.href).toBe(true);
   });
   it("labels are existing translation keys in EN, FR and AR", () => {
-    const src = readFileSync("lib/i18n.tsx", "utf8");
+    const src = i18nSource();
     for (const i of QUICK_ITEMS) { const k = i.labelKey.split(".")[1]; expect((src.match(new RegExp(`\\n    ${k}: "`, "g")) || []).length, k).toBeGreaterThanOrEqual(3); }
   });
 });

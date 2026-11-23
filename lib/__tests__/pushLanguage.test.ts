@@ -38,7 +38,7 @@ import {
   radarDigestPayload, sendToUser, testPayload, tpSlPayload, tradeClosedPayload, tradePayload, type Lang,
 } from "@/lib/push";
 import { analyzeLimitForPlan } from "@/lib/plan";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 import { lessons } from "@/lib/academy-content";
 import type { PublishedTrade } from "@/lib/tradeFeed";
 

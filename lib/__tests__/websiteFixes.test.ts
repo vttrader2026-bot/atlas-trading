@@ -1,4 +1,5 @@
 // WEBSITE-FIXES-v1: Publish to Feed stays available to the owner, ticker removed, Explore Atlas goes to /workflow.
+import { i18nSource } from "./helpers/i18nSource";
 import { describe, expect, it } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { validateSpotSetup } from "@/lib/ownerPublish";
@@ -66,7 +67,7 @@ describe("5. Explore Atlas", () => {
     expect(page).not.toMatch(/<Link href="\/radar"[^>]*>\{t\("homeV2\.hero\.exploreCta"\)/);
     expect(existsSync("app/discover")).toBe(false);
     expect(existsSync("app/workflow/page.tsx")).toBe(true);
-    const i18n = read("lib/i18n.tsx");
+    const i18n = i18nSource();
     for (const v of ['exploreCta: "Explore Atlas"', 'exploreCta: "استكشف أطلس"', 'exploreCta: "Découvrir Atlas"']) expect(i18n).toContain(v);
   });
 });

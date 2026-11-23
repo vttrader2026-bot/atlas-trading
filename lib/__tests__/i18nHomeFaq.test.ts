@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 
 type Dict = Record<string, unknown>;
 const faq = (l: "en" | "ar" | "fr") => (dictionaries[l].home as { faq: Dict }).faq;

@@ -1,3 +1,4 @@
+import { i18nSource } from "./helpers/i18nSource";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
@@ -252,7 +253,7 @@ describe("Swings section removed (Part C)", () => {
     expect(src).not.toMatch(/labelled|<svg|polyline|noSwings|structure\.legend/);
   });
   it("no 'Swings, oldest to newest' text remains in any language", () => {
-    const i18n = readFileSync("lib/i18n.tsx", "utf8");
+    const i18n = i18nSource();
     expect(i18n).not.toContain("Swings, oldest to newest");
     expect(i18n).not.toContain("Swings, du plus ancien");
     expect(i18n).not.toContain("legend:");

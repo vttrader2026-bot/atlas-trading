@@ -21,7 +21,7 @@ import { POST as paymentsPOST } from "@/app/api/payments/route";
 import { analyzeLimitForPlan, analyzeLimitReachedMessage, effectivePlan, getUserPlan } from "@/lib/plan";
 import { memberState } from "@/lib/membership";
 import { watchlistLimit } from "@/lib/watchlistConfig";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 
 const ROOT = join(__dirname, "..", "..");
 

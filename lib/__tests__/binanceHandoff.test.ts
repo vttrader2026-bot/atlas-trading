@@ -10,7 +10,7 @@ import { fillOutsideSignalZone, findPlanTrade, upsertPlanTrade } from "@/lib/pla
 import { splitUnconfirmedEliteTrades } from "@/lib/eliteConfirmServer";
 import type { Trade } from "@/lib/journal";
 import type { SignalLink } from "@/lib/signalLink";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 
 const link = (zone = "98 - 102", status: "open" | "closed" = "open", id = "SIG-1"): SignalLink => ({
   id, pair: "SOL/USDT", timeframe: "4H", status, hitLevels: [], syncedAt: 1,

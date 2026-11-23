@@ -1,3 +1,4 @@
+import { i18nSource, i18nPartSource } from "./helpers/i18nSource";
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
@@ -25,7 +26,7 @@ describe("Dashboard Investor overview", () => {
   });
   it("the PDF button lives on the Investor dashboard tab and has EN/FR/AR labels", () => {
     expect(read("components/investor/Dashboard.tsx")).toContain("downloadInvestorPdf");
-    expect((read("lib/i18nInvestor.ts").match(/downloadPdf:/g) || []).length).toBe(3);
+    expect((i18nPartSource("investor").match(/downloadPdf:/g) || []).length).toBe(3);
   });
 });
 
@@ -51,7 +52,7 @@ describe("Academy 1-on-1 plan", () => {
 });
 
 describe("Institutional Radar rename and homepage text", () => {
-  const i18n = read("lib/i18n.tsx");
+  const i18n = i18nSource();
   it("the feature is named Institutional Radar (untranslated) in the navigation in every language", () => {
     expect((i18n.match(/marketIntel: "Institutional Radar"/g) || []).length).toBe(3);
     expect(i18n).not.toMatch(/marketIntel: "Market Pulse"|marketIntel: "نبض السوق"/);

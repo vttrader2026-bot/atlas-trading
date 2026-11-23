@@ -1,8 +1,9 @@
 // ELITE-CONTENT-v1: one wording for the ATLAS ELITE plan, in EN / FR / AR, everywhere it is shown.
+import { i18nSource } from "./helpers/i18nSource";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 import { eliteNowPayload } from "@/lib/push";
 import { analyzeLimitForPlan } from "@/lib/plan";
 import { watchlistLimit } from "@/lib/watchlistConfig";
@@ -90,7 +91,7 @@ describe("the same content is shown everywhere the plan is presented", () => {
     expect(src("components/Footer.tsx")).toContain('href="/elite"');
   });
   it("RTL: the language provider switches the document to rtl for Arabic only", () => {
-    const i = src("lib/i18n.tsx");
-    expect(i).toContain('document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"');
+    const i = i18nSource();
+    expect(i).toContain('document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr"');
   });
 });

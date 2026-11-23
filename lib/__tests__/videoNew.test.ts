@@ -1,5 +1,6 @@
 // NEW-VIDEOS-v1: the video library is the one place for videos. Recently published videos get a NEW label and lead the library,
 // and the bell shows a count of new videos. Video Alerts (separate announcements + video push) are gone.
+import { i18nSource } from "./helpers/i18nSource";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -238,7 +239,7 @@ describe("Video Alerts are gone, the rest is intact", () => {
     expect(readFileSync("components/admin/AdminDashboard.tsx", "utf8")).not.toMatch(/alerts|Video Alerts/i);
     expect(readFileSync("app/admin/page.tsx", "utf8")).not.toMatch(/alerts/);
     expect(readFileSync("app/account/page.tsx", "utf8")).not.toMatch(/VideoAlerts|video-alerts/);
-    expect(readFileSync("lib/i18n.tsx", "utf8")).not.toMatch(/videoAlerts/);
+    expect(i18nSource()).not.toMatch(/videoAlerts/);
     expect(readFileSync("lib/push.ts", "utf8")).not.toMatch(/video/i);
     expect(readFileSync("public/sw.js", "utf8")).not.toMatch(/data\.actions|external/); // the video-only "Watch Now" action and cross-site handling
   });

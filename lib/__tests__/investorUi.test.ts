@@ -1,4 +1,5 @@
 // INVESTOR-v1: translations, navigation scope, and UI wiring.
+import { i18nSource } from "./helpers/i18nSource";
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { investorAr, investorEn, investorFr } from "@/lib/i18nInvestor";
@@ -24,7 +25,7 @@ describe("investor translations", () => {
     }
   });
   it("is merged into every language of lib/i18n.tsx", () => {
-    const src = read("lib/i18n.tsx");
+    const src = i18nSource();
     for (const v of ["investorEn", "investorFr", "investorAr"]) expect(src).toContain(`investor: { ...${v} }`);
   });
   it("risk and manual-price wording stays honest", () => {
@@ -50,7 +51,7 @@ describe("navigation", () => {
     for (const k of ["nav.home", "nav.trading", "nav.markets", "nav.academy"]) expect(nav).toContain(`t("${k}")`);
   });
   it("is translated in EN, FR and AR", () => {
-    const i18n = read("lib/i18n.tsx");
+    const i18n = i18nSource();
     for (const v of ['investor: "Investor"', 'investor: "Investisseur"', 'investor: "المستثمر"']) expect(i18n).toContain(v);
   });
   it("is still absent from the sitemap (private page)", () => expect(read("app/sitemap.ts")).not.toMatch(/investor/i));

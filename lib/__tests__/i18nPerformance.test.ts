@@ -1,3 +1,4 @@
+import { i18nSource } from "./helpers/i18nSource";
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { perfAr, perfEn, perfFr } from "@/lib/i18nPerformance";
@@ -23,7 +24,7 @@ describe("Performance Center translations", () => {
     for (const k of used) expect(perfEn[k], k).toBeDefined();
   });
   it("is wired into all three dictionaries and the nav", () => {
-    const s = readFileSync("lib/i18n.tsx", "utf8");
+    const s = i18nSource();
     for (const n of ["perfEn", "perfAr", "perfFr"]) expect(s).toContain(`...${n}`);
     expect((s.match(/\n    performance: "/g) || []).length).toBe(3);
   });

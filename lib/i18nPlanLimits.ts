@@ -1,61 +1,7 @@
 // PHASE-3B: copy for Trade Plan limits and the Entered / Archived actions. {n} and {limit} are filled in by the page; the limit
 // itself always comes from lib/entitlementConfig.ts through the server, never from this file.
-export const planLimitsEn: Record<string, string> = {
-  activeCount: "Active plans: {n} of {limit}",
-  activeCountUnknown: "Active plans: {n}",
-  tabActive: "Active",
-  tabEntered: "Entered",
-  tabArchived: "Archived",
-  chipEntered: "Entered",
-  chipArchived: "Archived",
-  markEntered: "Mark entered",
-  archive: "Archive",
-  restore: "Restore",
-  emptyTab: "No plans here.",
-  limitReached: "You have reached your limit of {limit} active plans. Mark some as Entered or archive them to save a new one.",
-  limitElite: "ATLAS ELITE allows up to {n} active plans.",
-  overLimit: "You have more active plans than your membership allows. You can still manage them, but you cannot add new ones until you are under the limit.",
-  unverified: "We could not verify your membership right now. Nothing was changed. Please try again in a moment.",
-  alreadySaved: "This plan is already saved.",
-  actionError: "Could not update the plan. Please try again.",
-};
 
-export const planLimitsFr: Record<string, string> = {
-  activeCount: "Plans actifs : {n} sur {limit}",
-  activeCountUnknown: "Plans actifs : {n}",
-  tabActive: "Actifs",
-  tabEntered: "Entrés",
-  tabArchived: "Archivés",
-  chipEntered: "Entré",
-  chipArchived: "Archivé",
-  markEntered: "Marquer comme entré",
-  archive: "Archiver",
-  restore: "Restaurer",
-  emptyTab: "Aucun plan ici.",
-  limitReached: "Vous avez atteint votre limite de {limit} plans actifs. Marquez-en certains comme entrés ou archivez-les pour en enregistrer un nouveau.",
-  limitElite: "ATLAS ELITE permet jusqu'à {n} plans actifs.",
-  overLimit: "Vous avez plus de plans actifs que votre abonnement ne le permet. Vous pouvez toujours les gérer, mais pas en ajouter tant que vous n'êtes pas sous la limite.",
-  unverified: "Nous n'avons pas pu vérifier votre abonnement pour le moment. Rien n'a été modifié. Veuillez réessayer dans un instant.",
-  alreadySaved: "Ce plan est déjà enregistré.",
-  actionError: "Impossible de mettre à jour le plan. Veuillez réessayer.",
-};
-
-export const planLimitsAr: Record<string, string> = {
-  activeCount: "الخطط النشطة: {n} من {limit}",
-  activeCountUnknown: "الخطط النشطة: {n}",
-  tabActive: "نشطة",
-  tabEntered: "تم الدخول",
-  tabArchived: "مؤرشفة",
-  chipEntered: "تم الدخول",
-  chipArchived: "مؤرشفة",
-  markEntered: "تحديد كمنفَّذة",
-  archive: "أرشفة",
-  restore: "استعادة",
-  emptyTab: "لا توجد خطط هنا.",
-  limitReached: "لقد وصلت إلى الحد الأقصى وهو {limit} خطط نشطة. حدّد بعضها كمنفَّذة أو أرشفها لحفظ خطة جديدة.",
-  limitElite: "تتيح عضوية ATLAS ELITE حتى {n} خطة نشطة.",
-  overLimit: "لديك خطط نشطة أكثر مما تسمح به عضويتك. يمكنك إدارتها، لكن لا يمكنك إضافة خطط جديدة حتى تصبح أقل من الحد.",
-  unverified: "تعذّر التحقق من عضويتك الآن. لم يتم تغيير أي شيء. يرجى المحاولة مرة أخرى بعد قليل.",
-  alreadySaved: "هذه الخطة محفوظة بالفعل.",
-  actionError: "تعذّر تحديث الخطة. يرجى المحاولة مرة أخرى.",
-};
+// Re-exports the per-language files in lib/i18n/parts/, so each language can be downloaded on its own.
+export { planLimitsEn } from "@/lib/i18n/parts/planLimits.en";
+export { planLimitsFr } from "@/lib/i18n/parts/planLimits.fr";
+export { planLimitsAr } from "@/lib/i18n/parts/planLimits.ar";

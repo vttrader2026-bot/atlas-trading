@@ -1,5 +1,6 @@
 // PHASE-3C: DCA plan limits through the real /api/me/investor route. Only Redis (a JS twin of the atomic write) and the
 // Clerk-backed entitlements are fakes. Completion rules are tested on the pure functions and against planProgress().
+import { i18nSource } from "./helpers/i18nSource";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 import { readFileSync } from "node:fs";
@@ -237,7 +238,7 @@ describe("UI and translations", () => {
     expect(keys(dcaLimitsAr)).toEqual(keys(dcaLimitsEn));
     const ph = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort().join();
     for (const k of keys(dcaLimitsEn)) { expect(ph(dcaLimitsFr[k]), k).toBe(ph(dcaLimitsEn[k])); expect(ph(dcaLimitsAr[k]), k).toBe(ph(dcaLimitsEn[k])); }
-    const i18n = read("lib/i18n.tsx");
+    const i18n = i18nSource();
     for (const L of ["En", "Fr", "Ar"]) expect(i18n).toContain(`dcaLimits: { ...dcaLimits${L} }`);
   });
   it("Trade Plans, Watchlist and the Journal are not imported by the DCA code", () => {

@@ -1,7 +1,7 @@
 // WORKFLOW-v1: real progress only, six steps, no locks, default landing, translations.
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 import { computeWorkflowProgress } from "@/lib/workflowProgress";
 import type { Trade } from "@/lib/journal";
 

@@ -1,6 +1,7 @@
+import { i18nSource } from "./helpers/i18nSource";
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 import { LANGUAGES } from "@/components/LanguageSelect";
 import { defaultPrefs } from "@/lib/notificationPrefs";
 
@@ -19,7 +20,7 @@ describe("language selector", () => {
     const sel = src("components/LanguageSelect.tsx");
     expect(sel).toContain("setLang(l.code)");
     expect(sel).not.toMatch(/localStorage|router\.|window\.location|href=/);
-    expect(src("lib/i18n.tsx")).toContain('document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"');
+    expect(i18nSource()).toContain('document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr"');
   });
   it("is accessible: labelled trigger, menu roles, current language marked, Escape and arrows, 44px rows", () => {
     const sel = src("components/LanguageSelect.tsx");

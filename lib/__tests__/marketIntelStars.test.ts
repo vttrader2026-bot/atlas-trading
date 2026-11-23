@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { normalizeSymbol } from "@/lib/watchlist";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 
 const page = readFileSync("app/market-intelligence/page.tsx", "utf8");
 const star = readFileSync("components/watchlist/StarButton.tsx", "utf8");

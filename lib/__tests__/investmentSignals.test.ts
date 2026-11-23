@@ -34,7 +34,7 @@ import { POST as PUBLISH } from "@/app/api/admin/investment-signals/route";
 import { POST as STATUS } from "@/app/api/admin/investment-signals/[id]/status/route";
 import { DELETE as REMOVE } from "@/app/api/admin/investment-signals/[id]/route";
 import { GET as SWING_FEED } from "@/app/api/trade-feed/route";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 import { INVESTMENT_KEY, canMoveInvestment, investmentAsset, investmentsForViewer, parseInvestmentFields, planToInvestmentDraft, type InvestmentSignal } from "@/lib/investmentSignal";
 import { INVESTOR_ASSETS } from "@/lib/investor/assets";
 import { TRADE_FEED_KEY } from "@/lib/tradeFeed";

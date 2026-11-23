@@ -1,4 +1,5 @@
 // The 23:30 UTC Daily Teaser is gone; every other notification and the shared tradeFeed preference are intact.
+import { i18nSource } from "./helpers/i18nSource";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -58,7 +59,7 @@ describe("everything else is intact", () => {
     expect(defaultPrefs.tradeFeed).toBe(false);
     expect(normalizePrefs({ tradeFeed: true }).tradeFeed).toBe(true);
     expect(src("app/account/page.tsx")).toContain("updatePref({ tradeFeed: v })");
-    expect(src("lib/i18n.tsx")).toContain("notifyTradeFeed");
+    expect(i18nSource()).toContain("notifyTradeFeed");
   });
   it("keeps the other payloads with their links", () => {
     expect(push.radarDigestPayload("en").url).toBe("/radar");

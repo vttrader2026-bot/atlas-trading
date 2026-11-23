@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 import { DEMO_ANALYZER, DEMO_INTEL, DEMO_MARKET, DEMO_PORTFOLIO, DEMO_RADAR, DEMO_SIGNAL, fmtPct, fmtUsd } from "@/lib/demoHero";
 import { DEMO_MRU_RATE } from "@/lib/demoInvestor";
 

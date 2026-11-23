@@ -1,4 +1,5 @@
 // WHATSAPP-SUPPORT-v1
+import { i18nSource } from "./helpers/i18nSource";
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -21,7 +22,7 @@ function tsxFilesMentioning(dirs: string[], needle: string): string[] {
 const layout = read("app/layout.tsx");
 const footer = read("components/Footer.tsx");
 const button = read("components/WhatsAppSupportButton.tsx");
-const i18n = read("lib/i18n.tsx");
+const i18n = i18nSource();
 
 describe("WhatsApp Support entry point", () => {
   it("links to the private support number with the prefilled message, not the community group", () => {

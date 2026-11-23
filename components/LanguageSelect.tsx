@@ -5,7 +5,7 @@
 // so the current page, its scroll position and any typed input stay as they are.
 
 import { useEffect, useRef, useState } from "react";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage, preloadLanguages } from "@/lib/i18n";
 import LangFlag, { type LangCode } from "@/components/LangFlags";
 
 export const LANGUAGES: { code: LangCode; short: string; name: string }[] = [
@@ -23,6 +23,7 @@ export default function LanguageSelect() {
 
   useEffect(() => {
     if (!open) return;
+    preloadLanguages(); // the list is open: fetch the other languages now so choosing one is instant
     const onDown = (e: MouseEvent | TouchEvent) => {
       if (root.current && !root.current.contains(e.target as Node)) setOpen(false);
     };

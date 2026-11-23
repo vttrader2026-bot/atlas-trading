@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { dictionaries } from "@/lib/i18n";
+import { dictionaries } from "@/lib/i18nDictionaries";
 import {
   addDrawing, distToRectBorder, distToSegment, hitTest, isDegenerateRect, isDegenerateTrend, MAX_DRAWINGS, nearestIndex,
   removeDrawing, snapTime, timeToLogical, type Drawing, type Geo,
