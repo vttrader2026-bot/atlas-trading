@@ -206,9 +206,10 @@ describe("provider wiring (source)", () => {
   it("starts in English, restores the saved key, sets lang and dir from state", () => {
     const provider = read("lib/i18n.tsx");
     expect(provider).toContain('useState<LangState>({ lang: "en"');
-    expect(provider).toContain("atlas-trading.lang");
+    expect(provider).toContain("LANG_STORAGE_KEY"); // PERF-3: the key "atlas-trading.lang" now lives in lib/i18n/boot.ts
+    expect(read("lib/i18n/boot.ts")).toContain('"atlas-trading.lang"');
     expect(provider).toContain("c.restore()");
-    expect(provider).toContain("document.documentElement.dir = state.lang");
+    expect(provider).toContain("syncDocumentLang(document.documentElement, state.lang");
     expect(src).toContain("export function LanguageProvider");
   });
   it("opening the language list prefetches the other languages", () => {

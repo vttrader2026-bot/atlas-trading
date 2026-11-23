@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getLoadedDict, loadDict, makeT, englishDict, preloadLanguages } from "@/lib/i18n/loader";
 import { createLanguageController, type LangState } from "@/lib/i18n/controller";
+import { LANG_STORAGE_KEY, settleLangPending, syncDocumentLang } from "@/lib/i18n/boot";
 import type { Lang } from "@/lib/i18n/types";
 
 export type { Lang } from "@/lib/i18n/types";
@@ -19,33 +20,39 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
-const STORAGE_KEY = "atlas-trading.lang";
+const STORAGE_KEY = LANG_STORAGE_KEY;
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Always start at "en" so the server-rendered HTML and the client's first render match exactly.
   // The language and its dictionary are one state object, so text, lang and dir always change together.
   const [state, setState] = useState<LangState>({ lang: "en", dict: englishDict });
-  const [c] = useState(() =>
-    createLanguageController({
+  const [c] = useState(() => {
+    const ctrl = createLanguageController({
       storageGet: () => window.localStorage.getItem(STORAGE_KEY),
       storageSet: (v) => window.localStorage.setItem(STORAGE_KEY, v),
       load: loadDict,
       peek: getLoadedDict,
       apply: setState,
-      warn: (lang, err) => console.warn("language: could not load", lang, err), // safe fallback: the current language stays on screen
-    }),
-  );
+      warn: (lang, err) => {
+        console.warn("language: could not load", lang, err); // safe fallback: the current language stays on screen
+        settleLangPending(document.documentElement, ctrl.current()); // and a page hidden by the boot script is revealed
+      },
+    });
+    return ctrl;
+  });
+  const userChose = useRef(false);
 
+  // lang/dir follow the language on screen. The boot script (lib/i18n/boot.ts) has already set them for a saved ar/fr,
+  // so the initial English state does not undo that while the dictionary is loading.
   useEffect(() => {
-    document.documentElement.lang = state.lang;
-    document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr";
-  }, [state.lang]);
+    syncDocumentLang(document.documentElement, state.lang, userChose.current);
+  }, [state]);
 
   // Restore the saved language after mount (client-only). Only that language is downloaded.
   useEffect(() => { void c.restore(); }, [c]);
 
-  const setLang = useCallback((next: Lang) => { void c.setLang(next); }, [c]);
-  const toggleLang = useCallback(() => { void c.toggle(); }, [c]);
+  const setLang = useCallback((next: Lang) => { userChose.current = true; void c.setLang(next); }, [c]);
+  const toggleLang = useCallback(() => { userChose.current = true; void c.toggle(); }, [c]);
   const t = useMemo(() => makeT(state.dict, state.lang), [state]);
   const value = useMemo(() => ({ lang: state.lang, toggleLang, setLang, t }), [state.lang, toggleLang, setLang, t]);
 

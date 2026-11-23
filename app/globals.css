@@ -47,6 +47,12 @@
   --text-base--line-height: 1.6rem;
 }
 
+/* PERF-3: a saved Arabic/French page stays invisible (layout space reserved, so nothing shifts) until its language is loaded.
+   The boot script sets/removes the attribute; it has a built-in time limit, so the page can never stay hidden. */
+html[data-lang-pending] body {
+  visibility: hidden;
+}
+
 html,
 body {
   max-width: 100%;

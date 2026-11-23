@@ -8,6 +8,7 @@ import LazyGlobals from "@/components/LazyGlobals";
 import RegisterServiceWorker from "@/components/RegisterServiceWorker";
 import { InstallProvider } from "@/components/InstallApp";
 import { LanguageProvider } from "@/lib/i18n";
+import { LANG_BOOT_SCRIPT } from "@/lib/i18n/boot";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
@@ -103,7 +104,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the boot script below may already have set lang/dir for a saved Arabic/French (before first paint).
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* PERF-3: runs before the first paint; sets lang/dir from the saved language and holds the page back until it is loaded. */}
+        <script dangerouslySetInnerHTML={{ __html: LANG_BOOT_SCRIPT }} />
+      </head>
       <body
         className={`${inter.variable} ${sora.variable} ${jetbrainsMono.variable} antialiased`}
       >

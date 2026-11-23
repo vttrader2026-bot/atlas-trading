@@ -38,7 +38,7 @@ export function createLanguageController(deps: ControllerDeps) {
     }
     return deps.load(lang).then(
       (dict) => { if (id === request) commit(lang, dict); },
-      (err) => deps.warn(lang, err),
+      (err) => { if (id === request) deps.warn(lang, err); }, // a failure of a request that was already replaced is irrelevant
     );
   }
 

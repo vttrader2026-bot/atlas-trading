@@ -92,6 +92,9 @@ describe("the same content is shown everywhere the plan is presented", () => {
   });
   it("RTL: the language provider switches the document to rtl for Arabic only", () => {
     const i = i18nSource();
-    expect(i).toContain('document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr"');
+    // PERF-3: the lang/dir rule moved from the provider into lib/i18n/boot.ts (shared with the first-paint script); same behaviour
+    expect(i).toContain('syncDocumentLang(document.documentElement, state.lang');
+    expect(i).toContain('export const dirOf = (lang: Lang): "rtl" | "ltr" => (lang === "ar" ? "rtl" : "ltr");');
+    expect(i).toContain("doc.dir = dirOf(lang)");
   });
 });
