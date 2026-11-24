@@ -177,6 +177,7 @@ export default function Nav() {
     { href: "/radar", label: t("nav.radar") },
     { href: "/market-intelligence", label: t("nav.marketIntel") },
     { href: "/watchlist", label: t("nav.watchlist") },
+    { href: "/charts", label: t("nav.charts") },
   ];
   const mkActive = MARKETS.some((i) => isOn(pathname, i.href));
   // NAV-TRADING-v1: "Trading" replaces Dashboard. Workflow is no longer in the primary navigation (its page and links to it stay).

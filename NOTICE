@@ -1,0 +1,9 @@
+Atlas Trading includes the following third-party software:
+
+TradingView Lightweight Charts™
+Copyright (c) 2026 TradingView, Inc. https://www.tradingview.com/
+
+Licensed under the Apache License, Version 2.0. The full license text ships with
+the package at node_modules/lightweight-charts/LICENSE. The attribution notice
+above and a link to https://www.tradingview.com/ are also shown on the public
+/charts page (components/charts/ChartWorkspace.tsx). Do not remove either.
