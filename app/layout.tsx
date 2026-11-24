@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import Nav from "@/components/Nav";
+import IndependenceDay from "@/components/IndependenceDay";
 import JournalSync from "@/components/JournalSync";
 import Footer from "@/components/Footer";
 import QuickNav, { QuickNavSpacer } from "@/components/QuickNav";
@@ -117,6 +118,7 @@ export default function RootLayout({
         <LanguageProvider>
           <RegisterServiceWorker />
           <InstallProvider>
+            <IndependenceDay />
             <Nav />
             <JournalSync />
             <div className="lg:flex">
