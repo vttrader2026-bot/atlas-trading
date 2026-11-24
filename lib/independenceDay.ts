@@ -1,13 +1,14 @@
-// TEMPORARY: Mauritania's 66th Independence Day (28 November 2026). Everything about it lives in this file and
+// TEMPORARY: Mauritania's 66th Independence Day (28 November 2026), shown 24-30 November 2026. Everything about it lives in this file and
 // components/IndependenceDay.tsx; to remove the feature see the README (delete both files, the test, and two lines in app/layout.tsx).
 //
 // Mauritania uses GMT/UTC all year (no daylight saving), so "Mauritania's local date" is simply the UTC date.
-// The note is shown from 28 Nov 00:00 UTC up to (not including) 29 Nov 00:00 UTC, judged by the visitor's device clock at page load.
+// The note is shown from 24 Nov 00:00 UTC up to (not including) 1 Dec 00:00 UTC (i.e. 24 through 30 November inclusive),
+// judged by the visitor's device clock at page load.
 // The check runs in a tiny inline script before the first paint, so the prerendered, CDN-cached HTML stays static, nothing shifts
-// when it appears, and it switches itself off on 29 November with no redeploy.
+// when it appears, and it switches itself off on 1 December with no redeploy.
 
-export const IDAY_START_MS = Date.UTC(2026, 10, 28); // 1795824000000
-export const IDAY_END_MS = Date.UTC(2026, 10, 29); // 1795910400000 (exclusive)
+export const IDAY_START_MS = Date.UTC(2026, 10, 24); // 24 Nov 2026 00:00 UTC
+export const IDAY_END_MS = Date.UTC(2026, 11, 1); // 1 Dec 2026 00:00 UTC (exclusive)
 
 export const IDAY_ATTR = "data-mr-day";
 

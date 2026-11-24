@@ -18,22 +18,28 @@ function marked(iso: string): boolean {
 }
 
 describe("Independence Day window (UTC = Mauritania local time)", () => {
-  it("starts at 28 Nov 2026 00:00 UTC and ends before 29 Nov 2026 00:00 UTC", () => {
-    expect(IDAY_START_MS).toBe(Date.parse("2026-11-28T00:00:00Z"));
-    expect(IDAY_END_MS).toBe(Date.parse("2026-11-29T00:00:00Z"));
+  it("starts at 24 Nov 2026 00:00 UTC and ends before 1 Dec 2026 00:00 UTC", () => {
+    expect(IDAY_START_MS).toBe(Date.parse("2026-11-24T00:00:00Z"));
+    expect(IDAY_END_MS).toBe(Date.parse("2026-12-01T00:00:00Z"));
   });
-  it("the inline script shows it on 28 November and not before or after", () => {
-    expect(marked("2026-11-27T23:59:59.999Z")).toBe(false);
-    expect(marked("2026-11-28T00:00:00.000Z")).toBe(true);
+  it("the inline script shows it from 24 November through 30 November, and not before or after", () => {
+    expect(marked("2026-11-23T23:59:59.999Z")).toBe(false);
+    expect(marked("2026-11-24T00:00:00.000Z")).toBe(true); // first moment
+    expect(marked("2026-11-24T12:00:00Z")).toBe(true);
+    expect(marked("2026-11-27T23:59:59Z")).toBe(true);
+    expect(marked("2026-11-28T00:00:00.000Z")).toBe(true); // Independence Day itself
     expect(marked("2026-11-28T12:00:00Z")).toBe(true);
-    expect(marked("2026-11-28T23:59:59.999Z")).toBe(true);
-    expect(marked("2026-11-29T00:00:00.000Z")).toBe(false); // disappears on 29 November by itself
-    expect(marked("2026-11-30T09:00:00Z")).toBe(false);
+    expect(marked("2026-11-29T12:00:00Z")).toBe(true);
+    expect(marked("2026-11-30T00:00:00Z")).toBe(true);
+    expect(marked("2026-11-30T23:59:59.999Z")).toBe(true); // last moment
+    expect(marked("2026-12-01T00:00:00.000Z")).toBe(false); // disappears on 1 December by itself
+    expect(marked("2026-12-01T09:00:00Z")).toBe(false);
+    expect(marked("2026-12-15T09:00:00Z")).toBe(false);
     expect(marked("2027-11-28T12:00:00Z")).toBe(false); // does not come back next year
     expect(marked("2026-01-01T00:00:00Z")).toBe(false);
   });
   it("script and helper agree, and the script is tiny plain ES5 that cannot throw", () => {
-    for (const t of [IDAY_START_MS - 1, IDAY_START_MS, IDAY_END_MS - 1, IDAY_END_MS]) {
+    for (const t of [IDAY_START_MS - 1, IDAY_START_MS, Date.parse("2026-11-28T00:00:00Z"), IDAY_END_MS - 1, IDAY_END_MS]) {
       expect(marked(new Date(t).toISOString())).toBe(isIndependenceWindow(t));
     }
     expect(IDAY_SCRIPT.length).toBeLessThan(300);
