@@ -21,6 +21,8 @@ describe("Independence Day window (UTC = Mauritania local time)", () => {
   it("starts at 24 Nov 2026 00:00 UTC and ends before 1 Dec 2026 00:00 UTC", () => {
     expect(IDAY_START_MS).toBe(Date.parse("2026-11-24T00:00:00Z"));
     expect(IDAY_END_MS).toBe(Date.parse("2026-12-01T00:00:00Z"));
+    expect(IDAY_START_MS).toBe(1795478400000); // exact timestamps
+    expect(IDAY_END_MS).toBe(1796083200000);
   });
   it("the inline script shows it from 24 November through 30 November, and not before or after", () => {
     expect(marked("2026-11-23T23:59:59.999Z")).toBe(false);
@@ -82,5 +84,13 @@ describe("component", () => {
     expect(src).toContain("<svg");
     expect(src).toContain('role="note"');
     expect(src).not.toMatch(/animate|transition|fixed|modal|popup/i);
+  });
+  it("is a slim but readable banner: roomier padding, 14px mobile / 15-16px desktop text, 26x18 flag, centered", () => {
+    expect(src).toMatch(/py-3 sm:py-3\.5/);
+    expect(src).toContain("text-[14px] sm:text-[15px] lg:text-[16px]");
+    expect(src).toContain('width="26" height="18"');
+    expect(src).toContain("justify-center");
+    expect(src).toContain("text-center");
+    expect(src).not.toMatch(/py-(6|8|10|12)\b/); // not a hero
   });
 });

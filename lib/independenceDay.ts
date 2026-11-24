@@ -7,8 +7,8 @@
 // The check runs in a tiny inline script before the first paint, so the prerendered, CDN-cached HTML stays static, nothing shifts
 // when it appears, and it switches itself off on 1 December with no redeploy.
 
-export const IDAY_START_MS = Date.UTC(2026, 10, 24); // 24 Nov 2026 00:00 UTC
-export const IDAY_END_MS = Date.UTC(2026, 11, 1); // 1 Dec 2026 00:00 UTC (exclusive)
+export const IDAY_START_MS = Date.UTC(2026, 10, 24); // 1795478400000 = 24 Nov 2026 00:00 UTC
+export const IDAY_END_MS = Date.UTC(2026, 11, 1); // 1796083200000 = 1 Dec 2026 00:00 UTC (exclusive)
 
 export const IDAY_ATTR = "data-mr-day";
 

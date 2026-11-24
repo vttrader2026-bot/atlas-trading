@@ -9,9 +9,9 @@ export default function IndependenceDay() {
       <style dangerouslySetInnerHTML={{ __html: IDAY_CSS }} />
       <script dangerouslySetInnerHTML={{ __html: IDAY_SCRIPT }} />
       <div className="mr-day border-b border-line bg-surface/60" role="note">
-        <p className="max-w-6xl mx-auto px-4 py-1.5 flex items-center justify-center gap-2 text-center text-[12px] sm:text-[13px] leading-snug text-text-muted">
+        <p className="max-w-6xl mx-auto px-4 py-3 sm:py-3.5 flex items-center justify-center gap-3 text-center text-[14px] sm:text-[15px] lg:text-[16px] leading-snug text-text-muted">
           {/* Mauritanian flag (green, gold crescent and star, red bands). Drawn inline because flag emoji do not render on Windows. */}
-          <svg aria-hidden="true" width="18" height="12" viewBox="0 0 30 20" className="shrink-0 rounded-[2px]">
+          <svg aria-hidden="true" width="26" height="18" viewBox="0 0 30 20" className="shrink-0 rounded-[2px]">
             <rect width="30" height="20" fill="#006233" />
             <rect width="30" height="3" fill="#D01C1F" />
             <rect y="17" width="30" height="3" fill="#D01C1F" />
