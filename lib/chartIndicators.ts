@@ -31,3 +31,8 @@ export const activeIndicators = () => INDICATORS.filter((i) => i.status === "act
 export const upcomingIndicators = () => INDICATORS.filter((i) => i.status === "soon");
 /** Only indicators that are actually drawn can be switched on. */
 export const canToggle = (id: IndicatorId) => INDICATORS.some((i) => i.id === id && i.status === "active");
+
+/** The EMA overlays (the indicators that carry a period). */
+export const EMA_DEFS = INDICATORS.filter((i): i is IndicatorDef & { period: number } => i.status === "active" && i.period !== undefined);
+/** Line colors by EMA period; an empty string means "use the theme gold". */
+export const EMA_COLORS: Record<number, string> = { 20: "#60a5fa", 50: "", 200: "#c084fc" };
