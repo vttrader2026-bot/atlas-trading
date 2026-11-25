@@ -6,7 +6,7 @@
 // fails any check is rejected with a MarketDataError describing exactly
 // what was wrong — never silently patched to "look right."
 
-import { Candle, INTERVAL_MS, Interval, MarketDataError } from "@/lib/marketDataTypes";
+import { Candle, ChartInterval, MarketDataError, nextOpenTime } from "@/lib/marketDataTypes";
 
 function isFiniteNumber(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n);
@@ -69,14 +69,15 @@ export type KlineValidationResult =
  */
 export function validateCandles(
   candles: Candle[],
-  interval: Interval,
+  interval: ChartInterval,
   context: { symbol: string }
 ): KlineValidationResult {
   if (candles.length === 0) {
     return { ok: true, candles };
   }
 
-  const stepMs = INTERVAL_MS[interval];
+  // Monthly candles differ in length, so the expected step is computed per candle.
+  const stepFor = (openTime: number) => nextOpenTime(openTime, interval) - openTime;
 
   for (let i = 0; i < candles.length; i++) {
     const c = candles[i];
@@ -152,6 +153,7 @@ export function validateCandles(
       // is checked — and it must never be LARGER than one step (a smaller
       // gap before the forming candle is fine; Binance can return a
       // same-step partial as the most recent entry).
+      const stepMs = stepFor(prev.openTime);
       const gap = c.openTime - prev.openTime;
       if (gap > stepMs) {
         return {

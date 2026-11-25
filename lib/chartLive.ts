@@ -1,20 +1,21 @@
 // ATLAS CHARTS — Phase 1: pure helpers for the /charts workspace (kept free of
 // React and the chart library so they can be unit-tested directly).
 
-import { INTERVAL_MS, isSupportedInterval, type Candle, type Interval } from "@/lib/marketDataTypes";
+import { isChartInterval, nextOpenTime, type Candle, type ChartInterval } from "@/lib/marketDataTypes";
 import type { LiveKline } from "@/lib/klineStream";
 
 /** Timeframe controls shown on /charts, in display order. Values are the API/Binance interval strings. */
-export const CHART_TIMEFRAMES: { value: Interval; label: string }[] = [
+export const CHART_TIMEFRAMES: { value: ChartInterval; label: string }[] = [
   { value: "15m", label: "15m" },
   { value: "1h", label: "1h" },
   { value: "4h", label: "4h" },
   { value: "1d", label: "1D" },
   { value: "1w", label: "1W" },
+  { value: "1M", label: "1M" },
 ];
 
 export const DEFAULT_CHART_SYMBOL = "BTCUSDT";
-export const DEFAULT_CHART_INTERVAL: Interval = "1h";
+export const DEFAULT_CHART_INTERVAL: ChartInterval = "1h";
 /** History requested from /api/chart/klines (the route allows up to 1000). */
 export const CHART_HISTORY_LIMIT = 500;
 /** Cap on candles kept in memory while live updates append new ones. */
@@ -27,13 +28,15 @@ export function baseOfUsdtSymbol(symbol: string): string | null {
 }
 
 /** Reads ?symbol= and ?tf= safely. Anything malformed falls back to the defaults. */
-export function parseChartParams(search: string): { symbol: string; interval: Interval } {
+export function parseChartParams(search: string): { symbol: string; interval: ChartInterval } {
   const p = new URLSearchParams(search);
   const rawSymbol = (p.get("symbol") ?? "").trim().toUpperCase().replace(/[/\-_ ]/g, "");
-  const rawTf = (p.get("tf") ?? "").trim().toLowerCase();
+  // "1M" (month) and "1m" (minute) differ only by case: try the exact spelling first, then lowercase ("4H" -> "4h").
+  const exactTf = (p.get("tf") ?? "").trim();
+  const rawTf = isChartInterval(exactTf) ? exactTf : exactTf.toLowerCase();
   return {
     symbol: baseOfUsdtSymbol(rawSymbol) ? rawSymbol : DEFAULT_CHART_SYMBOL,
-    interval: isSupportedInterval(rawTf) ? rawTf : DEFAULT_CHART_INTERVAL,
+    interval: isChartInterval(rawTf) ? rawTf : DEFAULT_CHART_INTERVAL,
   };
 }
 
@@ -48,7 +51,7 @@ export type LiveApply =
  * mutating it. Handles the three real cases: the forming candle ticking,
  * a new candle opening, and anything out of order or after a gap.
  */
-export function applyLiveKline(candles: Candle[], k: LiveKline, interval: Interval): LiveApply {
+export function applyLiveKline(candles: Candle[], k: LiveKline, interval: ChartInterval): LiveApply {
   const last = candles[candles.length - 1];
   if (!last) return { kind: "gap" };
   if (k.openTime < last.openTime) return { kind: "stale" };
@@ -68,7 +71,7 @@ export function applyLiveKline(candles: Candle[], k: LiveKline, interval: Interv
   if (k.openTime === last.openTime) {
     return { kind: "update", candles: [...candles.slice(0, -1), candle], candle };
   }
-  if (k.openTime - last.openTime > INTERVAL_MS[interval]) return { kind: "gap" };
+  if (k.openTime > nextOpenTime(last.openTime, interval)) return { kind: "gap" };
 
   const next = [...candles, candle];
   return { kind: "append", candles: next.length > CHART_MAX_CANDLES ? next.slice(next.length - CHART_MAX_CANDLES) : next, candle };

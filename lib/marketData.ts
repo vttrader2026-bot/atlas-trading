@@ -11,7 +11,7 @@
 
 import { validatePair } from "@/lib/marketDataExchange";
 import { getValidatedKlines } from "@/lib/marketDataKlines";
-import { CanonicalPair, Interval, ValidatedKlines } from "@/lib/marketDataTypes";
+import { CanonicalPair, ChartInterval, ValidatedKlines } from "@/lib/marketDataTypes";
 
 export * from "@/lib/marketDataTypes";
 export { getExchangeInfo, validatePair } from "@/lib/marketDataExchange";
@@ -29,7 +29,7 @@ export type CandleResult = ValidatedKlines & { pair: CanonicalPair };
  */
 export async function getCandles(
   baseAsset: string,
-  interval: Interval,
+  interval: ChartInterval,
   opts?: { limit?: number; quoteAsset?: string }
 ): Promise<CandleResult> {
   const pair = await validatePair(baseAsset, opts?.quoteAsset ?? "USDT");

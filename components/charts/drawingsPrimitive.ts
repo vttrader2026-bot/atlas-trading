@@ -1,6 +1,9 @@
 // Series primitive that paints the user's drawings inside the chart's own
 // render loop (price pane only). Because it asks the chart for coordinates on
 // every repaint, drawings follow zoom, pan, resize and rescaling by themselves.
+//
+// It only paints: all interaction lives in lib/chartDrawingEngine.ts, driven by
+// components/charts/drawing/DrawingController.ts.
 
 import type {
   ISeriesApi,
@@ -12,9 +15,12 @@ import type {
   SeriesAttachedParameter,
   Time,
 } from "lightweight-charts";
-import { timeToLogical, type Drawing, type Geo, type Pt } from "@/lib/chartDrawings";
+import { LINE_HANDLE_X, handlesOf, projectDrawing, timeToLogical, type Drawing, type DrawingDraft, type Geo, type Pt } from "@/lib/chartDrawings";
 
-type Preview = { a: Pt; b: Pt | null; rect?: boolean } | null;
+export type MeasureState = { a: Pt; b: Pt; lines: string[] } | null;
+export type PrimitiveColors = { accent: string; text: string; surface: string; bull: string; bear: string };
+
+const DEFAULT_COLORS: PrimitiveColors = { accent: "#d4af37", text: "#e6e8eb", surface: "#11151c", bull: "#35c48a", bear: "#ef5350" };
 
 export class DrawingsPrimitive implements ISeriesPrimitive<Time> {
   private chart: IChartApiBase<Time> | null = null;
@@ -22,9 +28,11 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time> {
   private requestUpdate: (() => void) | null = null;
   private drawings: Drawing[] = [];
   private selectedId: string | null = null;
-  private preview: Preview = null;
+  private draft: DrawingDraft | null = null;
+  private measureState: MeasureState = null;
   private times: number[] = [];
-  private color = "#d4af37";
+  private colors: PrimitiveColors = DEFAULT_COLORS;
+  private hidden = false;
 
   attached(param: SeriesAttachedParameter<Time>) {
     this.chart = param.chart;
@@ -38,103 +46,202 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time> {
     this.requestUpdate = null;
   }
 
-  setState(s: { drawings?: Drawing[]; selectedId?: string | null; preview?: Preview; times?: number[]; color?: string }) {
+  setState(s: {
+    drawings?: Drawing[];
+    selectedId?: string | null;
+    draft?: DrawingDraft | null;
+    measure?: MeasureState;
+    times?: number[];
+    colors?: PrimitiveColors;
+    hidden?: boolean;
+  }) {
     if (s.drawings !== undefined) this.drawings = s.drawings;
     if (s.selectedId !== undefined) this.selectedId = s.selectedId;
-    if (s.preview !== undefined) this.preview = s.preview;
+    if (s.draft !== undefined) this.draft = s.draft;
+    if (s.measure !== undefined) this.measureState = s.measure;
     if (s.times !== undefined) this.times = s.times;
-    if (s.color !== undefined) this.color = s.color;
+    if (s.colors !== undefined) this.colors = s.colors;
+    if (s.hidden !== undefined) this.hidden = s.hidden;
     this.requestUpdate?.();
   }
 
-  private x(time: number): number | null {
+  // ---- coordinate conversion (shared with the interaction controller)
+
+  /** x pixel of a time, or null when the chart has no data / is detached. */
+  xOf(time: number): number | null {
     if (!this.chart || this.times.length === 0) return null;
     return this.chart.timeScale().logicalToCoordinate(timeToLogical(this.times, time) as Logical);
   }
 
-  private y(price: number): number | null {
+  yOf(price: number): number | null {
     return this.series ? this.series.priceToCoordinate(price) : null;
   }
 
-  /** Current pixel geometry of one drawing (used for painting and for hit-testing). */
-  project(d: Drawing): Geo | null {
-    if (d.kind === "hline") {
-      const y = this.y(d.price);
-      return y === null ? null : { id: d.id, kind: "hline", y };
-    }
-    const x1 = this.x(d.a.time), y1 = this.y(d.a.price), x2 = this.x(d.b.time), y2 = this.y(d.b.price);
-    if (x1 === null || y1 === null || x2 === null || y2 === null) return null;
-    return { id: d.id, kind: d.kind, x1, y1, x2, y2 };
+  /** Pixel → fractional candle position and price. */
+  pointAt(x: number, y: number): { logical: number; price: number } | null {
+    if (!this.chart || !this.series) return null;
+    const logical = this.chart.timeScale().coordinateToLogical(x);
+    const price = this.series.coordinateToPrice(y);
+    if (logical === null || price === null) return null;
+    return { logical: logical as number, price: price as number };
   }
 
-  projectAll(): Geo[] {
-    const out: Geo[] = [];
-    for (const d of this.drawings) {
-      const g = this.project(d);
-      if (g) out.push(g);
-    }
-    return out;
+  /** Pixel geometry of one drawing right now. */
+  project(d: DrawingDraft & { id?: string }): Geo | null {
+    return projectDrawing(d, (t) => this.xOf(t), (p) => this.yOf(p));
   }
 
   paneViews(): readonly IPrimitivePaneView[] {
     const renderer: IPrimitivePaneRenderer = {
       draw: (target) => {
         target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
+          const c = this.colors;
           ctx.lineCap = "round";
-          for (const g of this.projectAll()) {
-            const selected = g.id === this.selectedId;
-            ctx.strokeStyle = this.color;
-            ctx.fillStyle = this.color;
-            ctx.lineWidth = selected ? 3 : 1.5;
-            if (g.kind === "rect") {
-              // translucent fill + visible border; the fill stays light so candles remain readable
-              ctx.globalAlpha = selected ? 0.22 : 0.14;
-              ctx.fillRect(g.x1, g.y1, g.x2 - g.x1, g.y2 - g.y1);
-              ctx.globalAlpha = 1;
-              ctx.strokeRect(g.x1, g.y1, g.x2 - g.x1, g.y2 - g.y1);
-            }
-            ctx.beginPath();
-            if (g.kind === "hline") {
-              ctx.moveTo(0, g.y);
-              ctx.lineTo(mediaSize.width, g.y);
-            } else if (g.kind === "trend") {
-              ctx.moveTo(g.x1, g.y1);
-              ctx.lineTo(g.x2, g.y2);
-            }
-            ctx.stroke();
-            if (selected) {
-              const pts =
-                g.kind === "hline" ? [[24, g.y]]
-                : g.kind === "rect" ? [[g.x1, g.y1], [g.x2, g.y1], [g.x1, g.y2], [g.x2, g.y2]]
-                : [[g.x1, g.y1], [g.x2, g.y2]];
-              for (const [px, py] of pts) {
+          ctx.lineJoin = "round";
+          ctx.font = "13px Inter, system-ui, sans-serif";
+          ctx.textBaseline = "middle";
+
+          const paint = (g: Geo, opts: { selected: boolean; dashed: boolean }) => {
+            ctx.strokeStyle = c.accent;
+            ctx.fillStyle = c.accent;
+            ctx.lineWidth = opts.selected ? 2.5 : 1.5;
+            ctx.setLineDash(opts.dashed ? [5, 4] : []);
+            switch (g.kind) {
+              case "hline":
                 ctx.beginPath();
-                ctx.arc(px, py, 5, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.moveTo(0, g.y);
+                ctx.lineTo(mediaSize.width, g.y);
+                ctx.stroke();
+                break;
+              case "vline":
+                ctx.beginPath();
+                ctx.moveTo(g.x, 0);
+                ctx.lineTo(g.x, mediaSize.height);
+                ctx.stroke();
+                break;
+              case "trend":
+                ctx.beginPath();
+                ctx.moveTo(g.x1, g.y1);
+                ctx.lineTo(g.x2, g.y2);
+                ctx.stroke();
+                break;
+              case "rect": {
+                ctx.globalAlpha = opts.selected ? 0.22 : 0.14;
+                ctx.fillRect(g.x1, g.y1, g.x2 - g.x1, g.y2 - g.y1);
+                ctx.globalAlpha = 1;
+                ctx.strokeRect(g.x1, g.y1, g.x2 - g.x1, g.y2 - g.y1);
+                break;
+              }
+              case "zone": {
+                const top = Math.min(g.y1, g.y2);
+                const h = Math.abs(g.y2 - g.y1);
+                ctx.globalAlpha = opts.selected ? 0.22 : 0.14;
+                ctx.fillRect(0, top, mediaSize.width, h);
+                ctx.globalAlpha = 1;
+                ctx.lineWidth = opts.selected ? 2 : 1;
+                ctx.setLineDash(opts.dashed ? [5, 4] : [6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(0, g.y1);
+                ctx.lineTo(mediaSize.width, g.y1);
+                ctx.moveTo(0, g.y2);
+                ctx.lineTo(mediaSize.width, g.y2);
+                ctx.stroke();
+                break;
+              }
+              case "brush": {
+                ctx.beginPath();
+                g.pts.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+                ctx.stroke();
+                break;
+              }
+              case "text": {
+                // g.y is the label's bottom-left; the box grows upward so a click lands just above the anchor price
+                ctx.setLineDash([]);
+                ctx.globalAlpha = 0.92;
+                ctx.fillStyle = c.surface;
+                ctx.fillRect(g.x, g.y - g.h, g.w, g.h);
+                ctx.globalAlpha = 1;
+                ctx.lineWidth = opts.selected ? 2 : 1;
+                ctx.strokeRect(g.x, g.y - g.h, g.w, g.h);
+                ctx.fillStyle = c.text;
+                ctx.fillText(g.text, g.x + 7, g.y - g.h / 2);
+                break;
               }
             }
-          }
-          const p = this.preview;
-          if (p) {
-            const x1 = this.x(p.a.time), y1 = this.y(p.a.price);
-            if (x1 !== null && y1 !== null) {
-              ctx.strokeStyle = this.color;
-              ctx.fillStyle = this.color;
-              ctx.beginPath();
-              ctx.arc(x1, y1, 4, 0, Math.PI * 2);
-              ctx.fill();
-              const x2 = p.b ? this.x(p.b.time) : null, y2 = p.b ? this.y(p.b.price) : null;
-              if (x2 !== null && y2 !== null) {
-                ctx.lineWidth = 1.5;
-                ctx.setLineDash([5, 4]);
-                ctx.beginPath();
-                if (p.rect) ctx.rect(x1, y1, x2 - x1, y2 - y1);
-                else {
-                  ctx.moveTo(x1, y1);
-                  ctx.lineTo(x2, y2);
+            ctx.setLineDash([]);
+          };
+
+          const handle = (x: number, y: number) => {
+            ctx.setLineDash([]);
+            ctx.lineWidth = 2;
+            ctx.fillStyle = c.surface;
+            ctx.strokeStyle = c.accent;
+            ctx.beginPath();
+            ctx.arc(x, y, 5.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          };
+
+          if (!this.hidden) {
+            for (const d of this.drawings) {
+              const g = this.project(d);
+              if (!g) continue;
+              const selected = d.id === this.selectedId;
+              paint(g, { selected, dashed: false });
+              if (selected) {
+                const hs = handlesOf(g);
+                for (const h of hs) handle(h.x, h.y);
+                if (g.kind === "hline") handle(LINE_HANDLE_X, g.y);
+                else if (g.kind === "vline") handle(g.x, LINE_HANDLE_X);
+                else if (g.kind === "brush") {
+                  const first = g.pts[0], last = g.pts[g.pts.length - 1];
+                  handle(first[0], first[1]);
+                  handle(last[0], last[1]);
                 }
-                ctx.stroke();
+              }
+            }
+
+            if (this.draft) {
+              const g = this.project({ ...this.draft, id: "draft" });
+              if (g) paint(g, { selected: false, dashed: true });
+              if (this.draft.kind === "trend" || this.draft.kind === "rect") {
+                const a = this.project({ kind: "hline", price: this.draft.a.price });
+                const x = this.xOf(this.draft.a.time);
+                if (a && a.kind === "hline" && x !== null) handle(x, a.y);
+              }
+            }
+
+            const m = this.measureState;
+            if (m) {
+              const x1 = this.xOf(m.a.time), y1 = this.yOf(m.a.price), x2 = this.xOf(m.b.time), y2 = this.yOf(m.b.price);
+              if (x1 !== null && y1 !== null && x2 !== null && y2 !== null) {
+                const up = m.b.price >= m.a.price;
+                const col = up ? c.bull : c.bear;
                 ctx.setLineDash([]);
+                ctx.globalAlpha = 0.14;
+                ctx.fillStyle = col;
+                ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = col;
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                // label box next to the end point, kept inside the pane
+                const lines = m.lines;
+                const w = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 16;
+                const h = lines.length * 18 + 8;
+                const bx = Math.min(Math.max(4, x2 + 8), mediaSize.width - w - 4);
+                const by = Math.min(Math.max(4, (up ? y2 - h - 8 : y2 + 8)), mediaSize.height - h - 4);
+                ctx.fillStyle = c.surface;
+                ctx.globalAlpha = 0.95;
+                ctx.fillRect(bx, by, w, h);
+                ctx.globalAlpha = 1;
+                ctx.strokeRect(bx, by, w, h);
+                ctx.fillStyle = c.text;
+                lines.forEach((l, i) => ctx.fillText(l, bx + 8, by + 13 + i * 18));
               }
             }
           }

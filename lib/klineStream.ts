@@ -9,7 +9,7 @@
 // every incoming frame is validated and a frame that fails any check is
 // dropped.
 
-import { isSupportedInterval, type Interval } from "@/lib/marketDataTypes";
+import { isChartInterval, type ChartInterval } from "@/lib/marketDataTypes";
 
 /** One live kline update, already validated. `closed` is Binance's own `x` flag. */
 export type LiveKline = {
@@ -39,7 +39,7 @@ const SYMBOL_RE = /^[A-Z0-9]{2,20}$/;
 /** Throws on anything that is not a plain uppercase symbol + supported interval — never builds a URL from arbitrary input. */
 export function klineStreamUrl(symbol: string, interval: string, host: string = KLINE_WS_HOSTS[0]): string {
   if (!SYMBOL_RE.test(symbol)) throw new Error(`Invalid symbol "${symbol}"`);
-  if (!isSupportedInterval(interval)) throw new Error(`Unsupported interval "${interval}"`);
+  if (!isChartInterval(interval)) throw new Error(`Unsupported interval "${interval}"`);
   return `${host}/ws/${symbol.toLowerCase()}@kline_${interval}`;
 }
 
@@ -58,7 +58,7 @@ function num(raw: unknown): number | null {
  * for exactly the expected symbol and interval. Accepts both the raw-stream
  * shape and the combined-stream `{ stream, data }` wrapper.
  */
-export function parseKlineMessage(raw: unknown, expect: { symbol: string; interval: Interval }): LiveKline | null {
+export function parseKlineMessage(raw: unknown, expect: { symbol: string; interval: ChartInterval }): LiveKline | null {
   let msg: unknown = raw;
   if (typeof msg === "string") {
     try {
@@ -119,7 +119,7 @@ const WS_OPEN = 1;
 
 export type KlineStreamOptions = {
   symbol: string;
-  interval: Interval;
+  interval: ChartInterval;
   onKline: (k: LiveKline) => void;
   onStatus?: (s: StreamStatus) => void;
   /** Called after any reconnect (not the first connect): candles may have been missed, so the caller should reload history. */

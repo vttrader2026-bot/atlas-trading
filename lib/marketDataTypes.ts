@@ -14,6 +14,30 @@ export function isSupportedInterval(value: string): value is Interval {
   return (SUPPORTED_INTERVALS as readonly string[]).includes(value);
 }
 
+/**
+ * Intervals the chart workspace (/charts) may use: everything above plus the
+ * monthly candle ("1M" — Binance's own spelling, capital M; lowercase "1m" is
+ * the 1-minute interval and is NOT accepted). Kept separate from
+ * SUPPORTED_INTERVALS on purpose: the Analyzer and AI analysis keep their
+ * existing fixed set, and monthly candles are not equal-length so they need
+ * calendar-aware validation (see nextOpenTime).
+ */
+export const CHART_INTERVALS = [...SUPPORTED_INTERVALS, "1M"] as const;
+export type ChartInterval = (typeof CHART_INTERVALS)[number];
+
+export function isChartInterval(value: string): value is ChartInterval {
+  return (CHART_INTERVALS as readonly string[]).includes(value);
+}
+
+/** Open time (ms, UTC) of the candle that follows the one opening at `openTime`. Calendar-aware for "1M". */
+export function nextOpenTime(openTime: number, interval: ChartInterval): number {
+  if (interval === "1M") {
+    const d = new Date(openTime);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+  }
+  return openTime + INTERVAL_MS[interval];
+}
+
 /** Milliseconds in one candle of the given interval. Used to detect gaps. */
 export const INTERVAL_MS: Record<Interval, number> = {
   "15m": 15 * 60_000,

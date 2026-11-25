@@ -5,6 +5,7 @@ import { i18nSource } from "./helpers/i18nSource";
 
 const nav = readFileSync("components/Nav.tsx", "utf8");
 const ws = readFileSync("components/charts/ChartWorkspace.tsx", "utf8");
+const uiFiles = ["ChartToolbar", "DrawingToolbar", "IndicatorsMenu", "SettingsMenu", "OhlcLegend"].map((f) => readFileSync(`components/charts/workspace/${f}.tsx`, "utf8")).join("\n");
 const page = readFileSync("app/charts/page.tsx", "utf8");
 const i18n = i18nSource();
 
@@ -36,7 +37,7 @@ describe("ATLAS CHARTS page", () => {
     expect(readFileSync("NOTICE", "utf8")).toContain("https://www.tradingview.com/");
   });
   it("has every charts.* string in English, Arabic and French", () => {
-    const keys = ["eyebrow", "title", "subtitle", "symbolLabel", "quickPairs", "noMatch", "timeframeLabel", "indicatorsLabel", "loading", "retry", "live", "connecting", "reconnecting", "stale", "disclaimer"];
+    const keys = ["eyebrow", "title", "subtitle", "symbolLabel", "quickPairs", "noMatch", "timeframeLabel", "indicators", "loading", "retry", "live", "connecting", "reconnecting", "stale", "disclaimer"];
     const errKeys = ["unsupportedPair", "unsupportedInterval", "network", "unavailable", "noData"];
     for (const l of ["en", "ar", "fr"]) {
       const src = readFileSync(`lib/i18n/${l}.ts`, "utf8");
@@ -46,9 +47,33 @@ describe("ATLAS CHARTS page", () => {
       for (const k of keys) expect(block, `${l}.${k}`).toMatch(new RegExp(`\\n    ${k}: "[^"]+",`));
       for (const k of errKeys) expect(block, `${l}.err.${k}`).toMatch(new RegExp(`\\n      ${k}: "[^"]+",`));
     }
-    for (const k of [...keys.map((x) => `charts.${x}`), ...errKeys.map((x) => `charts.err.${x}`), "nav.charts"]) expect(ws + readFileSync("components/charts/ChartSymbolPicker.tsx", "utf8") + nav).toContain(k.startsWith("charts.err.") ? "charts.err." : k.replace(/^charts\./, "charts."));
+    for (const k of [...keys.map((x) => `charts.${x}`), ...errKeys.map((x) => `charts.err.${x}`), "nav.charts"]) expect(ws + uiFiles + readFileSync("components/charts/ChartSymbolPicker.tsx", "utf8") + nav).toContain(k.startsWith("charts.err.") ? "charts.err." : k.replace(/^charts\./, "charts."));
   });
-  it("does not add persistence, drawings or membership gating in Phase 1", () => {
-    expect(ws).not.toMatch(/localStorage|redis|@clerk|useAuth|chartDrawings|drawingsPrimitive/i);
+  it("adds no drawing persistence, Redis, Clerk or membership gating (Phase 2)", () => {
+    expect(ws).not.toMatch(/localStorage|redis|@clerk|useAuth/i);
+    for (const f of ["lib/chartDrawings.ts", "lib/chartDrawingEngine.ts", "lib/chartHistory.ts", "components/charts/drawingsPrimitive.ts", "components/charts/drawing/DrawingController.ts"]) {
+      expect(readFileSync(f, "utf8"), f).not.toMatch(/localStorage|sessionStorage|indexedDB|redis|@clerk|fetch\(/i);
+    }
+  });
+  it("cleans up the chart, primitive, controller and sockets on unmount / switch", () => {
+    expect(ws).toContain("controller.destroy()");
+    expect(ws).toContain("detachPrimitive(primitive)");
+    expect(ws).toContain("chartRef.current?.remove()");
+    expect(ws).toContain("unsubscribeCrosshairMove");
+    expect(ws).toContain("stream.close()");
+    expect(ws).toContain("observer?.disconnect()");
+  });
+  it("switching timeframe reloads history and re-keys the live socket, keeping drawings", () => {
+    expect(ws).toMatch(/\[ready, chartReady, symbol, interval, reloadNonce, paintAll\]/);
+    expect(ws).toMatch(/\[dataKey, resync\]/);
+    const fn = ws.slice(ws.indexOf("const changeSymbol"), ws.indexOf("// ---- candles on screen"));
+    expect(fn).toContain("createHistory"); // symbol change resets the session
+    expect(ws).not.toMatch(/setIntervalValue[^;]*createHistory/);
+  });
+  it("offers the six timeframes including monthly and disables Market Cap honestly", () => {
+    const tf = readFileSync("components/charts/workspace/ChartToolbar.tsx", "utf8");
+    expect(tf).toContain("CHART_TIMEFRAMES");
+    expect(tf).toContain("marketCapUnavailable");
+    expect(tf).toMatch(/disabled/);
   });
 });

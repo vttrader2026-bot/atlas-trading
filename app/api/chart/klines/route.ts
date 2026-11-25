@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cdnCache } from "@/lib/publicCache";
-import { getCandles, isSupportedInterval, MarketDataError, SUPPORTED_INTERVALS } from "@/lib/marketData";
+import { CHART_INTERVALS, getCandles, isChartInterval, MarketDataError } from "@/lib/marketData";
 
 export const maxDuration = 15;
 
@@ -54,9 +54,9 @@ export async function GET(req: NextRequest) {
   if (!symbol) {
     return NextResponse.json({ error: "MISSING_SYMBOL" }, { status: 400 });
   }
-  if (!interval || !isSupportedInterval(interval)) {
+  if (!interval || !isChartInterval(interval)) {
     return NextResponse.json(
-      { error: "UNSUPPORTED_INTERVAL", supported: SUPPORTED_INTERVALS },
+      { error: "UNSUPPORTED_INTERVAL", supported: CHART_INTERVALS },
       { status: 400 }
     );
   }

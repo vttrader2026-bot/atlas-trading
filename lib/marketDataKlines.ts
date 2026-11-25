@@ -7,10 +7,10 @@ import { getRedis } from "@/lib/redis";
 import { parseRawKline, validateCandles } from "@/lib/marketDataValidation";
 import {
   Candle,
-  Interval,
+  ChartInterval,
   MarketDataError,
   ValidatedKlines,
-  isSupportedInterval,
+  isChartInterval,
 } from "@/lib/marketDataTypes";
 
 const BASE = "https://data-api.binance.vision/api/v3";
@@ -32,11 +32,11 @@ type CacheEntry = { fetchedAt: number; candles: Candle[] };
 const memoryCache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<ValidatedKlines>>();
 
-function cacheKey(symbol: string, interval: Interval, limit: number): string {
+function cacheKey(symbol: string, interval: ChartInterval, limit: number): string {
   return `market-data:klines:v1:${symbol}:${interval}:${limit}`;
 }
 
-async function fetchRawKlines(symbol: string, interval: Interval, limit: number): Promise<unknown> {
+async function fetchRawKlines(symbol: string, interval: ChartInterval, limit: number): Promise<unknown> {
   const url = `${BASE}/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`;
   let res: Response;
   try {
@@ -66,7 +66,7 @@ async function fetchRawKlines(symbol: string, interval: Interval, limit: number)
   }
 }
 
-function parseAndValidate(raw: unknown, symbol: string, interval: Interval): Candle[] {
+function parseAndValidate(raw: unknown, symbol: string, interval: ChartInterval): Candle[] {
   if (!Array.isArray(raw)) {
     throw new MarketDataError(
       "MALFORMED_RESPONSE",
@@ -100,11 +100,11 @@ function parseAndValidate(raw: unknown, symbol: string, interval: Interval): Can
  */
 export async function getValidatedKlines(
   symbol: string,
-  interval: Interval,
+  interval: ChartInterval,
   limit: number = DEFAULT_LIMIT
 ): Promise<ValidatedKlines> {
-  if (!isSupportedInterval(interval)) {
-    throw new MarketDataError("UNSUPPORTED_INTERVAL", `Interval "${interval}" is not supported`);
+  if (!isChartInterval(interval)) {
+    throw new MarketDataError("UNSUPPORTED_INTERVAL", `ChartInterval "${interval}" is not supported`);
   }
   const boundedLimit = Math.min(Math.max(1, Math.floor(limit)), MAX_LIMIT);
   const key = cacheKey(symbol, interval, boundedLimit);
