@@ -44,6 +44,26 @@ export function logicalToTime(times: number[], logical: number): number {
   return times[lo] + frac * (times[lo + 1] - times[lo]);
 }
 
+/**
+ * Pixel x of a (possibly fractional) candle position.
+ *
+ * Lightweight Charts' `timeScale().logicalToCoordinate()` only understands whole
+ * candle indexes: for a fractional position it returns 0, which collapsed every
+ * drawing whose time falls between two candles (the normal case after switching
+ * timeframe) onto the left edge of the chart. Candle x positions are linear in
+ * the index, so a fractional position is the exact interpolation between its two
+ * neighbouring whole candles. `coordOfIndex` must accept whole numbers only.
+ */
+export function logicalToX(logical: number, coordOfIndex: (index: number) => number | null): number | null {
+  if (!Number.isFinite(logical)) return null;
+  if (Number.isInteger(logical)) return coordOfIndex(logical);
+  const lo = Math.floor(logical);
+  const a = coordOfIndex(lo);
+  const b = coordOfIndex(lo + 1);
+  if (a === null || b === null) return null;
+  return a + (b - a) * (logical - lo);
+}
+
 export function distToSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
   const dy = y2 - y1;

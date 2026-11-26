@@ -74,16 +74,27 @@ export function snapTimeUnclamped(times: number[], logical: number): number | nu
   return Math.round(logicalToTime(times, Math.round(logical)));
 }
 
+/** Two drawings whose distance to the pointer differs by less than this are "equally close": the newer one wins. */
+export const HIT_TIE_PX = 1;
+
 /**
- * Id of the topmost drawing within `tol` pixels of (x, y), or null. Later drawings sit on top.
+ * Id of the drawing closest to (x, y) within `tol` pixels, or null. When two are equally close (within
+ * HIT_TIE_PX) the later, topmost one wins, so a click on exactly overlapping drawings is predictable.
  * Lines, borders, strokes and labels win first; a click inside a rectangle or zone only selects it when
  * nothing else is close, so a line drawn across a zone stays selectable.
  */
 export function hitTest(geos: Geo[], x: number, y: number, tol: number = HIT_TOLERANCE_PX): string | null {
+  let bestId: string | null = null;
+  let bestD = Infinity;
   for (let i = geos.length - 1; i >= 0; i--) {
     const g = geos[i];
-    if (defOf(g.kind).hit(g, x, y, tol) <= tol) return g.id;
+    const d = defOf(g.kind).hit(g, x, y, tol);
+    if (d <= tol && d < bestD - HIT_TIE_PX) {
+      bestD = d;
+      bestId = g.id;
+    }
   }
+  if (bestId) return bestId;
   for (let i = geos.length - 1; i >= 0; i--) {
     const g = geos[i];
     if (defOf(g.kind).inside?.(g, x, y)) return g.id;
@@ -105,6 +116,28 @@ export function projectDrawing(
 /** Grab handles of a selected drawing (trend: 2 ends; rect: 4 corners; zone: top and bottom edge). Others move as a whole. */
 export function handlesOf(g: Geo): Handle[] {
   return defOf(g.kind).handles(g);
+}
+
+/** Pixel position of a named handle, or null. */
+export function handlePosition(g: Geo, name: string): { x: number; y: number } | null {
+  const h = handlesOf(g).find((k) => k.name === name);
+  return h ? { x: h.x, y: h.y } : null;
+}
+
+/** Structural equality of two drawings (same kind, same anchors, same content). */
+export function drawingsEqual(a: Drawing, b: Drawing): boolean {
+  if (a === b) return true;
+  return sameValue(a, b);
+}
+
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const ka = Object.keys(a);
+  if (ka.length !== Object.keys(b).length) return false;
+  for (const k of ka) if (!sameValue((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])) return false;
+  return true;
 }
 
 /** Nearest handle within `tol` pixels, or null. */

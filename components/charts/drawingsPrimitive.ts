@@ -16,7 +16,7 @@ import type {
   Time,
 } from "lightweight-charts";
 import { projectDrawing, timeToLogical, type Drawing, type DrawingDraft, type Geo, type Pt } from "@/lib/chartDrawings";
-import { defOf, paintMeasure, type PaintColors, type PaintEnv, type PaintOpts } from "@/lib/drawingKinds";
+import { defOf, logicalToX, paintMeasure, type PaintColors, type PaintEnv, type PaintOpts } from "@/lib/drawingKinds";
 
 export type MeasureState = { a: Pt; b: Pt; lines: string[] } | null;
 export type PrimitiveColors = PaintColors;
@@ -71,7 +71,9 @@ export class DrawingsPrimitive implements ISeriesPrimitive<Time> {
   /** x pixel of a time, or null when the chart has no data / is detached. */
   xOf(time: number): number | null {
     if (!this.chart || this.times.length === 0) return null;
-    return this.chart.timeScale().logicalToCoordinate(timeToLogical(this.times, time) as Logical);
+    const scale = this.chart.timeScale();
+    // fractional candle positions (any time between two candles) need interpolation: see logicalToX
+    return logicalToX(timeToLogical(this.times, time), (i) => scale.logicalToCoordinate(i as Logical));
   }
 
   yOf(price: number): number | null {

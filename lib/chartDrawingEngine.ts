@@ -12,7 +12,9 @@ import {
   HANDLE_TOLERANCE_PX,
   HANDLE_TOLERANCE_TOUCH_PX,
   HIT_TOLERANCE_PX,
+  drawingsEqual,
   editHandle,
+  handlePosition,
   hitHandle,
   hitTest,
   logicalToTime,
@@ -66,7 +68,7 @@ export type EngineHost = {
 
 type Drag =
   | { kind: "move"; id: string; orig: Drawing[]; startLogical: number; startPrice: number; startX: number; startY: number; moved: boolean }
-  | { kind: "handle"; id: string; handle: string; orig: Drawing[]; moved: boolean };
+  | { kind: "handle"; id: string; handle: string; orig: Drawing[]; moved: boolean; offX: number; offY: number };
 
 type Anchor = { a: Pt; down: boolean; gesture: 1 | 2; startX: number; startY: number; moved: boolean };
 
@@ -222,7 +224,10 @@ export class DrawingEngine {
       if (sel) {
         const handle = hitHandle(sel, x, y, tol);
         if (handle) {
-          this.drag = { kind: "handle", id: sel.id, handle, orig: this.drawings, moved: false };
+          // Remember where on the handle the pointer grabbed it, so the handle follows the pointer by that
+          // offset instead of jumping to be centred under it.
+          const at = handlePosition(sel, handle);
+          this.drag = { kind: "handle", id: sel.id, handle, orig: this.drawings, moved: false, offX: at ? x - at.x : 0, offY: at ? y - at.y : 0 };
           return true;
         }
       }
@@ -290,7 +295,7 @@ export class DrawingEngine {
         drag.moved = true;
         this.host.onLive(replaceDrawing(drag.orig, next));
       } else {
-        const p = this.pointFrom(x, y);
+        const p = this.pointFrom(x - drag.offX, y - drag.offY);
         if (!p) return true;
         drag.moved = true;
         this.host.onLive(replaceDrawing(drag.orig, editHandle(orig, drag.handle, p)));
@@ -346,6 +351,8 @@ export class DrawingEngine {
         if (list !== drag.orig) {
           this.drawings = list;
           this.host.onCommit(list);
+        } else {
+          this.host.onLive(drag.orig); // nothing really changed (or it collapsed): no history entry, restore the list
         }
       }
       return true;
@@ -478,10 +485,11 @@ export class DrawingEngine {
     if (drag.kind === "move") {
       next = moveDrawing(orig, Math.round(v.logical - drag.startLogical), v.price - drag.startPrice, this.view.times());
     } else {
-      const p = this.pointFrom(x, y);
+      const p = this.pointFrom(x - drag.offX, y - drag.offY);
       next = p ? editHandle(orig, drag.handle, p) : orig;
     }
-    if (next === orig) return drag.orig;
+    // An unchanged drawing (e.g. a horizontal line dragged along itself) is not a history entry.
+    if (next === orig || drawingsEqual(next, orig)) return drag.orig;
     // A handle drag that collapses a shape to nothing is reverted rather than recorded.
     if (isDegenerateDrawing(next)) return drag.orig;
     return replaceDrawing(drag.orig, next);
