@@ -12,13 +12,9 @@ import {
   HANDLE_TOLERANCE_PX,
   HANDLE_TOLERANCE_TOUCH_PX,
   HIT_TOLERANCE_PX,
-  MAX_BRUSH_POINTS,
-  decimatePoints,
   editHandle,
   hitHandle,
   hitTest,
-  isDegenerateRect,
-  isDegenerateTrend,
   logicalToTime,
   magnetPrice,
   moveDrawing,
@@ -36,6 +32,7 @@ import {
   type Pt,
   type Tool,
 } from "@/lib/chartDrawings";
+import { brushDraft, draftFromAnchors, draftFromPoint, gestureOf, isDegenerateDrawing } from "@/lib/drawingKinds";
 
 /** What the engine needs to know about the chart. */
 export type EngineView = {
@@ -257,18 +254,17 @@ export class DrawingEngine {
     const p = this.pointFrom(x, y);
     if (!p) return true; // chart not ready: swallow so it doesn't pan under a drawing tool
 
-    switch (tool) {
-      case "hline":
-      case "vline":
+    switch (gestureOf(tool)) {
+      case "point":
       case "text":
         this.single = { down: true, at: p, x, y };
         this.host.onDraft(this.draftForSingle(p));
         return true;
-      case "brush":
+      case "freehand":
         this.brush = { pts: [p], px: [[x, y]] };
         this.host.onDraft(null);
         return true;
-      default:
+      default: // two-point and measure
         if (!this.anchor) this.anchor = { a: p, down: true, gesture: 1, startX: x, startY: y, moved: false };
         else {
           this.anchor.down = true;
@@ -312,7 +308,7 @@ export class DrawingEngine {
           const smooth = v ? { time: Math.round(logicalToTime(this.view.times(), v.logical)), price: p.price } : p;
           this.brush.pts.push(smooth);
           this.brush.px.push([x, y]);
-          this.host.onDraft({ kind: "brush", pts: decimatePoints(this.brush.pts, MAX_BRUSH_POINTS) });
+          this.host.onDraft(brushDraft(this.brush.pts));
         }
       }
       return true;
@@ -364,7 +360,7 @@ export class DrawingEngine {
         this.host.onTool("cursor"); // a plain tap with the brush draws nothing
         return true;
       }
-      this.finish({ id: newDrawingId(), kind: "brush", pts: decimatePoints(b.pts, MAX_BRUSH_POINTS) });
+      this.finish({ id: newDrawingId(), ...brushDraft(b.pts) });
       return true;
     }
 
@@ -373,11 +369,12 @@ export class DrawingEngine {
       const p = this.pointFrom(x, y) ?? s.at;
       this.single = null;
       this.host.onDraft(null);
-      if (this.tool === "text") {
+      if (gestureOf(this.tool) === "text") {
         this.host.onRequestText({ x, y, at: p });
         return true;
       }
-      this.finish(this.tool === "hline" ? { id: newDrawingId(), kind: "hline", price: p.price } : { id: newDrawingId(), kind: "vline", time: p.time });
+      const draft = draftFromPoint(this.tool, p);
+      if (draft) this.finish({ id: newDrawingId(), ...draft });
       return true;
     }
 
@@ -486,16 +483,12 @@ export class DrawingEngine {
     }
     if (next === orig) return drag.orig;
     // A handle drag that collapses a shape to nothing is reverted rather than recorded.
-    if (next.kind === "rect" && isDegenerateRect(next.a, next.b)) return drag.orig;
-    if (next.kind === "trend" && isDegenerateTrend(next.a, next.b)) return drag.orig;
-    if (next.kind === "zone" && next.top === next.bottom) return drag.orig;
+    if (isDegenerateDrawing(next)) return drag.orig;
     return replaceDrawing(drag.orig, next);
   }
 
   private draftForSingle(p: Pt): DrawingDraft | null {
-    if (this.tool === "hline") return { kind: "hline", price: p.price };
-    if (this.tool === "vline") return { kind: "vline", time: p.time };
-    return null; // text: nothing to preview before the label exists
+    return draftFromPoint(this.tool, p); // text: nothing to preview before the label exists (null)
   }
 
   private emitTwoPoint(b: Pt) {
@@ -506,11 +499,7 @@ export class DrawingEngine {
       this.host.onMeasure(this.measuring);
       return;
     }
-    if (this.tool === "zone") {
-      this.host.onDraft({ kind: "zone", top: Math.max(a.price, b.price), bottom: Math.min(a.price, b.price) });
-      return;
-    }
-    this.host.onDraft({ kind: this.tool === "rect" ? "rect" : "trend", a, b });
+    this.host.onDraft(draftFromAnchors(this.tool, a, b));
   }
 
   private completeTwoPoint(a: Pt, b: Pt) {
@@ -523,13 +512,10 @@ export class DrawingEngine {
       this.host.onTool("cursor");
       return;
     }
-    if (this.tool === "rect" && isDegenerateRect(a, b)) return this.discardTwoPoint();
-    if (this.tool === "trend" && isDegenerateTrend(a, b)) return this.discardTwoPoint();
-    if (this.tool === "zone") {
-      if (a.price === b.price) return this.discardTwoPoint();
-      return this.finish({ id: newDrawingId(), kind: "zone", top: Math.max(a.price, b.price), bottom: Math.min(a.price, b.price) });
-    }
-    this.finish({ id: newDrawingId(), kind: this.tool === "rect" ? "rect" : "trend", a, b });
+    const draft = draftFromAnchors(this.tool, a, b);
+    if (!draft) return this.discardTwoPoint();
+    if (isDegenerateDrawing(draft)) return this.discardTwoPoint();
+    this.finish({ id: newDrawingId(), ...draft });
   }
 
   /** A degenerate shape (zero size) is dropped: nothing is recorded and the tool stays armed. */
