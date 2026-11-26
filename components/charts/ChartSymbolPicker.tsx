@@ -12,7 +12,7 @@ import { pairsFromSymbols, QUICK_PAIRS, searchPairs } from "@/lib/pairList";
  * typed ticker is still offered and the server verifies it against Binance —
  * a pair that does not exist shows a clear error, never invented data.
  */
-export default function ChartSymbolPicker({ value, onChange }: { value: string; onChange: (symbol: string) => void }) {
+export default function ChartSymbolPicker({ value, onChange, compact = false }: { value: string; onChange: (symbol: string) => void; compact?: boolean }) {
   const { t } = useLanguage();
   const id = useId();
   const [symbols, setSymbols] = useState<Set<string> | null>(null);
@@ -39,6 +39,7 @@ export default function ChartSymbolPicker({ value, onChange }: { value: string; 
     onChange(pair.replace("/", ""));
     setQuery("");
     setOpen(false);
+    if (compact) (document.activeElement as HTMLElement | null)?.blur?.(); // close the phone keyboard after choosing
   };
   const chip = (active: boolean) =>
     `px-2.5 py-1 rounded-md border text-xs transition-colors ${active ? "border-gold text-gold bg-gold/15" : "border-line text-text-muted hover:text-text"}`;
@@ -46,12 +47,12 @@ export default function ChartSymbolPicker({ value, onChange }: { value: string; 
 
   return (
     <div className="relative min-w-0">
-      <label htmlFor={id} className="text-xs text-text-muted">
+      <label htmlFor={id} className={compact ? "sr-only" : "text-xs text-text-muted"}>
         {t("charts.symbolLabel")}
       </label>
       <input
         id={id}
-        className="input mt-1 font-data"
+        className={compact ? "input !h-9 !w-full !py-0 font-data" : "input mt-1 font-data"}
         role="combobox"
         aria-expanded={open}
         aria-controls={`${id}-list`}
@@ -74,6 +75,7 @@ export default function ChartSymbolPicker({ value, onChange }: { value: string; 
           } else if (e.key === "Escape") setOpen(false);
         }}
       />
+      {!compact && (
       <div className="mt-1 flex flex-wrap gap-1.5" aria-label={t("charts.quickPairs")}>
         {QUICK_PAIRS.map((p) => (
           <button key={p} type="button" className={chip(p === current)} onClick={() => choose(p)}>
@@ -82,8 +84,9 @@ export default function ChartSymbolPicker({ value, onChange }: { value: string; 
         ))}
         {!(QUICK_PAIRS as readonly string[]).includes(current) && <span className={chip(true)}>{current.replace("/USDT", "")}</span>}
       </div>
+      )}
       {open && (query || all.length > 0) && (
-        <ul id={`${id}-list`} role="listbox" className="absolute z-30 mt-1 max-h-60 w-full min-w-[12rem] overflow-auto rounded-lg border border-line bg-surface shadow-lg">
+        <ul id={`${id}-list`} role="listbox" className="absolute z-50 mt-1 max-h-60 w-full min-w-[12rem] overflow-auto rounded-lg border border-line bg-surface shadow-lg">
           {matches.map((p) => (
             <li key={p} role="option" aria-selected={p === current}>
               <button type="button" className={optionClass} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(p)}>

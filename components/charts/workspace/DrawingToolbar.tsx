@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useLanguage } from "@/lib/i18n";
 import type { Tool } from "@/lib/chartDrawings";
 import Popover from "@/components/charts/workspace/Popover";
@@ -44,29 +44,31 @@ const TOOLS: { id: Tool; icon: IconName }[] = [
 export default function DrawingToolbar(p: DrawingToolbarProps) {
   const { t } = useLanguage();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [tipState, setTipState] = useState<{ label: string; hint?: string; left: number; top: number; rtl: boolean } | null>(null);
 
-  const base = "group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-transparent transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
+  const base = "group relative flex h-10 w-10 sm:h-9 sm:w-9 sm:[@media(max-height:820px)]:h-8 sm:[@media(max-height:820px)]:w-8 shrink-0 items-center justify-center rounded-md border border-transparent transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
   const cls = (active: boolean) => `${base} ${active ? "border-gold bg-gold/15 text-gold" : "text-text-muted hover:bg-gold/10 hover:text-text"}`;
-  const tip = (label: string, hint?: string): ReactNode => (
-    <span role="tooltip" className="pointer-events-none absolute start-full top-1/2 z-50 ms-2 hidden w-max max-w-[15rem] -translate-y-1/2 rounded-md border border-line bg-surface px-2.5 py-1.5 text-start text-xs text-text shadow-lg group-hover:sm:block group-focus-visible:sm:block">
-      <span className="block font-semibold">{label}</span>
-      {hint && <span className="block text-text-muted">{hint}</span>}
-    </span>
-  );
+  const showTip = (el: HTMLElement, label: string, hint?: string) => {
+    if (window.innerWidth < 640) return; // phones use the title/aria-label; the strip is horizontal
+    const r = el.getBoundingClientRect();
+    const rtl = document.documentElement.dir === "rtl";
+    setTipState({ label, hint, left: rtl ? r.left - 8 : r.right + 8, top: r.top + r.height / 2, rtl });
+  };
   const btn = (key: string, icon: IconName, label: string, opts: { active?: boolean; onClick: () => void; hint?: string; disabled?: boolean; pressed?: boolean }) => (
-    <button key={key} type="button" className={cls(!!opts.active)} aria-label={label} title={opts.hint ? `${label} — ${opts.hint}` : label} aria-pressed={opts.pressed} disabled={opts.disabled} onClick={opts.onClick}>
+    <button key={key} type="button" className={cls(!!opts.active)} aria-label={label} title={opts.hint ? `${label} — ${opts.hint}` : label} aria-pressed={opts.pressed} disabled={opts.disabled} onClick={opts.onClick}
+      onMouseEnter={(e) => showTip(e.currentTarget, label, opts.hint)} onMouseLeave={() => setTipState(null)} onFocus={(e) => e.currentTarget.matches(":focus-visible") && showTip(e.currentTarget, label, opts.hint)} onBlur={() => setTipState(null)}>
       {Icons[icon]}
-      {tip(label, opts.hint)}
     </button>
   );
   const sep = (k: string) => <span key={k} className="mx-1 h-6 w-px shrink-0 self-center bg-line sm:mx-0 sm:my-1 sm:h-px sm:w-6" aria-hidden="true" />;
 
   return (
+    <>
     <div
       role="toolbar"
       aria-label={t("charts.drawingTools")}
       aria-orientation="vertical"
-      className="flex shrink-0 flex-row items-center gap-0.5 overflow-x-auto border-b border-line bg-surface px-1.5 py-1 sm:w-12 sm:flex-col sm:overflow-visible sm:border-b-0 sm:border-e sm:px-1 sm:py-2"
+      className="flex shrink-0 flex-row items-center gap-0.5 overflow-x-auto border-b border-line bg-surface px-1.5 py-1 sm:w-11 sm:min-h-0 sm:flex-col sm:overflow-y-auto sm:overflow-x-hidden sm:border-b-0 sm:border-e sm:px-1 sm:py-2"
     >
       {TOOLS.map((tl) => btn(tl.id, tl.icon, t(`charts.tool.${tl.id}`), { active: p.tool === tl.id, pressed: p.tool === tl.id, hint: t(`charts.hint.${tl.id}`), onClick: () => p.onTool(tl.id) }))}
       {sep("s1")}
@@ -84,6 +86,7 @@ export default function DrawingToolbar(p: DrawingToolbarProps) {
         onClose={() => setConfirmOpen(false)}
         label={t("charts.clearTitle")}
         width="w-60"
+        fixed
         trigger={
           <button
             type="button"
@@ -91,13 +94,13 @@ export default function DrawingToolbar(p: DrawingToolbarProps) {
             aria-label={t("charts.clear")}
             title={t("charts.clear")}
             disabled={p.drawingCount === 0}
-            onClick={() => setConfirmOpen((o) => !o)}
+            onClick={() => { setTipState(null); setConfirmOpen((o) => !o); }}
           >
             <span className="relative">
               {Icons.trash}
               <span className="absolute -end-1.5 -top-1.5 rounded-full bg-bear px-1 text-[9px] leading-3 text-white">{p.drawingCount > 99 ? "99+" : p.drawingCount}</span>
             </span>
-            {tip(t("charts.clear"))}
+            
           </button>
         }
       >
@@ -120,5 +123,12 @@ export default function DrawingToolbar(p: DrawingToolbarProps) {
         </div>
       </Popover>
     </div>
+    {tipState && (
+      <span role="tooltip" className="pointer-events-none fixed z-50 w-max max-w-[15rem] -translate-y-1/2 rounded-md border border-line bg-surface px-2.5 py-1.5 text-start text-xs text-text shadow-lg" style={{ top: tipState.top, left: tipState.left, transform: `translateY(-50%)${tipState.rtl ? " translateX(-100%)" : ""}` }}>
+        <span className="block font-semibold">{tipState.label}</span>
+        {tipState.hint && <span className="block text-text-muted">{tipState.hint}</span>}
+      </span>
+    )}
+    </>
   );
 }

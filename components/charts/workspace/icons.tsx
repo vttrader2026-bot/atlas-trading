@@ -32,6 +32,9 @@ export const Icons = {
   redo: <Svg><path d="M13 4.5L16.5 8 13 11.5" /><path d="M16.5 8H8a4.5 4.5 0 000 9h4" /></Svg>,
   indicators: <Svg><path d="M3 14l3.5-4 3 2.5L14 6l3 3" /><path d="M3 17h14" /></Svg>,
   settings: <Svg><circle cx="10" cy="10" r="2.6" /><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" /></Svg>,
+  fullscreen: <Svg><path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4" /></Svg>,
+  fullscreenExit: <Svg><path d="M7 3v4H3M13 3v4h4M17 13h-4v4M3 13h4v4" /></Svg>,
+  panel: <Svg><rect x="3" y="4" width="14" height="12" rx="1.5" /><path d="M12.5 4v12" /></Svg>,
   chevron: <Svg><path d="M5.5 8l4.5 4.5L14.5 8" /></Svg>,
   edit: <Svg><path d="M3.5 16.5l.8-3.6L13.5 3.7a1.7 1.7 0 012.4 2.4L6.7 15.3l-3.2 1.2z" /></Svg>,
 };

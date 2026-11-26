@@ -21,6 +21,8 @@ export type ChartSettings = {
   crosshairMode: CrosshairMode;
   crosshairStyle: CrosshairStyle;
   volume: boolean;
+  /** True once the viewer has toggled volume themselves. Saved settings that never recorded a choice follow the default (off). */
+  volumeChosen: boolean;
 };
 
 export const DEFAULT_SETTINGS: ChartSettings = {
@@ -33,7 +35,8 @@ export const DEFAULT_SETTINGS: ChartSettings = {
   crosshair: true,
   crosshairMode: "normal",
   crosshairStyle: "dashed",
-  volume: true,
+  volume: false, // hidden by default (Phase 3B)
+  volumeChosen: false,
 };
 
 /** `null` means "use the Atlas theme's own --bull / --bear (follows light/dark)". */
@@ -64,7 +67,9 @@ export function sanitizeSettings(raw: unknown): ChartSettings {
     crosshair: bool(r.crosshair, d.crosshair),
     crosshairMode: pick(r.crosshairMode, ["normal", "magnet"], d.crosshairMode),
     crosshairStyle: pick(r.crosshairStyle, CROSSHAIR_STYLES, d.crosshairStyle),
-    volume: bool(r.volume, d.volume),
+    // A saved `volume` only counts if the viewer chose it: before Phase 3B every saved object carried the old default (true).
+    volume: r.volumeChosen === true ? bool(r.volume, d.volume) : d.volume,
+    volumeChosen: r.volumeChosen === true,
   };
 }
 

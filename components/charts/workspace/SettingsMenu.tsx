@@ -81,7 +81,7 @@ export default function SettingsMenu({ settings, onChange, onReset, btnClass }: 
           {toggle(t("charts.set.crosshair"), settings.crosshair, (v) => onChange({ crosshair: v }))}
           {toggle(t("charts.set.priceScale"), settings.priceScale, (v) => onChange({ priceScale: v }))}
           {toggle(t("charts.set.timeScale"), settings.timeScale, (v) => onChange({ timeScale: v }))}
-          {toggle(t("charts.set.volume"), settings.volume, (v) => onChange({ volume: v }))}
+          {toggle(t("charts.set.volume"), settings.volume, (v) => onChange({ volume: v, volumeChosen: true }))}
         </div>
         <button type="button" disabled={!changed} className="mt-3 w-full rounded-md border border-line px-3 py-2 text-sm text-text-muted hover:text-text disabled:opacity-50" onClick={onReset}>
           {t("charts.set.reset")}

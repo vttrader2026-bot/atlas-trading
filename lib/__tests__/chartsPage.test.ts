@@ -9,7 +9,7 @@ const HOOK_DIR = "components/charts/hooks";
 const hooks = readdirSync(HOOK_DIR).map((f) => readFileSync(`${HOOK_DIR}/${f}`, "utf8")).join("\n");
 // Behaviour checks look at the workspace and its hooks together (Phase 3A split them).
 const ws = view + "\n" + hooks + "\n" + readFileSync("lib/chartCandlesApi.ts", "utf8");
-const uiFiles = ["ChartToolbar", "DrawingToolbar", "IndicatorsMenu", "SettingsMenu", "OhlcLegend"].map((f) => readFileSync(`components/charts/workspace/${f}.tsx`, "utf8")).join("\n");
+const uiFiles = ["ChartToolbar", "DrawingToolbar", "IndicatorsMenu", "SettingsMenu", "OhlcLegend", "ChartStatusBar", "ChartSidebar"].map((f) => readFileSync(`components/charts/workspace/${f}.tsx`, "utf8")).join("\n");
 const page = readFileSync("app/charts/page.tsx", "utf8");
 const i18n = i18nSource();
 
