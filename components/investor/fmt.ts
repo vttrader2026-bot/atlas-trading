@@ -1,4 +1,5 @@
 // ATLAS INVESTOR V1 formatting helpers (kept separate from the Journal's).
+import { parseDecimal } from "@/lib/investor/numInput";
 /** Fills {placeholders}. Each value is wrapped in invisible left-to-right isolates so numbers, tickers and amounts keep their order inside Arabic sentences. */
 export const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => `\u2066${String(vars[k] ?? "")}\u2069`);
 export const usd = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -18,5 +19,5 @@ export const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 export const newId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID().replace(/-/g, "").slice(0, 20) : Math.random().toString(36).slice(2, 12) + Date.now().toString(36));
-/** Parses a user-typed number ("1,234.5" or "1234.5"). Returns NaN when invalid. */
-export const parseNum = (s: string) => (s.trim() === "" ? NaN : Number(s.replace(/,/g, "")));
+/** Parses a user-typed number with a "." or "," decimal separator (also Arabic-Indic digits). Returns NaN when invalid. See lib/investor/numInput.ts. */
+export const parseNum = (s: string) => parseDecimal(s);

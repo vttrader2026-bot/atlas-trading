@@ -14,6 +14,7 @@ import { fill } from "@/components/investor/fmt";
 import { CurrencyBar, CurrencyProvider } from "@/components/investor/currency";
 import Dashboard from "@/components/investor/Dashboard";
 import TradeForm from "@/components/investor/TradeForm";
+import { numText } from "@/lib/investor/numInput";
 import Ledger, { type PurchaseDraft } from "@/components/investor/Ledger";
 import Dca from "@/components/investor/Dca";
 import Risk from "@/components/investor/Risk";
@@ -113,7 +114,7 @@ export default function InvestorPage() {
         <div role="dialog" aria-modal="true" aria-label={t("investor.addSale")} className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-8"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setSell(null); }}>
           <div className="w-full max-w-xl my-auto">
-            <TradeForm init={{ kind: "sell", asset: sell.asset, price: sell.price ? String(sell.price) : "" }} doc={doc} run={run} onClose={() => setSell(null)} />
+            <TradeForm init={{ kind: "sell", asset: sell.asset, price: sell.price ? numText(sell.price) : "" }} doc={doc} run={run} onClose={() => setSell(null)} />
           </div>
         </div>
       )}

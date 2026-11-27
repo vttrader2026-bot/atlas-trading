@@ -4,6 +4,7 @@ import { InvestorDoc, Purchase, Sale, purchaseCost, saleProceeds, r8, sortCashNe
 import { CoinLogo } from "@/components/market/MarketBits";
 import { useLanguage } from "@/lib/i18n";
 import TradeForm, { type TradeInit } from "./TradeForm";
+import { numText } from "@/lib/investor/numInput";
 import { newId, parseNum, qty as fmtQty, today } from "./fmt";
 import { useMoney, UsdtNote } from "./currency";
 
@@ -70,17 +71,17 @@ export default function Ledger({ doc, run, draft, clearDraft, livePrice }: { doc
   useEffect(() => {
     if (!draft) return;
     const p = draft.price ?? livePrice(draft.asset) ?? undefined;
-    const q = p && draft.amount ? String(r8(draft.amount / p)) : "";
+    const q = p && draft.amount ? numText(r8(draft.amount / p)) : "";
     // Prefill from the DCA planner. Opening a form from an external action is the point of this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setForm({ kind: "buy", asset: draft.asset, price: p ? String(p) : "", qty: q, planId: draft.planId, slot: draft.slot });
+    setForm({ kind: "buy", asset: draft.asset, price: p ? numText(p) : "", qty: q, planId: draft.planId, slot: draft.slot });
     setCash(false);
     clearDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft]);
 
   const sorted = <T extends { date: string }>(l: T[]) => [...l].sort((a, b) => b.date.localeCompare(a.date));
-  const toForm = (kind: "buy" | "sell", x: Purchase | Sale): TradeInit => ({ kind, id: x.id, asset: x.asset, date: x.date, qty: String(x.qty), price: String(x.price), fee: x.fee, quote: x.quote, note: x.note, planId: (x as Purchase).planId, slot: (x as Purchase).slot });
+  const toForm = (kind: "buy" | "sell", x: Purchase | Sale): TradeInit => ({ kind, id: x.id, asset: x.asset, date: x.date, qty: numText(x.qty), price: numText(x.price), fee: x.fee, quote: x.quote, note: x.note, planId: (x as Purchase).planId, slot: (x as Purchase).slot });
   const open = (f: TradeInit | null, c = false) => { setForm(f); setCash(c); };
 
   return (

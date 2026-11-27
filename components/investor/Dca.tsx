@@ -7,6 +7,7 @@ import type { PriceMap } from "@/lib/investor/calc";
 import { CoinLogo } from "@/components/market/MarketBits";
 import { useLanguage } from "@/lib/i18n";
 import BinanceSpotLink from "@/components/BinanceSpotLink";
+import { numText } from "@/lib/investor/numInput";
 import AssetPicker from "./AssetPicker";
 import type { PurchaseDraft } from "./Ledger";
 import { fill, newId, parseNum, price, today, usd } from "./fmt";
@@ -58,7 +59,7 @@ function PlanForm({ prices, run, onDone, initialAsset = "" }: { prices: PriceMap
         <div className="sm:col-span-2">
           <label className={lab}>{t("investor.refPrice")}<input dir="ltr" inputMode="decimal" className="input mt-1 w-full" value={f.ref} onChange={set("ref")} /></label>
           <span className={hint}>{t("investor.hRef")}</span>
-          {live && <button type="button" className="mt-1 text-xs text-gold underline" onClick={() => setF({ ...f, ref: String(live) })}>{t("investor.useLive")} ({price(live)})</button>}
+          {live && <button type="button" className="mt-1 text-xs text-gold underline" onClick={() => setF({ ...f, ref: numText(live) })}>{t("investor.useLive")} ({price(live)})</button>}
         </div>
       </div>
       <div>

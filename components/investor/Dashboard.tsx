@@ -6,6 +6,7 @@ import { assetOf } from "@/lib/investor/assets";
 import { CoinLogo } from "@/components/market/MarketBits";
 import { useLanguage } from "@/lib/i18n";
 import PriceBadge from "./PriceBadge";
+import { numText } from "@/lib/investor/numInput";
 import { fill, parseNum, pct, qty, signedPct, tone } from "./fmt";
 import { useMoney, UsdtNote } from "./currency";
 import { downloadInvestorPdf } from "@/lib/investorPdf";
@@ -25,7 +26,7 @@ export function Stat({ label, value, hint, cls = "" }: { label: string; value: s
 
 function ManualPriceRow({ asset, current, run }: { asset: string; current?: { price: number; at: string }; run: Run }) {
   const { t } = useLanguage();
-  const [v, setV] = useState(current ? String(current.price) : "");
+  const [v, setV] = useState(current ? numText(current.price) : "");
   const [err, setErr] = useState(false);
   const save = async () => {
     const n = parseNum(v);
